@@ -4,42 +4,47 @@
 // SPDX-License-Identifier: MIT
 
 use ratatui::layout::{Constraint, Flex, Layout, Rect};
+use ratatui::style::Modifier;
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Clear, Paragraph, Wrap};
+use ratatui::widgets::{Block, Borders, Clear, Paragraph};
 use ratatui::Frame;
 
 use crate::ui::theme;
 
+/// Section header marker — rendered differently from command rows.
+const S: &str = "";
+
 const HELP_TEXT: &[(&str, &str)] = &[
-    ("/now <text>", "Set or replace the current thread"),
-    (
-        "/branch <text>",
-        "Create a branch beneath the current thread",
-    ),
-    ("/back", "Return to the parent thread"),
-    ("/note <text>", "Attach a note (or just type plain text)"),
-    ("/where", "Show current thread and branches"),
-    ("/pause", "Pause the current thread"),
-    ("/done", "Mark the current thread done"),
+    (S, "Slash Commands"),
+    ("/now <text>", "Set current thread"),
+    ("/branch <text>", "Branch off current thread"),
+    ("/back", "Return to parent thread"),
+    ("/note <text>", "Attach a note"),
+    ("/where", "Show current state"),
+    ("/pause", "Pause current thread"),
+    ("/done", "Mark current thread done"),
     ("", ""),
+    (S, "Insert Mode"),
     ("/ (empty line)", "Open command palette"),
     ("? (empty line)", "Show shortcut hints"),
     ("Up / Down", "Navigate thread list"),
-    ("Enter (empty)", "Expand/collapse thread branches"),
+    ("Enter (empty)", "Expand/collapse branches"),
     ("Enter (text)", "Submit input"),
     ("Esc", "Switch to Normal mode"),
-    ("i", "Switch to Insert mode (from Normal)"),
-    ("?", "Toggle help (from Normal mode)"),
-    ("r", "Resume selected thread (Normal mode)"),
-    ("a", "About (from Normal mode)"),
-    ("q", "Quit (from Normal mode)"),
-    ("j / k", "Navigate thread list (Normal mode)"),
+    ("", ""),
+    (S, "Normal Mode"),
+    ("i", "Switch to Insert mode"),
+    ("j / k / Up / Down", "Navigate thread list"),
+    ("Enter", "Expand/collapse branches"),
+    ("r", "Resume selected thread"),
+    ("?", "Toggle this help"),
+    ("a", "About"),
+    ("q", "Quit"),
 ];
 
 /// Render the help overlay centred on screen.
 pub fn render(frame: &mut Frame, area: Rect) {
-    // Centre a box that is 60 wide and 18 tall (or as much as fits)
-    let popup_width = 60.min(area.width.saturating_sub(4));
+    let popup_width = 54.min(area.width.saturating_sub(4));
     let popup_height = (HELP_TEXT.len() as u16 + 4).min(area.height.saturating_sub(2));
 
     let vert = Layout::vertical([Constraint::Length(popup_height)])
@@ -55,11 +60,17 @@ pub fn render(frame: &mut Frame, area: Rect) {
     let lines: Vec<Line> = HELP_TEXT
         .iter()
         .map(|(cmd, desc)| {
-            if cmd.is_empty() {
+            if *cmd == S {
+                // Section header
+                Line::from(Span::styled(
+                    format!(" {desc}"),
+                    theme::header().add_modifier(Modifier::BOLD),
+                ))
+            } else if cmd.is_empty() {
                 Line::from("")
             } else {
                 Line::from(vec![
-                    Span::styled(format!("{cmd:<20}"), theme::accent()),
+                    Span::styled(format!("  {cmd:<22}"), theme::accent()),
                     Span::styled(*desc, theme::text()),
                 ])
             }
@@ -71,8 +82,6 @@ pub fn render(frame: &mut Frame, area: Rect) {
         .border_style(theme::accent())
         .title(Span::styled(" Help ", theme::header()));
 
-    let paragraph = Paragraph::new(lines)
-        .block(block)
-        .wrap(Wrap { trim: false });
+    let paragraph = Paragraph::new(lines).block(block);
     frame.render_widget(paragraph, popup_area);
 }

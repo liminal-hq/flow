@@ -5,6 +5,8 @@
 
 pub mod back;
 pub mod branch;
+#[allow(dead_code)]
+pub mod colour;
 pub mod done;
 pub mod list;
 pub mod note;

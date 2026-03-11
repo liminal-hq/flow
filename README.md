@@ -1,8 +1,8 @@
+# Liminal Flow
+
 <p align="center">
   <img src="assets/hero.svg" alt="Liminal Flow — Terminal-native working memory for developers" width="100%">
 </p>
-
-# Liminal Flow
 
 A terminal-native working-memory sidecar. Track what you're working on, branch your attention across sub-tasks, and maintain ambient context awareness — all from the terminal.
 

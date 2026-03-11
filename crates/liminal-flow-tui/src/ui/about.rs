@@ -1,15 +1,12 @@
 // About overlay — app info, logo, and credits
 //
-// Shown when the user presses `?` from Normal mode (the help overlay)
-// or via a dedicated `/about` in future. For now, integrated into the
-// shortcut hints as a fun branded touch.
-//
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: MIT
 
 use ratatui::layout::{Constraint, Flex, Layout, Rect};
+use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Clear, Paragraph, Wrap};
+use ratatui::widgets::{Block, Borders, Clear, Paragraph};
 use ratatui::Frame;
 
 use crate::ui::theme;
@@ -23,12 +20,11 @@ const LOGO: &[&str] = &[
     r"   \_| |_| |_|\___/   /_/",
 ];
 
-const APP_NAME: &str = "Liminal Flow";
+/// Brand gradient colours from the Liminal HQ palette.
+const ORANGE: Color = Color::Rgb(0xff, 0xaa, 0x40);
+const PURPLE: Color = Color::Rgb(0xa7, 0x8b, 0xfa);
+
 const VERSION: &str = env!("CARGO_PKG_VERSION");
-const TAGLINE: &str = "Terminal-native working memory for developers";
-const STUDIO: &str = "Liminal HQ";
-const COPYRIGHT: &str = "(c) 2026 Liminal HQ, Scott Morris";
-const LICENCE: &str = "MIT Licence";
 
 /// Render the about overlay centred on screen.
 pub fn render(frame: &mut Frame, area: Rect) {
@@ -47,48 +43,69 @@ pub fn render(frame: &mut Frame, area: Rect) {
 
     let mut lines: Vec<Line> = Vec::new();
 
-    // Logo
-    for logo_line in LOGO {
-        lines.push(Line::from(Span::styled(*logo_line, theme::accent())));
+    // Logo — each line gets a gradient colour stepping orange → purple
+    let logo_colours = [
+        Color::Rgb(0xff, 0xaa, 0x40), // orange
+        Color::Rgb(0xf4, 0x7f, 0x5e), // orange-pink
+        Color::Rgb(0xd0, 0x64, 0x8c), // pink
+        Color::Rgb(0xb0, 0x78, 0xc8), // pink-purple
+        Color::Rgb(0xa7, 0x8b, 0xfa), // purple
+    ];
+    for (i, logo_line) in LOGO.iter().enumerate() {
+        let colour = logo_colours[i % logo_colours.len()];
+        lines.push(Line::from(Span::styled(
+            *logo_line,
+            Style::default().fg(colour),
+        )));
     }
 
     lines.push(Line::from(""));
 
-    // App name + version
+    // App name (brand colours) + version
     lines.push(Line::from(vec![
-        Span::styled(format!("  {APP_NAME}"), theme::active()),
+        Span::styled(
+            "  Liminal",
+            Style::default().fg(ORANGE).add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(" ", Style::default()),
+        Span::styled(
+            "Flow",
+            Style::default()
+                .fg(theme::ACCENT)
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::styled(format!("  v{VERSION}"), theme::muted()),
     ]));
 
     // Tagline
     lines.push(Line::from(Span::styled(
-        format!("  {TAGLINE}"),
+        "  Terminal-native working memory for developers",
         theme::text(),
     )));
 
     lines.push(Line::from(""));
 
     // Studio + copyright
+    lines.push(Line::from(vec![
+        Span::styled("  Liminal", Style::default().fg(ORANGE)),
+        Span::styled(" HQ", Style::default().fg(PURPLE)),
+    ]));
     lines.push(Line::from(Span::styled(
-        format!("  {STUDIO}"),
-        theme::header(),
-    )));
-    lines.push(Line::from(Span::styled(
-        format!("  {COPYRIGHT}"),
+        "  (c) 2026 Liminal HQ, Scott Morris",
         theme::muted(),
     )));
-    lines.push(Line::from(Span::styled(
-        format!("  {LICENCE}"),
-        theme::muted(),
-    )));
+    lines.push(Line::from(Span::styled("  MIT Licence", theme::muted())));
 
     let block = Block::default()
         .borders(Borders::ALL)
-        .border_style(theme::accent())
-        .title(Span::styled(" About ", theme::header()));
+        .border_style(Style::default().fg(ORANGE))
+        .title(Span::styled(
+            " About ",
+            Style::default()
+                .fg(ORANGE)
+                .add_modifier(Modifier::BOLD),
+        ));
 
-    let paragraph = Paragraph::new(lines)
-        .block(block)
-        .wrap(Wrap { trim: false });
+    let paragraph = Paragraph::new(lines).block(block);
     frame.render_widget(paragraph, popup_area);
 }

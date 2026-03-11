@@ -32,6 +32,8 @@ tui-textarea = "0.7"
 directories = "6"
 toml = "0.8"
 
+clap_mangen = "0.2"
+
 # Internal crates
 liminal-flow-core = { path = "crates/liminal-flow-core" }
 liminal-flow-store = { path = "crates/liminal-flow-store" }
