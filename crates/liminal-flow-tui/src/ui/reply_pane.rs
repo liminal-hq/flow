@@ -67,6 +67,18 @@ pub fn render(frame: &mut Frame, area: Rect, state: &TuiState) {
         )));
     }
 
+    // Recent notes
+    if !state.recent_notes.is_empty() {
+        lines.push(Line::from(""));
+        lines.push(Line::from(Span::styled("Notes", theme::header())));
+        for note in &state.recent_notes {
+            lines.push(Line::from(vec![
+                Span::styled("  ", theme::text()),
+                Span::styled(note.text.clone(), theme::text()),
+            ]));
+        }
+    }
+
     // Last reply or error
     if let Some(ref err) = state.error_message {
         lines.push(Line::from(""));

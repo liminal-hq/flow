@@ -5,8 +5,8 @@
 
 use std::collections::HashSet;
 
-use liminal_flow_core::model::{Branch, Thread, ThreadStatus};
-use liminal_flow_store::repo::{branch_repo, scope_repo, thread_repo};
+use liminal_flow_core::model::{Branch, Capture, Thread, ThreadStatus};
+use liminal_flow_store::repo::{branch_repo, capture_repo, scope_repo, thread_repo};
 use rusqlite::Connection;
 
 /// Interaction mode for the TUI.
@@ -71,6 +71,8 @@ pub struct TuiState {
     /// Set of thread indices whose branches are expanded in the list.
     /// Active threads are always expanded; this tracks user toggles.
     pub expanded: HashSet<usize>,
+    /// Recent notes (captures) for the active thread/branch, shown in the status pane.
+    pub recent_notes: Vec<Capture>,
 }
 
 impl Default for TuiState {
@@ -94,6 +96,7 @@ impl TuiState {
             command_palette_index: 0,
             show_hints: false,
             expanded: HashSet::new(),
+            recent_notes: Vec::new(),
         }
     }
 
@@ -131,6 +134,39 @@ impl TuiState {
                     _ => {}
                 }
             }
+        }
+
+        // Load recent notes for the active thread (and its active branch)
+        self.recent_notes = Vec::new();
+        if let Some(active) = self.active_thread() {
+            // Notes on the thread itself
+            let thread_captures =
+                capture_repo::find_by_target(conn, "thread", &active.thread.id, 5)
+                    .unwrap_or_default();
+
+            // Notes on active branches
+            let branch_captures: Vec<Capture> = active
+                .branches
+                .iter()
+                .filter(|b| b.status == liminal_flow_core::model::BranchStatus::Active)
+                .flat_map(|b| {
+                    capture_repo::find_by_target(conn, "branch", &b.id, 3).unwrap_or_default()
+                })
+                .collect();
+
+            // Merge and filter to just notes (AddNote intent), most recent first
+            let mut all: Vec<Capture> = thread_captures
+                .into_iter()
+                .chain(branch_captures)
+                .filter(|c| {
+                    c.inferred_intent
+                        .as_ref()
+                        .is_some_and(|i| *i == liminal_flow_core::model::Intent::AddNote)
+                })
+                .collect();
+            all.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+            all.truncate(5);
+            self.recent_notes = all;
         }
 
         // Clamp selected index

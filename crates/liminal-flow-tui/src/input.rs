@@ -275,3 +275,43 @@ fn execute_intent(conn: &Connection, intent: Intent, text: &str) -> Result<Strin
         }
     }
 }
+
+/// Resume a specific thread by ID — pauses the current active thread first.
+pub fn resume_thread(conn: &Connection, thread_id: &FlowId) -> InputResult {
+    let now = Utc::now();
+
+    // Pause current active thread if any
+    if let Ok(Some(current)) = thread_repo::find_active(conn) {
+        if current.id.as_str() == thread_id.as_str() {
+            return InputResult::Reply("Thread is already active.".into());
+        }
+        let _ = thread_repo::update_status(
+            conn,
+            &current.id,
+            &ThreadStatus::Paused,
+            &now.to_rfc3339(),
+        );
+    }
+
+    // Activate the target thread
+    if let Err(e) = thread_repo::update_status(conn, thread_id, &ThreadStatus::Active, &now.to_rfc3339()) {
+        return InputResult::Error(format!("Failed to resume thread: {e}"));
+    }
+
+    // Find thread title for the reply message
+    let title = thread_repo::find_by_id(conn, thread_id)
+        .ok()
+        .flatten()
+        .map(|t| t.title)
+        .unwrap_or_else(|| "unknown".into());
+
+    let event = AppEvent::ThreadSetCurrent {
+        thread_id: thread_id.clone(),
+        title: title.clone(),
+        raw_text: format!("/resume {title}"),
+        created_at: now,
+    };
+    let _ = event_repo::insert(conn, &event, "tui");
+
+    InputResult::Reply(format!("Resumed thread: {title}"))
+}

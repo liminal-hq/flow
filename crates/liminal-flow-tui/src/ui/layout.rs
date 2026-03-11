@@ -55,21 +55,34 @@ pub fn compute(area: Rect) -> AppLayout {
     }
 }
 
-/// Render the header bar.
+/// Render the header bar with colourful branding.
 pub fn render_header(frame: &mut Frame, area: Rect) {
+    use ratatui::style::{Color, Modifier, Style};
+
     let width = area.width as usize;
-    let left = " Liminal Flow";
-    let right = "flo ";
-    let padding = width.saturating_sub(left.len() + right.len());
+    // "< flo >" is 9 chars + trailing space = 10
+    let right_len = 10;
+    let left_parts_len = 15; // " Liminal Flow "
+    let padding = width.saturating_sub(left_parts_len + right_len);
 
     let header_block = Block::default()
         .borders(Borders::BOTTOM)
         .border_style(theme::border());
 
+    // Brand colours from the Liminal HQ palette
+    let orange = Color::Rgb(0xff, 0xaa, 0x40);
+    let purple = Color::Rgb(0xa7, 0x8b, 0xfa);
+
     let header_text = ratatui::text::Line::from(vec![
-        Span::styled(left, theme::header()),
+        Span::styled(" Liminal ", theme::header()),
+        Span::styled("Flow", Style::default().fg(theme::ACCENT).add_modifier(Modifier::BOLD)),
+        Span::raw(" "),
         Span::raw(" ".repeat(padding)),
-        Span::styled(right, theme::muted()),
+        // Colourful <flo> prompt
+        Span::styled("<", Style::default().fg(orange)),
+        Span::styled(" flo ", Style::default().fg(theme::ACCENT).add_modifier(Modifier::BOLD)),
+        Span::styled(">", Style::default().fg(purple)),
+        Span::raw(" "),
     ]);
 
     let paragraph = ratatui::widgets::Paragraph::new(header_text).block(header_block);

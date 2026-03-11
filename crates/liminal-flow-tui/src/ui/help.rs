@@ -30,6 +30,7 @@ const HELP_TEXT: &[(&str, &str)] = &[
     ("Esc", "Switch to Normal mode"),
     ("i", "Switch to Insert mode (from Normal)"),
     ("?", "Toggle help (from Normal mode)"),
+    ("r", "Resume selected thread (Normal mode)"),
     ("a", "About (from Normal mode)"),
     ("q", "Quit (from Normal mode)"),
     ("j / k", "Navigate thread list (Normal mode)"),

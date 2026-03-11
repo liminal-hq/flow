@@ -131,6 +131,24 @@ fn run_loop(
                         KeyCode::Enter => {
                             state.toggle_expanded();
                         }
+                        KeyCode::Char('r') => {
+                            // Resume/activate the selected thread
+                            if let Some(entry) = state.threads.get(state.selected_index) {
+                                let thread_id = entry.thread.id.clone();
+                                match input::resume_thread(conn, &thread_id) {
+                                    InputResult::Reply(msg) => {
+                                        state.last_reply = Some(msg);
+                                        state.error_message = None;
+                                    }
+                                    InputResult::Error(msg) => {
+                                        state.error_message = Some(msg);
+                                    }
+                                    InputResult::None => {}
+                                }
+                                state.refresh_from_db(conn);
+                                state.poll_watermark = poll::current_watermark(conn);
+                            }
+                        }
                         KeyCode::Char('j') | KeyCode::Down => {
                             state.select_next();
                         }

@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/hero.svg" alt="Liminal Flow — Terminal-native working memory for developers" width="100%">
+</p>
+
 # Liminal Flow
 
 A terminal-native working-memory sidecar. Track what you're working on, branch your attention across sub-tasks, and maintain ambient context awareness — all from the terminal.
@@ -48,20 +52,30 @@ Liminal Flow keeps track of your working context so you don't have to. When you 
 Run `flo` with no arguments to launch the terminal UI:
 
 ```
-┌────────────────────────┬─────────────────────────────────┐
-│ Liminal Flow           │                            flo  │
-├────────────────────────┼─────────────────────────────────┤
-│ > improving AIDX       │ Current thread: improving AIDX  │
-│   answering support    │ 1 active branch                 │
-│   reading article      │ Repo: component-library         │
-│                        │ Git: feature/aidx               │
-│   wear os sync  paused │                                 │
-├────────────────────────┴─────────────────────────────────┤
-│ > /now debugging auth flow                               │
-└──────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────┐
+│ Liminal Flow                                    <flo>      │
+├──────────────────┬─────────────────────────────────────────┤
+│ Threads          │ Status                                  │
+│ > ▼ improving    │ Current thread: improving AIDX          │
+│     debugging    │ 1 active branch                         │
+│   ▶ wear os sync │ Repo: component-library                 │
+│                  │ Git: feature/aidx                        │
+│                  │                                          │
+│                  │ Notes                                    │
+│                  │   need to check the auth token flow      │
+│                  │   waiting on API response                │
+├──────────────────┴─────────────────────────────────────────┤
+│ > Capture                                                  │
+└────────────────────────────────────────────────────────────┘
 ```
 
-The TUI starts in **Insert mode**. Type slash commands (`/now`, `/branch`, `/back`, `/note`, `/where`, `/pause`, `/done`) or plain text (treated as a note). Press `Esc` for **Normal mode** where `j`/`k` navigate, `?` opens help, and `q` quits.
+The TUI starts in **Insert mode**:
+
+- Type slash commands (`/now`, `/branch`, `/back`, `/note`, `/where`, `/pause`, `/done`) or plain text (treated as a note)
+- Type `/` on an empty line to open the **command palette** — navigate with arrow keys, select with Enter
+- Type `?` on an empty line to see **shortcut hints**
+- **Up/Down** arrows navigate the thread list; **Enter** on empty input expands/collapses branches
+- Press `Esc` for **Normal mode** where `j`/`k` navigate, `r` resumes a selected thread, `?` opens help, `a` shows about, and `q` quits
 
 The TUI polls the database every 250ms, so changes made via `flo` CLI in another terminal appear automatically.
 
