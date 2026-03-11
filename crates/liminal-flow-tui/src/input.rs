@@ -5,12 +5,12 @@
 
 use anyhow::Result;
 use chrono::Utc;
+use liminal_flow_context::scope_collector;
 use liminal_flow_core::event::AppEvent;
 use liminal_flow_core::model::{
     Branch, BranchStatus, Capture, CaptureSource, FlowId, Intent, Thread, ThreadStatus,
 };
 use liminal_flow_core::rules::{normalise_title, parse_slash_command};
-use liminal_flow_context::scope_collector;
 use liminal_flow_store::repo::{branch_repo, capture_repo, event_repo, scope_repo, thread_repo};
 use rusqlite::Connection;
 
@@ -242,12 +242,7 @@ fn execute_intent(conn: &Connection, intent: Intent, text: &str) -> Result<Strin
                 anyhow::bail!("No active thread to pause.");
             };
 
-            thread_repo::update_status(
-                conn,
-                &thread.id,
-                &ThreadStatus::Paused,
-                &now.to_rfc3339(),
-            )?;
+            thread_repo::update_status(conn, &thread.id, &ThreadStatus::Paused, &now.to_rfc3339())?;
 
             let event = AppEvent::ThreadPaused {
                 thread_id: thread.id,
@@ -260,7 +255,7 @@ fn execute_intent(conn: &Connection, intent: Intent, text: &str) -> Result<Strin
 
         Intent::Ambiguous => {
             // Treat ambiguous input as a note
-            return execute_intent(conn, Intent::AddNote, text);
+            execute_intent(conn, Intent::AddNote, text)
         }
 
         Intent::Done => {
@@ -268,12 +263,7 @@ fn execute_intent(conn: &Connection, intent: Intent, text: &str) -> Result<Strin
                 anyhow::bail!("No active thread to mark done.");
             };
 
-            thread_repo::update_status(
-                conn,
-                &thread.id,
-                &ThreadStatus::Done,
-                &now.to_rfc3339(),
-            )?;
+            thread_repo::update_status(conn, &thread.id, &ThreadStatus::Done, &now.to_rfc3339())?;
 
             let event = AppEvent::ThreadMarkedDone {
                 thread_id: thread.id,

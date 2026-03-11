@@ -56,7 +56,7 @@
 **Requirement:** Every PR must include labels that describe the change and map to release-note categories.
 
 - Add at least one category label to every PR: `feat`, `feature`, `enhancement`, `fix`, `bug`, `bugfix`, `docs`, `test`, `ci`, `build`, or `chore`.
-- Add additional scope labels where helpful (for example, `release`, `ui`, `scanner`, `cli`).
+- Add additional scope labels where helpful (for example, `release`, `cli`, `tui`, `core`, `store`).
 - Use `skip-changelog` only when a change should be excluded from generated release notes.
 - Keep labels accurate as scope changes during review.
 
@@ -68,27 +68,44 @@
 
 - **Mandatory Testing:** Make sure the unit tests are run after changes to the code.
 - **Verification:** Always verify code changes by running relevant tests.
-- **Build Check:** Run `pnpm build` to surface any TypeScript errors.
+- **Build Check:** Run `cargo build` and `cargo clippy --workspace -- -D warnings` to surface any errors.
+- **Format Check:** Run `cargo fmt --check` to ensure consistent formatting.
+- **Test Commands:**
+  - `cargo test` — run all workspace tests
+  - `cargo test -p liminal-flow-core` — core tests only
+  - `cargo test -p liminal-flow-store` — store tests only
 
 ## Documentation
 
 - **Updates:** When user-facing behaviour, CLI options, or features change, update `README.md` and `SPEC.md`.
-- **Man Page:** Ensure `man/smdu.1` is kept in sync with CLI options and features.
 
 ## Project Structure
 
-- This is a TypeScript project using Ink for the CLI UI.
-- Use `pnpm` as the package manager.
+- This is a Rust project (2021 edition) using a Cargo workspace with five crates.
+- The binary is `flo` (built from `liminal-flow-cli`).
+- TUI uses ratatui + crossterm + tui-textarea.
+- CLI parsing uses clap 4 with derive macros.
+- Persistence uses rusqlite (bundled) with SQLite in WAL mode.
+
+### Crate Layout
+
+| Crate | Purpose |
+|---|---|
+| `liminal-flow-core` | Domain model, events, reducer, rules |
+| `liminal-flow-store` | SQLite persistence, migrations, repositories |
+| `liminal-flow-cli` | CLI entrypoint and command handlers |
+| `liminal-flow-tui` | Terminal UI (ratatui) |
+| `liminal-flow-context` | Git and workspace context discovery |
 
 ## Licence and Copyright
 
 - **Requirement:** New source files (and substantially rewritten source files) should include a short header as the first content in the file.
-- **Applies to:** `.ts`, `.tsx`, `.js` source files in `src/` and `tests/` (and scripts where appropriate).
-- **Do not add headers to:** generated files, lockfiles, config files (`.json`, `.yml`, etc.), markdown docs, or man pages.
+- **Applies to:** `.rs` source files in `src/` directories.
+- **Do not add headers to:** generated files, lockfiles, config files (`.json`, `.yml`, `.toml`), markdown docs, or man pages.
 
-Preferred header format for TypeScript/JavaScript:
+Preferred header format for Rust:
 
-```ts
+```rust
 // Brief one-line summary of what this file does
 //
 // (c) Copyright 2026 Liminal HQ, Scott Morris
@@ -96,15 +113,6 @@ Preferred header format for TypeScript/JavaScript:
 ```
 
 - Keep the summary to one concise sentence.
-- Place the header before `import` statements.
+- Place the header before `use` statements.
 - Leave one blank line between the header and the first code line.
 - Preserve existing valid licence headers when already present.
-
-## Penpot MCP Usage
-
-- **Colours:** Use the `fillColor` property with Hex strings for fills. The API does not reliably support RGB objects or plain `fill` string shorthand.
-  - Correct: `shape.fills = [{ fillColor: "#ff0000", fillOpacity: 1 }]`
-  - Incorrect: `shape.fills = [{ fill: { r:1, g:0, b:0, a:1 } }]`
-- **Text:** Always specify font family (e.g., "Roboto Mono") and ensure `text.fills` uses the `fillColor` pattern.
-- **Shapes:** Create shapes using `penpot.createRectangle()`, set `x`, `y`, and use `.resize(w, h)` for dimensions.
-- **Strokes:** Use `strokeColor` in the strokes array: `shape.strokes = [{ strokeColor: "#ffffff", strokeWidth: 1 }]`

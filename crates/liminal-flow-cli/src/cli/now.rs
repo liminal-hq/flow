@@ -5,10 +5,10 @@
 
 use anyhow::Result;
 use chrono::Utc;
+use liminal_flow_context::scope_collector;
 use liminal_flow_core::event::AppEvent;
 use liminal_flow_core::model::{Capture, CaptureSource, FlowId, Intent, ThreadStatus};
 use liminal_flow_core::rules::normalise_title;
-use liminal_flow_context::scope_collector;
 use liminal_flow_store::repo::{capture_repo, event_repo, scope_repo, thread_repo};
 use rusqlite::Connection;
 

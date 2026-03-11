@@ -86,9 +86,7 @@ fn run_loop(
         if event::poll(TICK_RATE)? {
             if let Event::Key(key) = event::read()? {
                 // Ctrl+C always quits
-                if key.modifiers.contains(KeyModifiers::CONTROL)
-                    && key.code == KeyCode::Char('c')
-                {
+                if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') {
                     return Ok(());
                 }
 
@@ -130,8 +128,7 @@ fn run_loop(
 
                             // Clear the textarea
                             textarea = TextArea::default();
-                            textarea
-                                .set_cursor_line_style(ratatui::style::Style::default());
+                            textarea.set_cursor_line_style(ratatui::style::Style::default());
 
                             // Process the input
                             match input::process_input(conn, &text) {

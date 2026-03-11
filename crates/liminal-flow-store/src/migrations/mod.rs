@@ -13,9 +13,8 @@ use crate::error::StoreError;
 pub fn run_migrations(conn: &Connection) -> Result<(), StoreError> {
     let current_version = get_current_version(conn)?;
 
-    let migrations: Vec<(i64, &str, fn(&Connection) -> Result<(), StoreError>)> = vec![
-        (1, "initial schema", v001_initial::migrate),
-    ];
+    type Migration = (i64, &'static str, fn(&Connection) -> Result<(), StoreError>);
+    let migrations: Vec<Migration> = vec![(1, "initial schema", v001_initial::migrate)];
 
     for (version, name, migrate_fn) in migrations {
         if version > current_version {
@@ -30,23 +29,21 @@ pub fn run_migrations(conn: &Connection) -> Result<(), StoreError> {
 /// Get the current schema version, or 0 if the schema_version table doesn't exist.
 fn get_current_version(conn: &Connection) -> Result<i64, StoreError> {
     // Check if schema_version table exists
-    let table_exists: bool = conn
-        .query_row(
-            "SELECT COUNT(*) > 0 FROM sqlite_master WHERE type = 'table' AND name = 'schema_version'",
-            [],
-            |row| row.get(0),
-        )?;
+    let table_exists: bool = conn.query_row(
+        "SELECT COUNT(*) > 0 FROM sqlite_master WHERE type = 'table' AND name = 'schema_version'",
+        [],
+        |row| row.get(0),
+    )?;
 
     if !table_exists {
         return Ok(0);
     }
 
-    let version: i64 = conn
-        .query_row(
-            "SELECT COALESCE(MAX(version), 0) FROM schema_version",
-            [],
-            |row| row.get(0),
-        )?;
+    let version: i64 = conn.query_row(
+        "SELECT COALESCE(MAX(version), 0) FROM schema_version",
+        [],
+        |row| row.get(0),
+    )?;
 
     Ok(version)
 }

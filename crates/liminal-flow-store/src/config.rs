@@ -6,7 +6,7 @@
 use serde::{Deserialize, Serialize};
 
 /// Application configuration loaded from config.toml.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct FlowConfig {
     #[serde(default)]
     pub ui: UiConfig,
@@ -16,16 +16,6 @@ pub struct FlowConfig {
 
     #[serde(default)]
     pub logging: LoggingConfig,
-}
-
-impl Default for FlowConfig {
-    fn default() -> Self {
-        Self {
-            ui: UiConfig::default(),
-            context: ContextConfig::default(),
-            logging: LoggingConfig::default(),
-        }
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

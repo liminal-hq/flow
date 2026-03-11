@@ -152,13 +152,19 @@ mod tests {
     #[test]
     fn parse_now_command() {
         let result = parse_slash_command("/now improving AIDX");
-        assert_eq!(result, Some((Intent::SetCurrentThread, "improving AIDX".into())));
+        assert_eq!(
+            result,
+            Some((Intent::SetCurrentThread, "improving AIDX".into()))
+        );
     }
 
     #[test]
     fn parse_branch_command() {
         let result = parse_slash_command("/branch answering support");
-        assert_eq!(result, Some((Intent::StartBranch, "answering support".into())));
+        assert_eq!(
+            result,
+            Some((Intent::StartBranch, "answering support".into()))
+        );
     }
 
     #[test]

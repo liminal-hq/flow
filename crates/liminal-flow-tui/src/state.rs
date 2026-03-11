@@ -42,6 +42,12 @@ pub struct TuiState {
     pub should_quit: bool,
 }
 
+impl Default for TuiState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TuiState {
     pub fn new() -> Self {
         Self {
@@ -59,17 +65,14 @@ impl TuiState {
     /// Refresh state from the database.
     pub fn refresh_from_db(&mut self, conn: &Connection) {
         // Load active and paused threads
-        let threads = thread_repo::list_by_statuses(
-            conn,
-            &[ThreadStatus::Active, ThreadStatus::Paused],
-        )
-        .unwrap_or_default();
+        let threads =
+            thread_repo::list_by_statuses(conn, &[ThreadStatus::Active, ThreadStatus::Paused])
+                .unwrap_or_default();
 
         self.threads = threads
             .into_iter()
             .map(|thread| {
-                let branches = branch_repo::find_by_thread(conn, &thread.id)
-                    .unwrap_or_default();
+                let branches = branch_repo::find_by_thread(conn, &thread.id).unwrap_or_default();
                 ThreadEntry { thread, branches }
             })
             .collect();
@@ -77,8 +80,8 @@ impl TuiState {
         // Load scope context for the active thread
         self.scope_context = ScopeContext::default();
         if let Some(active) = self.active_thread() {
-            let scopes = scope_repo::find_by_target(conn, "thread", &active.thread.id)
-                .unwrap_or_default();
+            let scopes =
+                scope_repo::find_by_target(conn, "thread", &active.thread.id).unwrap_or_default();
             for scope in &scopes {
                 match scope.kind {
                     liminal_flow_core::model::ScopeKind::Repo => {
@@ -103,7 +106,9 @@ impl TuiState {
 
     /// Return the active thread entry, if any.
     pub fn active_thread(&self) -> Option<&ThreadEntry> {
-        self.threads.iter().find(|e| e.thread.status == ThreadStatus::Active)
+        self.threads
+            .iter()
+            .find(|e| e.thread.status == ThreadStatus::Active)
     }
 
     pub fn select_next(&mut self) {

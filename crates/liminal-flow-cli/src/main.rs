@@ -8,7 +8,11 @@ use clap::{Parser, Subcommand};
 mod cli;
 
 #[derive(Parser)]
-#[command(name = "flo", version, about = "Liminal Flow — terminal working-memory sidecar")]
+#[command(
+    name = "flo",
+    version,
+    about = "Liminal Flow — terminal working-memory sidecar"
+)]
 struct Cli {
     #[command(subcommand)]
     command: Option<Command>,

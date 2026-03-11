@@ -12,7 +12,10 @@ use crate::ui::theme;
 
 const HELP_TEXT: &[(&str, &str)] = &[
     ("/now <text>", "Set or replace the current thread"),
-    ("/branch <text>", "Create a branch beneath the current thread"),
+    (
+        "/branch <text>",
+        "Create a branch beneath the current thread",
+    ),
     ("/back", "Return to the parent thread"),
     ("/note <text>", "Attach a note (or just type plain text)"),
     ("/where", "Show current thread and branches"),
@@ -62,6 +65,8 @@ pub fn render(frame: &mut Frame, area: Rect) {
         .border_style(theme::accent())
         .title(Span::styled(" Help ", theme::header()));
 
-    let paragraph = Paragraph::new(lines).block(block).wrap(Wrap { trim: false });
+    let paragraph = Paragraph::new(lines)
+        .block(block)
+        .wrap(Wrap { trim: false });
     frame.render_widget(paragraph, popup_area);
 }

@@ -229,12 +229,18 @@ mod tests {
 
         assert_eq!(state.current_thread_id, Some(FlowId::from("t1")));
         assert_eq!(state.threads.len(), 1);
-        assert_eq!(state.threads.get(&FlowId::from("t1")).unwrap().title, "improving AIDX");
+        assert_eq!(
+            state.threads.get(&FlowId::from("t1")).unwrap().title,
+            "improving AIDX"
+        );
         assert_eq!(
             state.threads.get(&FlowId::from("t1")).unwrap().status,
             ThreadStatus::Active
         );
-        assert_eq!(state.last_reply, Some("Current thread: improving AIDX".into()));
+        assert_eq!(
+            state.last_reply,
+            Some("Current thread: improving AIDX".into())
+        );
     }
 
     #[test]
@@ -299,7 +305,10 @@ mod tests {
         let branch = state.branches.get(&FlowId::from("b1")).unwrap();
         assert_eq!(branch.thread_id, FlowId::from("t1"));
         assert_eq!(branch.status, BranchStatus::Active);
-        assert_eq!(state.last_reply, Some("Added branch: answering support".into()));
+        assert_eq!(
+            state.last_reply,
+            Some("Added branch: answering support".into())
+        );
     }
 
     #[test]
@@ -375,7 +384,11 @@ mod tests {
             BranchStatus::Parked
         );
         assert_eq!(state.current_thread_id, Some(FlowId::from("t1")));
-        assert!(state.last_reply.as_ref().unwrap().contains("Returned to parent"));
+        assert!(state
+            .last_reply
+            .as_ref()
+            .unwrap()
+            .contains("Returned to parent"));
     }
 
     #[test]

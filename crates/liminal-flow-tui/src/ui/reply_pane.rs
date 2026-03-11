@@ -81,6 +81,8 @@ pub fn render(frame: &mut Frame, area: Rect, state: &TuiState) {
         .border_style(theme::border())
         .title(Span::styled(" Status ", theme::header()));
 
-    let paragraph = Paragraph::new(lines).block(block).wrap(Wrap { trim: false });
+    let paragraph = Paragraph::new(lines)
+        .block(block)
+        .wrap(Wrap { trim: false });
     frame.render_widget(paragraph, area);
 }

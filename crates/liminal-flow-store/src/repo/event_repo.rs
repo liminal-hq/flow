@@ -10,11 +10,7 @@ use rusqlite::{params, Connection};
 use crate::error::StoreError;
 
 /// Insert a domain event into the events table.
-pub fn insert(
-    conn: &Connection,
-    event: &AppEvent,
-    source: &str,
-) -> Result<(), StoreError> {
+pub fn insert(conn: &Connection, event: &AppEvent, source: &str) -> Result<(), StoreError> {
     let id = FlowId::new();
     let event_type = event.event_type();
     let payload_json =
@@ -42,11 +38,8 @@ pub fn has_events_after(conn: &Connection, after: &str) -> Result<bool, StoreErr
 
 /// Get the latest event timestamp, or None if no events exist.
 pub fn latest_timestamp(conn: &Connection) -> Result<Option<String>, StoreError> {
-    let result: Option<String> = conn.query_row(
-        "SELECT MAX(created_at) FROM events",
-        [],
-        |row| row.get(0),
-    )?;
+    let result: Option<String> =
+        conn.query_row("SELECT MAX(created_at) FROM events", [], |row| row.get(0))?;
     Ok(result)
 }
 

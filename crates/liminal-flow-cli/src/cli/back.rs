@@ -24,12 +24,7 @@ pub fn handle(conn: &Connection) -> Result<()> {
 
     for branch in &branches {
         if branch.status == BranchStatus::Active {
-            branch_repo::update_status(
-                conn,
-                &branch.id,
-                &BranchStatus::Parked,
-                &now.to_rfc3339(),
-            )?;
+            branch_repo::update_status(conn, &branch.id, &BranchStatus::Parked, &now.to_rfc3339())?;
             parked_ids.push(branch.id.clone());
         }
     }

@@ -70,7 +70,10 @@ pub fn list_by_statuses(
         return Ok(vec![]);
     }
 
-    let placeholders: Vec<String> = statuses.iter().map(|s| format!("'{}'", s.as_str())).collect();
+    let placeholders: Vec<String> = statuses
+        .iter()
+        .map(|s| format!("'{}'", s.as_str()))
+        .collect();
     let sql = format!(
         "SELECT id, title, raw_origin_text, status, short_summary, created_at, updated_at
          FROM threads WHERE status IN ({}) ORDER BY updated_at DESC",
@@ -78,7 +81,9 @@ pub fn list_by_statuses(
     );
 
     let mut stmt = conn.prepare(&sql)?;
-    let threads = stmt.query_map([], row_to_thread)?.collect::<Result<Vec<_>, _>>()?;
+    let threads = stmt
+        .query_map([], row_to_thread)?
+        .collect::<Result<Vec<_>, _>>()?;
     Ok(threads)
 }
 
@@ -106,9 +111,7 @@ fn row_to_thread(row: &rusqlite::Row) -> rusqlite::Result<Thread> {
         id: FlowId::from(id),
         title: row.get(1)?,
         raw_origin_text: row.get(2)?,
-        status: status_str
-            .parse()
-            .unwrap_or(ThreadStatus::Active),
+        status: status_str.parse().unwrap_or(ThreadStatus::Active),
         short_summary: row.get(4)?,
         created_at: chrono::DateTime::parse_from_rfc3339(&created_str)
             .unwrap_or_default()
@@ -172,8 +175,16 @@ mod tests {
     #[test]
     fn list_by_statuses_filters() {
         let conn = open_store_in_memory().unwrap();
-        upsert(&conn, &make_thread("t1", "active one", ThreadStatus::Active)).unwrap();
-        upsert(&conn, &make_thread("t2", "paused one", ThreadStatus::Paused)).unwrap();
+        upsert(
+            &conn,
+            &make_thread("t1", "active one", ThreadStatus::Active),
+        )
+        .unwrap();
+        upsert(
+            &conn,
+            &make_thread("t2", "paused one", ThreadStatus::Paused),
+        )
+        .unwrap();
         upsert(&conn, &make_thread("t3", "done one", ThreadStatus::Done)).unwrap();
 
         let active = list_by_statuses(&conn, &[ThreadStatus::Active]).unwrap();
@@ -190,8 +201,13 @@ mod tests {
         let conn = open_store_in_memory().unwrap();
         upsert(&conn, &make_thread("t1", "thread", ThreadStatus::Active)).unwrap();
 
-        update_status(&conn, &FlowId::from("t1"), &ThreadStatus::Done, &Utc::now().to_rfc3339())
-            .unwrap();
+        update_status(
+            &conn,
+            &FlowId::from("t1"),
+            &ThreadStatus::Done,
+            &Utc::now().to_rfc3339(),
+        )
+        .unwrap();
 
         let found = find_by_id(&conn, &FlowId::from("t1")).unwrap().unwrap();
         assert_eq!(found.status, ThreadStatus::Done);
