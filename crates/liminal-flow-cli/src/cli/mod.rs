@@ -3,4 +3,11 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: MIT
 
-// Placeholder — will be implemented in Phase 3.
+pub mod back;
+pub mod branch;
+pub mod done;
+pub mod list;
+pub mod note;
+pub mod now;
+pub mod pause;
+pub mod where_cmd;

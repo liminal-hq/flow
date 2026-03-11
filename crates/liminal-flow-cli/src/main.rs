@@ -5,6 +5,8 @@
 
 use clap::{Parser, Subcommand};
 
+mod cli;
+
 #[derive(Parser)]
 #[command(name = "flo", version, about = "Liminal Flow — terminal working-memory sidecar")]
 struct Cli {
@@ -65,9 +67,18 @@ async fn main() -> anyhow::Result<()> {
             let conn = liminal_flow_store::open_store()?;
             liminal_flow_tui::run_tui(conn).await?;
         }
-        Some(_cmd) => {
-            // CLI commands — will be wired in Phase 3
-            println!("CLI commands coming soon.");
+        Some(cmd) => {
+            let conn = liminal_flow_store::open_store()?;
+            match cmd {
+                Command::Now { text } => cli::now::handle(&conn, &text)?,
+                Command::Branch { text } => cli::branch::handle(&conn, &text)?,
+                Command::Back => cli::back::handle(&conn)?,
+                Command::Note { text } => cli::note::handle(&conn, &text)?,
+                Command::Where => cli::where_cmd::handle(&conn)?,
+                Command::Pause => cli::pause::handle(&conn)?,
+                Command::Done => cli::done::handle(&conn)?,
+                Command::List => cli::list::handle(&conn)?,
+            }
         }
     }
 

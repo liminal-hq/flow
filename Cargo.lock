@@ -543,11 +543,13 @@ name = "liminal-flow-cli"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "chrono",
  "clap",
  "liminal-flow-context",
  "liminal-flow-core",
  "liminal-flow-store",
  "liminal-flow-tui",
+ "rusqlite",
  "tokio",
  "tracing",
  "tracing-subscriber",
