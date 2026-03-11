@@ -3,6 +3,8 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: MIT
 
+use std::collections::HashSet;
+
 use liminal_flow_core::model::{Branch, Thread, ThreadStatus};
 use liminal_flow_store::repo::{branch_repo, scope_repo, thread_repo};
 use rusqlite::Connection;
@@ -13,6 +15,7 @@ pub enum Mode {
     Normal,
     Insert,
     Help,
+    About,
 }
 
 /// Slash commands available in the command palette.
@@ -65,6 +68,9 @@ pub struct TuiState {
     pub command_palette_index: usize,
     /// Whether the shortcut hints bar is visible (triggered by `?` on empty line).
     pub show_hints: bool,
+    /// Set of thread indices whose branches are expanded in the list.
+    /// Active threads are always expanded; this tracks user toggles.
+    pub expanded: HashSet<usize>,
 }
 
 impl Default for TuiState {
@@ -87,6 +93,7 @@ impl TuiState {
             show_command_palette: false,
             command_palette_index: 0,
             show_hints: false,
+            expanded: HashSet::new(),
         }
     }
 
@@ -153,5 +160,29 @@ impl TuiState {
                 self.selected_index - 1
             };
         }
+    }
+
+    /// Toggle expansion of the selected thread's branches.
+    pub fn toggle_expanded(&mut self) {
+        if self.threads.is_empty() {
+            return;
+        }
+        let idx = self.selected_index;
+        if self.expanded.contains(&idx) {
+            self.expanded.remove(&idx);
+        } else {
+            self.expanded.insert(idx);
+        }
+    }
+
+    /// Whether a thread at the given index should show its branches.
+    /// Active threads are always expanded.
+    pub fn is_expanded(&self, index: usize) -> bool {
+        if let Some(entry) = self.threads.get(index) {
+            if entry.thread.status == ThreadStatus::Active {
+                return true;
+            }
+        }
+        self.expanded.contains(&index)
     }
 }

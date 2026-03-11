@@ -19,9 +19,16 @@ pub fn render(frame: &mut Frame, area: Rect, state: &TuiState) {
     for (i, entry) in state.threads.iter().enumerate() {
         let is_selected = i == state.selected_index;
         let is_active = entry.thread.status == ThreadStatus::Active;
+        let is_expanded = state.is_expanded(i);
+        let has_branches = !entry.branches.is_empty();
 
-        // Thread line
+        // Thread line with expand/collapse indicator
         let marker = if is_active { ">" } else { " " };
+        let expand_indicator = if has_branches {
+            if is_expanded { "▼ " } else { "▶ " }
+        } else {
+            "  "
+        };
         let status_suffix = if entry.thread.status == ThreadStatus::Paused {
             "  paused"
         } else {
@@ -38,31 +45,34 @@ pub fn render(frame: &mut Frame, area: Rect, state: &TuiState) {
 
         let thread_line = Line::from(vec![
             Span::styled(format!("{marker} "), style),
+            Span::styled(expand_indicator, theme::muted()),
             Span::styled(entry.thread.title.clone(), style),
             Span::styled(status_suffix, theme::muted()),
         ]);
         items.push(ListItem::new(thread_line));
 
-        // Branch lines (indented beneath their thread)
-        for branch in &entry.branches {
-            let branch_style = if branch.status == BranchStatus::Active {
-                theme::accent()
-            } else {
-                theme::muted()
-            };
+        // Branch lines (indented beneath their thread) — only when expanded
+        if is_expanded {
+            for branch in &entry.branches {
+                let branch_style = if branch.status == BranchStatus::Active {
+                    theme::accent()
+                } else {
+                    theme::muted()
+                };
 
-            let suffix = if branch.status != BranchStatus::Active {
-                format!("  ({})", branch.status)
-            } else {
-                String::new()
-            };
+                let suffix = if branch.status != BranchStatus::Active {
+                    format!("  ({})", branch.status)
+                } else {
+                    String::new()
+                };
 
-            let branch_line = Line::from(vec![
-                Span::styled("    ", theme::text()),
-                Span::styled(branch.title.clone(), branch_style),
-                Span::styled(suffix, theme::muted()),
-            ]);
-            items.push(ListItem::new(branch_line));
+                let branch_line = Line::from(vec![
+                    Span::styled("      ", theme::text()),
+                    Span::styled(branch.title.clone(), branch_style),
+                    Span::styled(suffix, theme::muted()),
+                ]);
+                items.push(ListItem::new(branch_line));
+            }
         }
     }
 

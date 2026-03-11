@@ -22,12 +22,17 @@ const HELP_TEXT: &[(&str, &str)] = &[
     ("/pause", "Pause the current thread"),
     ("/done", "Mark the current thread done"),
     ("", ""),
+    ("/ (empty line)", "Open command palette"),
+    ("? (empty line)", "Show shortcut hints"),
+    ("Up / Down", "Navigate thread list"),
+    ("Enter (empty)", "Expand/collapse thread branches"),
+    ("Enter (text)", "Submit input"),
     ("Esc", "Switch to Normal mode"),
     ("i", "Switch to Insert mode (from Normal)"),
     ("?", "Toggle help (from Normal mode)"),
+    ("a", "About (from Normal mode)"),
     ("q", "Quit (from Normal mode)"),
     ("j / k", "Navigate thread list (Normal mode)"),
-    ("Enter", "Submit input (Insert mode)"),
 ];
 
 /// Render the help overlay centred on screen.

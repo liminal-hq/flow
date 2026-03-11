@@ -15,9 +15,9 @@ use crate::ui::theme;
 /// Render the input textarea into the given area.
 pub fn render(frame: &mut Frame, area: Rect, textarea: &TextArea, mode: Mode) {
     let mode_label = match mode {
-        Mode::Insert => " Input ",
+        Mode::Insert => " > Capture ",
         Mode::Normal => " Normal ",
-        Mode::Help => " Help ",
+        Mode::Help | Mode::About => " Help ",
     };
 
     let border_style = if mode == Mode::Insert {

@@ -21,7 +21,7 @@ use crate::input::{self, InputResult};
 use crate::poll;
 use crate::state::{Mode, TuiState};
 use crate::state::SLASH_COMMANDS;
-use crate::ui::{command_palette, help, hints_bar, input_pane, layout, reply_pane, thread_list};
+use crate::ui::{about, command_palette, help, hints_bar, input_pane, layout, reply_pane, thread_list};
 
 const TICK_RATE: Duration = Duration::from_millis(250);
 
@@ -83,6 +83,8 @@ fn run_loop(
 
             if state.mode == Mode::Help {
                 help::render(frame, frame.area());
+            } else if state.mode == Mode::About {
+                about::render(frame, frame.area());
             }
         })?;
 
@@ -106,6 +108,13 @@ fn run_loop(
                         _ => {}
                     },
 
+                    Mode::About => match key.code {
+                        KeyCode::Esc | KeyCode::Char('q') | KeyCode::Enter => {
+                            state.mode = Mode::Normal;
+                        }
+                        _ => {}
+                    },
+
                     Mode::Normal => match key.code {
                         KeyCode::Char('q') => {
                             state.should_quit = true;
@@ -115,6 +124,12 @@ fn run_loop(
                         }
                         KeyCode::Char('?') => {
                             state.mode = Mode::Help;
+                        }
+                        KeyCode::Char('a') => {
+                            state.mode = Mode::About;
+                        }
+                        KeyCode::Enter => {
+                            state.toggle_expanded();
                         }
                         KeyCode::Char('j') | KeyCode::Down => {
                             state.select_next();
@@ -211,6 +226,13 @@ fn run_loop(
                                     state.select_next();
                                 }
                                 KeyCode::Enter => {
+                                    // If input is empty, toggle thread expansion
+                                    let is_empty = textarea.lines().iter().all(|l| l.is_empty());
+                                    if is_empty {
+                                        state.toggle_expanded();
+                                        continue;
+                                    }
+
                                     // Submit the input
                                     let lines: Vec<String> = textarea.lines().to_vec();
                                     let text = lines.join("\n");
