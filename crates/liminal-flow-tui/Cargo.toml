@@ -1,0 +1,20 @@
+[package]
+name = "liminal-flow-tui"
+description = "Terminal UI for Liminal Flow"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+liminal-flow-core.workspace = true
+liminal-flow-store.workspace = true
+rusqlite.workspace = true
+liminal-flow-context.workspace = true
+ratatui.workspace = true
+crossterm.workspace = true
+tui-textarea.workspace = true
+tokio.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+chrono.workspace = true

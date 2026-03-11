@@ -1,0 +1,39 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/liminal-flow-core",
+    "crates/liminal-flow-store",
+    "crates/liminal-flow-cli",
+    "crates/liminal-flow-tui",
+    "crates/liminal-flow-context",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+authors = ["Liminal HQ", "Scott Morris"]
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+anyhow = "1"
+chrono = { version = "0.4", features = ["serde"] }
+ulid = { version = "1", features = ["serde"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tokio = { version = "1", features = ["rt", "macros", "time", "sync"] }
+rusqlite = { version = "0.32", features = ["bundled"] }
+clap = { version = "4", features = ["derive"] }
+ratatui = "0.29"
+crossterm = "0.28"
+tui-textarea = "0.7"
+directories = "6"
+toml = "0.8"
+
+# Internal crates
+liminal-flow-core = { path = "crates/liminal-flow-core" }
+liminal-flow-store = { path = "crates/liminal-flow-store" }
+liminal-flow-tui = { path = "crates/liminal-flow-tui" }
+liminal-flow-context = { path = "crates/liminal-flow-context" }
