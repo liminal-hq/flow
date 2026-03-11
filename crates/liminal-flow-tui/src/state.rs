@@ -5,7 +5,7 @@
 
 use std::collections::HashSet;
 
-use liminal_flow_core::model::{Branch, Capture, Thread, ThreadStatus};
+use liminal_flow_core::model::{Branch, Capture, FlowId, Thread, ThreadStatus};
 use liminal_flow_store::repo::{branch_repo, capture_repo, scope_repo, thread_repo};
 use rusqlite::Connection;
 
@@ -16,6 +16,13 @@ pub enum Mode {
     Insert,
     Help,
     About,
+}
+
+/// Identifies a selectable item in the thread list — either a thread or a branch within it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SelectedItem {
+    Thread(usize),
+    Branch(usize, usize), // (thread_index, branch_index)
 }
 
 /// Slash commands available in the command palette.
@@ -32,9 +39,9 @@ pub const SLASH_COMMANDS: &[(&str, &str)] = &[
 /// Keyboard shortcut hints shown when ? is typed on an empty line.
 pub const SHORTCUT_HINTS: &[(&str, &str)] = &[
     ("/ for commands", "Esc to Normal mode"),
-    ("Enter to submit", "i to Insert mode"),
+    ("Enter to submit/expand", "i to Insert mode"),
     ("? for shortcuts", "q to quit (Normal)"),
-    ("Up/Down to navigate threads", ""),
+    ("Up/Down navigate items", "r resume selected (Normal)"),
 ];
 
 /// A thread together with its branches, for display in the thread list.
@@ -56,7 +63,8 @@ pub struct ScopeContext {
 pub struct TuiState {
     pub mode: Mode,
     pub threads: Vec<ThreadEntry>,
-    pub selected_index: usize,
+    /// The currently selected item in the thread list (thread or branch).
+    pub selected: SelectedItem,
     pub last_reply: Option<String>,
     pub error_message: Option<String>,
     pub scope_context: ScopeContext,
@@ -86,7 +94,7 @@ impl TuiState {
         Self {
             mode: Mode::Insert,
             threads: Vec::new(),
-            selected_index: 0,
+            selected: SelectedItem::Thread(0),
             last_reply: None,
             error_message: None,
             scope_context: ScopeContext::default(),
@@ -98,6 +106,21 @@ impl TuiState {
             expanded: HashSet::new(),
             recent_notes: Vec::new(),
         }
+    }
+
+    /// Build a flat list of all visible (selectable) rows in the thread list.
+    /// Each entry is a `SelectedItem` — either a thread or a branch within an expanded thread.
+    pub fn visible_rows(&self) -> Vec<SelectedItem> {
+        let mut rows = Vec::new();
+        for (i, entry) in self.threads.iter().enumerate() {
+            rows.push(SelectedItem::Thread(i));
+            if self.is_expanded(i) {
+                for (j, _branch) in entry.branches.iter().enumerate() {
+                    rows.push(SelectedItem::Branch(i, j));
+                }
+            }
+        }
+        rows
     }
 
     /// Refresh state from the database.
@@ -169,10 +192,8 @@ impl TuiState {
             self.recent_notes = all;
         }
 
-        // Clamp selected index
-        if !self.threads.is_empty() && self.selected_index >= self.threads.len() {
-            self.selected_index = self.threads.len() - 1;
-        }
+        // Clamp selection to valid visible rows
+        self.clamp_selection();
     }
 
     /// Return the active thread entry, if any.
@@ -182,32 +203,47 @@ impl TuiState {
             .find(|e| e.thread.status == ThreadStatus::Active)
     }
 
+    /// Move selection to the next visible row, wrapping around.
     pub fn select_next(&mut self) {
-        if !self.threads.is_empty() {
-            self.selected_index = (self.selected_index + 1) % self.threads.len();
-        }
-    }
-
-    pub fn select_prev(&mut self) {
-        if !self.threads.is_empty() {
-            self.selected_index = if self.selected_index == 0 {
-                self.threads.len() - 1
-            } else {
-                self.selected_index - 1
-            };
-        }
-    }
-
-    /// Toggle expansion of the selected thread's branches.
-    pub fn toggle_expanded(&mut self) {
-        if self.threads.is_empty() {
+        let rows = self.visible_rows();
+        if rows.is_empty() {
             return;
         }
-        let idx = self.selected_index;
-        if self.expanded.contains(&idx) {
-            self.expanded.remove(&idx);
+        let current = rows.iter().position(|r| *r == self.selected).unwrap_or(0);
+        let next = (current + 1) % rows.len();
+        self.selected = rows[next].clone();
+    }
+
+    /// Move selection to the previous visible row, wrapping around.
+    pub fn select_prev(&mut self) {
+        let rows = self.visible_rows();
+        if rows.is_empty() {
+            return;
+        }
+        let current = rows.iter().position(|r| *r == self.selected).unwrap_or(0);
+        let prev = if current == 0 {
+            rows.len() - 1
         } else {
-            self.expanded.insert(idx);
+            current - 1
+        };
+        self.selected = rows[prev].clone();
+    }
+
+    /// Toggle expansion of the currently selected thread's branches.
+    /// If a branch is selected, toggles the parent thread.
+    pub fn toggle_expanded(&mut self) {
+        let thread_idx = match &self.selected {
+            SelectedItem::Thread(i) => *i,
+            SelectedItem::Branch(i, _) => *i,
+        };
+        if self.expanded.contains(&thread_idx) {
+            self.expanded.remove(&thread_idx);
+            // If a branch was selected, move selection to the parent thread
+            if matches!(self.selected, SelectedItem::Branch(_, _)) {
+                self.selected = SelectedItem::Thread(thread_idx);
+            }
+        } else {
+            self.expanded.insert(thread_idx);
         }
     }
 
@@ -220,5 +256,43 @@ impl TuiState {
             }
         }
         self.expanded.contains(&index)
+    }
+
+    /// Return the thread index of the currently selected item.
+    pub fn selected_thread_index(&self) -> usize {
+        match &self.selected {
+            SelectedItem::Thread(i) => *i,
+            SelectedItem::Branch(i, _) => *i,
+        }
+    }
+
+    /// Return the FlowId of the selected item (thread ID or branch ID).
+    pub fn selected_id(&self) -> Option<FlowId> {
+        match &self.selected {
+            SelectedItem::Thread(i) => self.threads.get(*i).map(|e| e.thread.id.clone()),
+            SelectedItem::Branch(i, j) => self
+                .threads
+                .get(*i)
+                .and_then(|e| e.branches.get(*j))
+                .map(|b| b.id.clone()),
+        }
+    }
+
+    /// Ensure selection points to a valid visible row.
+    fn clamp_selection(&mut self) {
+        let rows = self.visible_rows();
+        if rows.is_empty() {
+            self.selected = SelectedItem::Thread(0);
+            return;
+        }
+        if !rows.contains(&self.selected) {
+            // Try to stay on the same thread
+            let thread_idx = self.selected_thread_index();
+            if rows.contains(&SelectedItem::Thread(thread_idx)) {
+                self.selected = SelectedItem::Thread(thread_idx);
+            } else {
+                self.selected = rows[0].clone();
+            }
+        }
     }
 }

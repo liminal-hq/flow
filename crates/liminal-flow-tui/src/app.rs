@@ -19,9 +19,11 @@ use tui_textarea::TextArea;
 
 use crate::input::{self, InputResult};
 use crate::poll;
-use crate::state::{Mode, TuiState};
 use crate::state::SLASH_COMMANDS;
-use crate::ui::{about, command_palette, help, hints_bar, input_pane, layout, reply_pane, thread_list};
+use crate::state::{Mode, TuiState};
+use crate::ui::{
+    about, command_palette, help, hints_bar, input_pane, layout, reply_pane, thread_list,
+};
 
 const TICK_RATE: Duration = Duration::from_millis(250);
 
@@ -132,10 +134,22 @@ fn run_loop(
                             state.toggle_expanded();
                         }
                         KeyCode::Char('r') => {
-                            // Resume/activate the selected thread
-                            if let Some(entry) = state.threads.get(state.selected_index) {
-                                let thread_id = entry.thread.id.clone();
-                                match input::resume_thread(conn, &thread_id) {
+                            // Resume/activate the selected thread or branch
+                            let result = match &state.selected {
+                                crate::state::SelectedItem::Thread(i) => state
+                                    .threads
+                                    .get(*i)
+                                    .map(|entry| input::resume_thread(conn, &entry.thread.id)),
+                                crate::state::SelectedItem::Branch(i, j) => {
+                                    state.threads.get(*i).and_then(|entry| {
+                                        entry.branches.get(*j).map(|branch| {
+                                            input::resume_branch(conn, &entry.thread.id, &branch.id)
+                                        })
+                                    })
+                                }
+                            };
+                            if let Some(result) = result {
+                                match result {
                                     InputResult::Reply(msg) => {
                                         state.last_reply = Some(msg);
                                         state.error_message = None;
@@ -169,7 +183,8 @@ fn run_loop(
                                     state.show_command_palette = false;
                                     // Clear the `/` from the textarea
                                     textarea = TextArea::default();
-                                    textarea.set_cursor_line_style(ratatui::style::Style::default());
+                                    textarea
+                                        .set_cursor_line_style(ratatui::style::Style::default());
                                 }
                                 KeyCode::Up => {
                                     if state.command_palette_index > 0 {
@@ -188,7 +203,8 @@ fn run_loop(
                                     // Extract just the command name (e.g., "/now" from "/now <text>")
                                     let cmd_name = cmd.split_whitespace().next().unwrap_or(cmd);
                                     textarea = TextArea::default();
-                                    textarea.set_cursor_line_style(ratatui::style::Style::default());
+                                    textarea
+                                        .set_cursor_line_style(ratatui::style::Style::default());
                                     // Insert command text followed by a space
                                     textarea.insert_str(format!("{cmd_name} "));
                                     state.show_command_palette = false;
@@ -197,7 +213,8 @@ fn run_loop(
                                     // Close palette and clear input
                                     state.show_command_palette = false;
                                     textarea = TextArea::default();
-                                    textarea.set_cursor_line_style(ratatui::style::Style::default());
+                                    textarea
+                                        .set_cursor_line_style(ratatui::style::Style::default());
                                 }
                                 KeyCode::Char(_) => {
                                     // Any other character closes the palette and types into textarea
@@ -212,18 +229,21 @@ fn run_loop(
                                 KeyCode::Esc => {
                                     state.show_hints = false;
                                     textarea = TextArea::default();
-                                    textarea.set_cursor_line_style(ratatui::style::Style::default());
+                                    textarea
+                                        .set_cursor_line_style(ratatui::style::Style::default());
                                 }
                                 KeyCode::Backspace => {
                                     state.show_hints = false;
                                     textarea = TextArea::default();
-                                    textarea.set_cursor_line_style(ratatui::style::Style::default());
+                                    textarea
+                                        .set_cursor_line_style(ratatui::style::Style::default());
                                 }
                                 _ => {
                                     state.show_hints = false;
                                     // Clear the `?` and forward the new key
                                     textarea = TextArea::default();
-                                    textarea.set_cursor_line_style(ratatui::style::Style::default());
+                                    textarea
+                                        .set_cursor_line_style(ratatui::style::Style::default());
                                     textarea.input(Event::Key(key));
                                 }
                             }
@@ -257,7 +277,8 @@ fn run_loop(
 
                                     // Clear the textarea
                                     textarea = TextArea::default();
-                                    textarea.set_cursor_line_style(ratatui::style::Style::default());
+                                    textarea
+                                        .set_cursor_line_style(ratatui::style::Style::default());
 
                                     // Process the input
                                     match input::process_input(conn, &text) {

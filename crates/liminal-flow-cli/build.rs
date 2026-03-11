@@ -57,8 +57,7 @@ enum Command {
 }
 
 fn main() {
-    let out_dir =
-        PathBuf::from(std::env::var_os("OUT_DIR").unwrap_or_else(|| "target/man".into()));
+    let out_dir = PathBuf::from(std::env::var_os("OUT_DIR").unwrap_or_else(|| "target/man".into()));
     let man_dir = out_dir.join("man");
     fs::create_dir_all(&man_dir).expect("Failed to create man page directory");
 
@@ -73,7 +72,8 @@ fn main() {
         let name = format!("flo-{}", sub.get_name());
         let man = Man::new(sub.clone());
         let mut buf = Vec::new();
-        man.render(&mut buf).expect("Failed to render subcommand man page");
+        man.render(&mut buf)
+            .expect("Failed to render subcommand man page");
         fs::write(man_dir.join(format!("{name}.1")), buf)
             .expect("Failed to write subcommand man page");
     }

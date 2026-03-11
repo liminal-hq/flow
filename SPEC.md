@@ -49,6 +49,7 @@ Every state mutation produces an event stored in the events table. Events serve 
 | `flo pause` | Pause the current thread |
 | `flo done` | Mark the current thread done |
 | `flo list` | List active and paused threads |
+| `flo list -a` | List threads with branches, statuses, and recent notes |
 
 ### Title Normalisation
 
@@ -67,17 +68,19 @@ For example, `flo now "I'm working on the component library"` creates a thread t
 The TUI provides a three-pane interface:
 
 ```
-┌────────────────────────┬─────────────────────────────────┐
-│ Liminal Flow           │                            flo  │
-├────────────────────────┼─────────────────────────────────┤
-│ > improving AIDX       │ Current thread: improving AIDX  │
-│   answering support    │ 1 active branch                 │
-│   reading article      │ Repo: component-library         │
-│                        │ Git: feature/aidx               │
-│   wear os sync  paused │                                 │
-├────────────────────────┴─────────────────────────────────┤
-│ > /now debugging auth flow                               │
-└──────────────────────────────────────────────────────────┘
+┌────────────────────────────────┬─────────────────────────────────┐
+│ Liminal Flow                   │                        < flo >  │
+├────────────────────────────────┼─────────────────────────────────┤
+│ > ▼ improving AIDX             │ Current thread: improving AIDX  │
+│       answering support        │ 1 active branch                 │
+│       reading article          │ Repo: component-library         │
+│   ▶ wear os sync  paused      │ Git: feature/aidx               │
+│                                │                                 │
+│                                │ Notes                           │
+│                                │   | need to check auth flow     │
+├────────────────────────────────┴─────────────────────────────────┤
+│ > Capture                                                        │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
 - **Left pane (30%):** Thread list with branches indented beneath
@@ -89,8 +92,24 @@ The TUI provides a three-pane interface:
 | Mode | Description |
 |---|---|
 | Insert | Text input active. Enter submits. Esc switches to Normal. |
-| Normal | Keyboard navigation. `j`/`k` to move, `i` to insert, `?` for help, `q` to quit. |
+| Normal | Keyboard navigation. `j`/`k`/Up/Down to move through threads and branches, `r` to resume selected item, `i` to insert, `?` for help, `a` for about, `q` to quit. |
 | Help | Help overlay. Esc or `?` to dismiss. |
+| About | About overlay with app info. Esc, `q`, or Enter to dismiss. |
+
+### Thread and Branch Navigation
+
+The thread list supports navigating both threads and their branches:
+
+- **Up/Down** (Insert or Normal mode) moves between all visible items — threads and branches within expanded threads
+- **Enter** (on empty input in Insert, or in Normal mode) toggles expand/collapse for the selected thread's branches
+- **r** (Normal mode) resumes the selected item:
+  - On a paused thread: activates it (pausing the current active thread)
+  - On a parked branch: activates it (parking other active branches, and activating the parent thread if needed)
+
+### Command Palette and Hints
+
+- Type `/` on an empty input line to open the **command palette** — a floating popup showing available slash commands. Navigate with Up/Down, select with Enter/Tab, dismiss with Esc.
+- Type `?` on an empty input line to show **shortcut hints** — a compact reference bar. Any key dismisses it.
 
 ### Slash Commands
 

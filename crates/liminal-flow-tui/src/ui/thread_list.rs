@@ -9,7 +9,7 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Borders, List, ListItem};
 use ratatui::Frame;
 
-use crate::state::TuiState;
+use crate::state::{SelectedItem, TuiState};
 use crate::ui::theme;
 
 /// Render the thread list into the given area.
@@ -17,7 +17,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &TuiState) {
     let mut items: Vec<ListItem> = Vec::new();
 
     for (i, entry) in state.threads.iter().enumerate() {
-        let is_selected = i == state.selected_index;
+        let is_thread_selected = state.selected == SelectedItem::Thread(i);
         let is_active = entry.thread.status == ThreadStatus::Active;
         let is_expanded = state.is_expanded(i);
         let has_branches = !entry.branches.is_empty();
@@ -25,7 +25,11 @@ pub fn render(frame: &mut Frame, area: Rect, state: &TuiState) {
         // Thread line with expand/collapse indicator
         let marker = if is_active { ">" } else { " " };
         let expand_indicator = if has_branches {
-            if is_expanded { "▼ " } else { "▶ " }
+            if is_expanded {
+                "▼ "
+            } else {
+                "▶ "
+            }
         } else {
             "  "
         };
@@ -35,7 +39,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &TuiState) {
             ""
         };
 
-        let style = if is_selected {
+        let style = if is_thread_selected {
             theme::selected()
         } else if is_active {
             theme::active()
@@ -53,8 +57,12 @@ pub fn render(frame: &mut Frame, area: Rect, state: &TuiState) {
 
         // Branch lines (indented beneath their thread) — only when expanded
         if is_expanded {
-            for branch in &entry.branches {
-                let branch_style = if branch.status == BranchStatus::Active {
+            for (j, branch) in entry.branches.iter().enumerate() {
+                let is_branch_selected = state.selected == SelectedItem::Branch(i, j);
+
+                let branch_style = if is_branch_selected {
+                    theme::selected()
+                } else if branch.status == BranchStatus::Active {
                     theme::accent()
                 } else {
                     theme::muted()

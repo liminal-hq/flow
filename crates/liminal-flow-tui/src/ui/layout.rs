@@ -75,12 +75,22 @@ pub fn render_header(frame: &mut Frame, area: Rect) {
 
     let header_text = ratatui::text::Line::from(vec![
         Span::styled(" Liminal ", theme::header()),
-        Span::styled("Flow", Style::default().fg(theme::ACCENT).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            "Flow",
+            Style::default()
+                .fg(theme::ACCENT)
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::raw(" "),
         Span::raw(" ".repeat(padding)),
         // Colourful <flo> prompt
         Span::styled("<", Style::default().fg(orange)),
-        Span::styled(" flo ", Style::default().fg(theme::ACCENT).add_modifier(Modifier::BOLD)),
+        Span::styled(
+            " flo ",
+            Style::default()
+                .fg(theme::ACCENT)
+                .add_modifier(Modifier::BOLD),
+        ),
         Span::styled(">", Style::default().fg(purple)),
         Span::raw(" "),
     ]);

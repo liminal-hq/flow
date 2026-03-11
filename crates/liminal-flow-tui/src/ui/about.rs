@@ -101,9 +101,7 @@ pub fn render(frame: &mut Frame, area: Rect) {
         .border_style(Style::default().fg(ORANGE))
         .title(Span::styled(
             " About ",
-            Style::default()
-                .fg(ORANGE)
-                .add_modifier(Modifier::BOLD),
+            Style::default().fg(ORANGE).add_modifier(Modifier::BOLD),
         ));
 
     let paragraph = Paragraph::new(lines).block(block);

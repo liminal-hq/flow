@@ -276,6 +276,78 @@ fn execute_intent(conn: &Connection, intent: Intent, text: &str) -> Result<Strin
     }
 }
 
+/// Resume a specific branch by ID — parks other active branches on the same thread first.
+/// Also ensures the parent thread is active.
+pub fn resume_branch(conn: &Connection, thread_id: &FlowId, branch_id: &FlowId) -> InputResult {
+    let now = Utc::now();
+
+    // Check if the branch is already active
+    if let Ok(Some(branch)) = branch_repo::find_by_id(conn, branch_id) {
+        if branch.status == BranchStatus::Active {
+            return InputResult::Reply("Branch is already active.".into());
+        }
+    }
+
+    // Ensure the parent thread is active
+    if let Ok(Some(thread)) = thread_repo::find_by_id(conn, thread_id) {
+        if thread.status != ThreadStatus::Active {
+            // Pause current active thread and activate this one
+            if let Ok(Some(current)) = thread_repo::find_active(conn) {
+                let _ = thread_repo::update_status(
+                    conn,
+                    &current.id,
+                    &ThreadStatus::Paused,
+                    &now.to_rfc3339(),
+                );
+            }
+            let _ = thread_repo::update_status(
+                conn,
+                thread_id,
+                &ThreadStatus::Active,
+                &now.to_rfc3339(),
+            );
+        }
+    }
+
+    // Park other active branches on this thread
+    if let Ok(branches) = branch_repo::find_by_thread(conn, thread_id) {
+        for branch in &branches {
+            if branch.status == BranchStatus::Active && branch.id.as_str() != branch_id.as_str() {
+                let _ = branch_repo::update_status(
+                    conn,
+                    &branch.id,
+                    &BranchStatus::Parked,
+                    &now.to_rfc3339(),
+                );
+            }
+        }
+    }
+
+    // Activate the target branch
+    if let Err(e) =
+        branch_repo::update_status(conn, branch_id, &BranchStatus::Active, &now.to_rfc3339())
+    {
+        return InputResult::Error(format!("Failed to resume branch: {e}"));
+    }
+
+    // Find branch title for the reply message
+    let title = branch_repo::find_by_id(conn, branch_id)
+        .ok()
+        .flatten()
+        .map(|b| b.title)
+        .unwrap_or_else(|| "unknown".into());
+
+    let event = AppEvent::BranchStarted {
+        branch_id: branch_id.clone(),
+        thread_id: thread_id.clone(),
+        title: title.clone(),
+        created_at: now,
+    };
+    let _ = event_repo::insert(conn, &event, "tui");
+
+    InputResult::Reply(format!("Resumed branch: {title}"))
+}
+
 /// Resume a specific thread by ID — pauses the current active thread first.
 pub fn resume_thread(conn: &Connection, thread_id: &FlowId) -> InputResult {
     let now = Utc::now();
@@ -285,16 +357,14 @@ pub fn resume_thread(conn: &Connection, thread_id: &FlowId) -> InputResult {
         if current.id.as_str() == thread_id.as_str() {
             return InputResult::Reply("Thread is already active.".into());
         }
-        let _ = thread_repo::update_status(
-            conn,
-            &current.id,
-            &ThreadStatus::Paused,
-            &now.to_rfc3339(),
-        );
+        let _ =
+            thread_repo::update_status(conn, &current.id, &ThreadStatus::Paused, &now.to_rfc3339());
     }
 
     // Activate the target thread
-    if let Err(e) = thread_repo::update_status(conn, thread_id, &ThreadStatus::Active, &now.to_rfc3339()) {
+    if let Err(e) =
+        thread_repo::update_status(conn, thread_id, &ThreadStatus::Active, &now.to_rfc3339())
+    {
         return InputResult::Error(format!("Failed to resume thread: {e}"));
     }
 

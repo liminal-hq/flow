@@ -62,6 +62,21 @@ pub fn find_active_for_thread(
     }
 }
 
+/// Find a branch by ID.
+pub fn find_by_id(conn: &Connection, id: &FlowId) -> Result<Option<Branch>, StoreError> {
+    let mut stmt = conn.prepare(
+        "SELECT id, thread_id, title, status, short_summary, created_at, updated_at
+         FROM branches WHERE id = ?1",
+    )?;
+
+    let mut rows = stmt.query_map(params![id.as_str()], row_to_branch)?;
+    match rows.next() {
+        Some(Ok(branch)) => Ok(Some(branch)),
+        Some(Err(e)) => Err(StoreError::Database(e)),
+        None => Ok(None),
+    }
+}
+
 /// Update a branch's status.
 pub fn update_status(
     conn: &Connection,

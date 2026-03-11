@@ -54,25 +54,13 @@ pub fn handle(conn: &Connection) -> Result<()> {
     for scope in &scopes {
         match scope.kind {
             liminal_flow_core::model::ScopeKind::Repo => {
-                scope_parts.push(format!(
-                    "{} {}",
-                    colour::muted("Repo:"),
-                    scope.value
-                ));
+                scope_parts.push(format!("{} {}", colour::muted("Repo:"), scope.value));
             }
             liminal_flow_core::model::ScopeKind::GitBranch => {
-                scope_parts.push(format!(
-                    "{} {}",
-                    colour::muted("Git:"),
-                    scope.value
-                ));
+                scope_parts.push(format!("{} {}", colour::muted("Git:"), scope.value));
             }
             liminal_flow_core::model::ScopeKind::Cwd => {
-                scope_parts.push(format!(
-                    "{} {}",
-                    colour::muted("Dir:"),
-                    scope.value
-                ));
+                scope_parts.push(format!("{} {}", colour::muted("Dir:"), scope.value));
             }
             _ => {}
         }

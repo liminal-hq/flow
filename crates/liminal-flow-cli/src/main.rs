@@ -34,26 +34,22 @@ struct Cli {
 #[derive(Subcommand)]
 enum Command {
     /// Set or replace the current thread
-    #[command(
-        long_about = "Set or replace the current thread.\n\n\
+    #[command(long_about = "Set or replace the current thread.\n\n\
             If another thread is active, it will be paused automatically.\n\n\
             Examples:\n  \
               flo now \"improving AIDX\"\n  \
-              flo now \"working on the component library\""
-    )]
+              flo now \"working on the component library\"")]
     Now {
         /// The thread description
         text: String,
     },
 
     /// Create a branch beneath the current thread
-    #[command(
-        long_about = "Create a branch beneath the current thread.\n\n\
+    #[command(long_about = "Create a branch beneath the current thread.\n\n\
             Branches track tangential sub-tasks. Use `/back` to return.\n\n\
             Examples:\n  \
               flo branch \"debugging auth\"\n  \
-              flo branch \"researching API options\""
-    )]
+              flo branch \"researching API options\"")]
     Branch {
         /// The branch description
         text: String,
@@ -67,14 +63,12 @@ enum Command {
     Back,
 
     /// Attach a note to the current focus target
-    #[command(
-        long_about = "Attach a note to the current focus target.\n\n\
+    #[command(long_about = "Attach a note to the current focus target.\n\n\
             Notes are attached to the active branch if one exists,\n\
             otherwise to the current thread.\n\n\
             Examples:\n  \
               flo note \"try the new endpoint\"\n  \
-              flo note \"waiting on code review\""
-    )]
+              flo note \"waiting on code review\"")]
     Note {
         /// The note text
         text: String,
@@ -88,18 +82,14 @@ enum Command {
     Where,
 
     /// Pause the current thread
-    #[command(
-        long_about = "Pause the current thread.\n\n\
+    #[command(long_about = "Pause the current thread.\n\n\
             The thread remains in the list and can be resumed later\n\
-            with `flo now` or via the TUI."
-    )]
+            with `flo now` or via the TUI.")]
     Pause,
 
     /// Mark the current thread done
-    #[command(
-        long_about = "Mark the current thread as done.\n\n\
-            Done threads are removed from the active list."
-    )]
+    #[command(long_about = "Mark the current thread as done.\n\n\
+            Done threads are removed from the active list.")]
     Done,
 
     /// List active and paused threads
