@@ -8,5 +8,6 @@ authors.workspace = true
 
 [dependencies]
 liminal-flow-core.workspace = true
+chrono.workspace = true
 thiserror.workspace = true
 tracing.workspace = true

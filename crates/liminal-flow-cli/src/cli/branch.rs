@@ -8,7 +8,8 @@ use chrono::Utc;
 use liminal_flow_core::event::AppEvent;
 use liminal_flow_core::model::{Branch, BranchStatus, Capture, CaptureSource, FlowId, Intent};
 use liminal_flow_core::rules::normalise_title;
-use liminal_flow_store::repo::{branch_repo, capture_repo, event_repo, thread_repo};
+use liminal_flow_context::scope_collector;
+use liminal_flow_store::repo::{branch_repo, capture_repo, event_repo, scope_repo, thread_repo};
 use rusqlite::Connection;
 
 pub fn handle(conn: &Connection, text: &str) -> Result<()> {
@@ -43,6 +44,13 @@ pub fn handle(conn: &Connection, text: &str) -> Result<()> {
         created_at: now,
     };
     capture_repo::insert(conn, &capture)?;
+
+    // Attach environmental context scopes
+    let collected = scope_collector::collect();
+    let scopes = scope_collector::as_scopes(&collected, "branch", &branch_id, now);
+    for scope in &scopes {
+        scope_repo::insert(conn, scope)?;
+    }
 
     let event = AppEvent::BranchStarted {
         branch_id,
