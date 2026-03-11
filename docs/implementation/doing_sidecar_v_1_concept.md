@@ -1135,6 +1135,14 @@ Future CLI ideas:
 - `flo trace`
 - `flo doctor`
 
+### Repository labelling note
+
+Implementation tracking for Liminal Flow should use the broader Liminal HQ GitHub label style rather than Conventional Commit labels.
+
+- primary categories: `enhancement`, `bug`, `documentation`, `testing`, `ci`, `build`, `chore`
+- shared operational labels: `infrastructure`, `internal`, `release`, `blocked`, `epic`, `skip-changelog`
+- flow scopes: `cli`, `tui`, `core`, `store`, `context`, `inference`, `model`
+
 ### What not to copy into Liminal Flow
 
 Liminal Flow does **not** need to inherit a large hybrid routing or cloud orchestration worldview.
@@ -1271,4 +1279,3 @@ It becomes a tiny continuity engine for active work.
 ## One-sentence summary
 
 **Liminal Flow is a local-first terminal workspace sidecar that captures what the user is doing right now, tracks lightweight branches of attention, and answers brief natural-language questions to restore continuity when they come back.**
-

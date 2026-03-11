@@ -55,8 +55,10 @@
 
 **Requirement:** Every PR must include labels that describe the change and map to release-note categories.
 
-- Add at least one category label to every PR: `feat`, `feature`, `enhancement`, `fix`, `bug`, `bugfix`, `docs`, `test`, `ci`, `build`, or `chore`.
-- Add additional scope labels where helpful (for example, `release`, `cli`, `tui`, `core`, `store`).
+- Add at least one primary category label to every PR: `enhancement`, `bug`, `documentation`, `testing`, `ci`, `build`, or `chore`.
+- Add shared operational labels where they help clarify handling: `infrastructure`, `internal`, `release`, `blocked`, `epic`, or `skip-changelog`.
+- Add product and subsystem scope labels where helpful (for example, `cli`, `tui`, `core`, `store`, `context`, `inference`, `model`).
+- Prefer the broader Liminal HQ label style over Conventional Commit terms for PR labelling. Use GitHub label categories like `enhancement` and `bug` instead of labels such as `feat` or `fix`.
 - Use `skip-changelog` only when a change should be excluded from generated release notes.
 - Keep labels accurate as scope changes during review.
 

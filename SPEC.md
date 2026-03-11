@@ -165,6 +165,14 @@ level = "info"
 json = false
 ```
 
+## Repository Labelling
+
+GitHub issue and PR labelling should follow the broader Liminal HQ style rather than Conventional Commit terms.
+
+- Use primary category labels such as `enhancement`, `bug`, `documentation`, `testing`, `ci`, `build`, and `chore`
+- Use shared operational labels such as `infrastructure`, `internal`, `release`, `blocked`, `epic`, and `skip-changelog` when they clarify handling
+- Use flow-specific scope labels such as `cli`, `tui`, `core`, `store`, `context`, `inference`, and `model` to describe affected areas
+
 ## Licence
 
 MIT — see [LICENSE](LICENSE).

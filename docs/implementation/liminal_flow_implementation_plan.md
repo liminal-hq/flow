@@ -1279,6 +1279,20 @@ These do not block implementation, but should be answered before locking v1.
 ### 1. Single binary or two binaries?
 Should the TUI and CLI ship as one executable or two?
 
+---
+
+## Repository labelling plan
+
+Planning and delivery metadata for this repo should follow the broader Liminal HQ GitHub label style.
+
+Use:
+
+- primary category labels such as `enhancement`, `bug`, `documentation`, `testing`, `ci`, `build`, and `chore`
+- shared operational labels such as `infrastructure`, `internal`, `release`, `blocked`, `epic`, and `skip-changelog`
+- flow-specific scope labels such as `cli`, `tui`, `core`, `store`, `context`, `inference`, and `model`
+
+Avoid using Conventional Commit terms like `feat` and `fix` as the main GitHub label taxonomy for issues and PRs.
+
 ### 2. Event table or JSONL only?
 Do you want full event persistence in SQLite from day one?
 
@@ -1319,4 +1333,3 @@ That gives a complete vertical slice of the product with very little wasted work
 ## One-sentence implementation summary
 
 **Build Liminal Flow as a shared local event-driven core with a TUI for continuity, a CLI for capture, deterministic interpretation for v1, and an optional model-backed inference adapter layered on top in v1.1.**
-
