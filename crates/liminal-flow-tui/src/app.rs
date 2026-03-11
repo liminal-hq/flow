@@ -20,7 +20,8 @@ use tui_textarea::TextArea;
 use crate::input::{self, InputResult};
 use crate::poll;
 use crate::state::{Mode, TuiState};
-use crate::ui::{help, input_pane, layout, reply_pane, thread_list};
+use crate::state::SLASH_COMMANDS;
+use crate::ui::{command_palette, help, hints_bar, input_pane, layout, reply_pane, thread_list};
 
 const TICK_RATE: Duration = Duration::from_millis(250);
 
@@ -73,6 +74,13 @@ fn run_loop(
             reply_pane::render(frame, app_layout.reply_pane, &state);
             input_pane::render(frame, app_layout.input_pane, &textarea, state.mode);
 
+            // Floating overlays above the input pane
+            if state.show_command_palette {
+                command_palette::render(frame, app_layout.input_pane, &state);
+            } else if state.show_hints {
+                hints_bar::render(frame, app_layout.input_pane);
+            }
+
             if state.mode == Mode::Help {
                 help::render(frame, frame.area());
             }
@@ -117,40 +125,134 @@ fn run_loop(
                         _ => {}
                     },
 
-                    Mode::Insert => match key.code {
-                        KeyCode::Esc => {
-                            state.mode = Mode::Normal;
-                        }
-                        KeyCode::Enter => {
-                            // Submit the input
-                            let lines: Vec<String> = textarea.lines().to_vec();
-                            let text = lines.join("\n");
+                    Mode::Insert => {
+                        // Helper: check if textarea is empty (single empty line)
+                        let is_empty = textarea.lines().iter().all(|l| l.is_empty());
 
-                            // Clear the textarea
-                            textarea = TextArea::default();
-                            textarea.set_cursor_line_style(ratatui::style::Style::default());
-
-                            // Process the input
-                            match input::process_input(conn, &text) {
-                                InputResult::Reply(msg) => {
-                                    state.last_reply = Some(msg);
-                                    state.error_message = None;
+                        if state.show_command_palette {
+                            // Command palette is open — handle navigation
+                            match key.code {
+                                KeyCode::Esc => {
+                                    state.show_command_palette = false;
+                                    // Clear the `/` from the textarea
+                                    textarea = TextArea::default();
+                                    textarea.set_cursor_line_style(ratatui::style::Style::default());
                                 }
-                                InputResult::Error(msg) => {
-                                    state.error_message = Some(msg);
+                                KeyCode::Up => {
+                                    if state.command_palette_index > 0 {
+                                        state.command_palette_index -= 1;
+                                    } else {
+                                        state.command_palette_index = SLASH_COMMANDS.len() - 1;
+                                    }
                                 }
-                                InputResult::None => {}
+                                KeyCode::Down => {
+                                    state.command_palette_index =
+                                        (state.command_palette_index + 1) % SLASH_COMMANDS.len();
+                                }
+                                KeyCode::Enter | KeyCode::Tab => {
+                                    // Insert the selected command into the textarea
+                                    let (cmd, _) = SLASH_COMMANDS[state.command_palette_index];
+                                    // Extract just the command name (e.g., "/now" from "/now <text>")
+                                    let cmd_name = cmd.split_whitespace().next().unwrap_or(cmd);
+                                    textarea = TextArea::default();
+                                    textarea.set_cursor_line_style(ratatui::style::Style::default());
+                                    // Insert command text followed by a space
+                                    textarea.insert_str(format!("{cmd_name} "));
+                                    state.show_command_palette = false;
+                                }
+                                KeyCode::Backspace => {
+                                    // Close palette and clear input
+                                    state.show_command_palette = false;
+                                    textarea = TextArea::default();
+                                    textarea.set_cursor_line_style(ratatui::style::Style::default());
+                                }
+                                KeyCode::Char(_) => {
+                                    // Any other character closes the palette and types into textarea
+                                    state.show_command_palette = false;
+                                    textarea.input(Event::Key(key));
+                                }
+                                _ => {}
                             }
+                        } else if state.show_hints {
+                            // Hints bar is open — any key dismisses it
+                            match key.code {
+                                KeyCode::Esc => {
+                                    state.show_hints = false;
+                                    textarea = TextArea::default();
+                                    textarea.set_cursor_line_style(ratatui::style::Style::default());
+                                }
+                                KeyCode::Backspace => {
+                                    state.show_hints = false;
+                                    textarea = TextArea::default();
+                                    textarea.set_cursor_line_style(ratatui::style::Style::default());
+                                }
+                                _ => {
+                                    state.show_hints = false;
+                                    // Clear the `?` and forward the new key
+                                    textarea = TextArea::default();
+                                    textarea.set_cursor_line_style(ratatui::style::Style::default());
+                                    textarea.input(Event::Key(key));
+                                }
+                            }
+                        } else {
+                            // Normal Insert mode handling
+                            match key.code {
+                                KeyCode::Esc => {
+                                    state.mode = Mode::Normal;
+                                    state.show_command_palette = false;
+                                    state.show_hints = false;
+                                }
+                                KeyCode::Up => {
+                                    // Arrow keys navigate the thread list
+                                    state.select_prev();
+                                }
+                                KeyCode::Down => {
+                                    // Arrow keys navigate the thread list
+                                    state.select_next();
+                                }
+                                KeyCode::Enter => {
+                                    // Submit the input
+                                    let lines: Vec<String> = textarea.lines().to_vec();
+                                    let text = lines.join("\n");
 
-                            // Refresh state from DB after mutation
-                            state.refresh_from_db(conn);
-                            state.poll_watermark = poll::current_watermark(conn);
+                                    // Clear the textarea
+                                    textarea = TextArea::default();
+                                    textarea.set_cursor_line_style(ratatui::style::Style::default());
+
+                                    // Process the input
+                                    match input::process_input(conn, &text) {
+                                        InputResult::Reply(msg) => {
+                                            state.last_reply = Some(msg);
+                                            state.error_message = None;
+                                        }
+                                        InputResult::Error(msg) => {
+                                            state.error_message = Some(msg);
+                                        }
+                                        InputResult::None => {}
+                                    }
+
+                                    // Refresh state from DB after mutation
+                                    state.refresh_from_db(conn);
+                                    state.poll_watermark = poll::current_watermark(conn);
+                                }
+                                KeyCode::Char('/') if is_empty => {
+                                    // Show command palette
+                                    state.show_command_palette = true;
+                                    state.command_palette_index = 0;
+                                    textarea.input(Event::Key(key));
+                                }
+                                KeyCode::Char('?') if is_empty => {
+                                    // Show shortcut hints
+                                    state.show_hints = true;
+                                    textarea.input(Event::Key(key));
+                                }
+                                _ => {
+                                    // Forward to textarea
+                                    textarea.input(Event::Key(key));
+                                }
+                            }
                         }
-                        _ => {
-                            // Forward to textarea
-                            textarea.input(Event::Key(key));
-                        }
-                    },
+                    }
                 }
             }
         }

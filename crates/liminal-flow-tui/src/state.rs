@@ -15,6 +15,25 @@ pub enum Mode {
     Help,
 }
 
+/// Slash commands available in the command palette.
+pub const SLASH_COMMANDS: &[(&str, &str)] = &[
+    ("/now <text>", "Set or replace the current thread"),
+    ("/branch <text>", "Start a branch beneath current thread"),
+    ("/back", "Return to the parent thread"),
+    ("/note <text>", "Attach a note (or just type plain text)"),
+    ("/where", "Show current thread and branches"),
+    ("/pause", "Pause the current thread"),
+    ("/done", "Mark the current thread done"),
+];
+
+/// Keyboard shortcut hints shown when ? is typed on an empty line.
+pub const SHORTCUT_HINTS: &[(&str, &str)] = &[
+    ("/ for commands", "Esc to Normal mode"),
+    ("Enter to submit", "i to Insert mode"),
+    ("? for shortcuts", "q to quit (Normal)"),
+    ("Up/Down to navigate threads", ""),
+];
+
 /// A thread together with its branches, for display in the thread list.
 #[derive(Debug, Clone)]
 pub struct ThreadEntry {
@@ -40,6 +59,12 @@ pub struct TuiState {
     pub scope_context: ScopeContext,
     pub poll_watermark: Option<String>,
     pub should_quit: bool,
+    /// Whether the command palette popup is visible (triggered by `/` on empty line).
+    pub show_command_palette: bool,
+    /// Currently selected index within the command palette.
+    pub command_palette_index: usize,
+    /// Whether the shortcut hints bar is visible (triggered by `?` on empty line).
+    pub show_hints: bool,
 }
 
 impl Default for TuiState {
@@ -59,6 +84,9 @@ impl TuiState {
             scope_context: ScopeContext::default(),
             poll_watermark: None,
             should_quit: false,
+            show_command_palette: false,
+            command_palette_index: 0,
+            show_hints: false,
         }
     }
 
