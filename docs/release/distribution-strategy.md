@@ -55,7 +55,7 @@ The release flow should mirror SMDU closely:
 6. Attach binaries, packages, tarballs, and checksum files.
 7. Publish generated release notes, then do a quick install smoke test from the uploaded assets.
 
-Manual dispatch should also be available so a tag can be rebuilt or a draft release can be prepared before publication.
+Manual dispatch should also be available so a tag can be rebuilt or a draft release can be prepared before publication. When the manual `release_tag` input is left blank, the workflow should derive `v<workspace version>` from `Cargo.toml` and then validate the resolved tag before continuing.
 
 ## GitHub Actions shape
 
@@ -86,6 +86,7 @@ Recommended workflow details:
 
 - use `dtolnay/rust-toolchain` to install the release toolchain explicitly
 - use `Swatinem/rust-cache` to cache Cargo registry, git dependencies, and `target/`
+- allow manual dispatches to omit `release_tag`, derive `v<workspace version>` from `Cargo.toml`, and validate the final tag in the workflow
 - write per-job summaries showing:
   - resolved tag and release name
   - runner image and target triple
