@@ -77,10 +77,12 @@ Recommended matrix for the first pass:
 
 | runner | target triple | target label | architecture |
 |---|---|---|---|
-| `ubuntu-24.04` | `x86_64-unknown-linux-gnu` | `linux-x64` | `amd64` |
-| `ubuntu-24.04-arm` | `aarch64-unknown-linux-gnu` | `linux-arm64` | `arm64` |
+| `ubuntu-22.04` | `x86_64-unknown-linux-gnu` | `linux-x64` | `amd64` |
+| `ubuntu-22.04-arm` | `aarch64-unknown-linux-gnu` | `linux-arm64` | `arm64` |
 
 The workflow should pin fixed GitHub-hosted runner images rather than using `-latest` aliases so the release environment remains predictable over time.
+
+For GNU-linked releases, the runner image should track the oldest Ubuntu/glibc baseline we intend to support. Building on Ubuntu 22.04 keeps the packaged `flo` binary compatible with Ubuntu 22.04 and common WSL2 installs that still provide glibc 2.35.
 
 Recommended workflow details:
 
@@ -194,6 +196,7 @@ Initial dependency stance:
 - prefer GNU-linked builds for `v0.0.1`
 - keep runtime dependency declarations minimal and conventional
 - Debian packages should declare `Depends: libc6` at minimum for GNU-linked binaries
+- release binaries should be built on Ubuntu 22.04 runners so the effective glibc baseline remains compatible with Ubuntu 22.04
 - RPM packages can lean on `rpmbuild` auto-detection for shared library requirements unless testing shows gaps
 - defer musl or fully static builds until after the first release so the packaging and support surface stays smaller
 
@@ -251,7 +254,7 @@ authors = ["Liminal HQ", "Scott Morris"]
 repository = "https://github.com/liminal-hq/flow"
 homepage = "https://github.com/liminal-hq/flow"
 documentation = "https://github.com/liminal-hq/flow#readme"
-rust-version = "1.85"
+rust-version = "1.94"
 ```
 
 Sample crate-level publication guard for internal crates:
