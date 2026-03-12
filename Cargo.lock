@@ -550,7 +550,7 @@ dependencies = [
 
 [[package]]
 name = "liminal-flow-cli"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "anyhow",
  "chrono",
@@ -568,7 +568,7 @@ dependencies = [
 
 [[package]]
 name = "liminal-flow-context"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "chrono",
  "liminal-flow-core",
@@ -578,7 +578,7 @@ dependencies = [
 
 [[package]]
 name = "liminal-flow-core"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "chrono",
  "serde",
@@ -590,7 +590,7 @@ dependencies = [
 
 [[package]]
 name = "liminal-flow-store"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "anyhow",
  "chrono",
@@ -606,7 +606,7 @@ dependencies = [
 
 [[package]]
 name = "liminal-flow-tui"
-version = "0.1.0"
+version = "0.0.1"
 dependencies = [
  "anyhow",
  "chrono",
