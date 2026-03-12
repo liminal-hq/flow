@@ -25,6 +25,7 @@ const HELP_TEXT: &[(&str, &str)] = &[
     ("? (empty line)", "Show shortcut hints"),
     ("Up / Down", "Navigate threads & branches"),
     ("Enter (empty)", "Expand/collapse branches"),
+    ("Mouse wheel", "Scroll Threads or Status"),
     ("Enter (text)", "Submit input"),
     ("PageUp / PageDown", "Scroll the Status pane"),
     ("Esc", "Switch to Normal mode"),
@@ -37,17 +38,19 @@ const HELP_TEXT: &[(&str, &str)] = &[
     ("d", "Mark selected item done"),
     ("A", "Archive selected item"),
     ("PageUp / PageDown", "Scroll the Status pane"),
+    ("Mouse wheel", "Scroll hovered pane"),
     ("?", "Toggle this help"),
     ("a", "About"),
     ("q", "Quit"),
     (S, "Help Mode"),
     ("j / k / Up / Down", "Scroll the Help content"),
     ("PageUp / PageDown", "Scroll faster"),
+    ("Mouse wheel", "Scroll Help under pointer"),
     ("Esc / ? / q", "Close Help"),
 ];
 
 /// Render the help overlay centred on screen.
-pub fn render(frame: &mut Frame, area: Rect, scroll: u16) {
+pub fn popup_area(area: Rect) -> Rect {
     let popup_width = 64.min(area.width.saturating_sub(4));
     let popup_height = (HELP_TEXT.len() as u16 + 4).min(area.height.saturating_sub(2));
 
@@ -57,7 +60,12 @@ pub fn render(frame: &mut Frame, area: Rect, scroll: u16) {
     let horiz = Layout::horizontal([Constraint::Length(popup_width)])
         .flex(Flex::Center)
         .split(vert[0]);
-    let popup_area = horiz[0];
+    horiz[0]
+}
+
+/// Render the help overlay centred on screen.
+pub fn render(frame: &mut Frame, area: Rect, scroll: u16) {
+    let popup_area = popup_area(area);
 
     frame.render_widget(Clear, popup_area);
 

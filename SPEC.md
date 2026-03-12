@@ -105,6 +105,8 @@ The thread list supports navigating both threads and their branches:
 - **Up/Down** (Insert or Normal mode) moves between all visible items — threads and branches within expanded threads
 - The thread list auto-scrolls to keep the selected row visible when the list exceeds the available height
 - **Enter** (on empty input in Insert, or in Normal mode) toggles expand/collapse for the selected thread's branches
+- Mouse-wheel scrolling follows the hovered pane, so `Threads`, `Status`, and `Help` scroll independently
+- Left-click in the thread list selects the clicked thread or branch
 - The **Status** pane follows the selected item for inspection
 - Notes in the **Status** pane are rendered with compact timestamps and separators for readability
 - The **Capture** pane follows the active item and shows the current note target in its title

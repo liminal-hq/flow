@@ -79,6 +79,8 @@ The TUI starts in **Insert mode**:
 - Type `/` on an empty line to open the **command palette** — navigate with arrow keys, select with Enter
 - Type `?` on an empty line to see **shortcut hints**
 - **Up/Down** arrows navigate the thread list; the thread list auto-scrolls to keep selection visible; **Enter** on empty input expands/collapses branches
+- Mouse-wheel scrolling follows the hovered pane: `Threads`, `Status`, and `Help` each scroll independently
+- Left-click in the thread list selects the clicked thread or branch
 - The **Status** pane follows the selected thread or branch for inspection
 - The **Capture** pane shows the active note target explicitly
 - Selected-item notes in the **Status** pane show compact timestamps and separators for readability

@@ -101,14 +101,11 @@ pub fn render(frame: &mut Frame, area: Rect, state: &TuiState) {
 
     let rows = state.visible_rows();
     let visible_height = area.height.saturating_sub(2) as usize;
-    let selected_row = rows
-        .iter()
-        .position(|row| *row == state.selected)
-        .unwrap_or(0);
     let scroll_start = if visible_height == 0 {
         0
     } else {
-        selected_row.saturating_sub(visible_height.saturating_sub(1))
+        let max_scroll = rows.len().saturating_sub(visible_height);
+        usize::from(state.thread_list_scroll).min(max_scroll)
     };
     let visible_items = if visible_height == 0 {
         Vec::new()

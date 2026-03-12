@@ -98,3 +98,11 @@ pub fn render_header(frame: &mut Frame, area: Rect) {
     let paragraph = ratatui::widgets::Paragraph::new(header_text).block(header_block);
     frame.render_widget(paragraph, area);
 }
+
+/// Return whether a terminal column/row point lies within a rectangle.
+pub fn contains_point(rect: Rect, column: u16, row: u16) -> bool {
+    column >= rect.x
+        && column < rect.x.saturating_add(rect.width)
+        && row >= rect.y
+        && row < rect.y.saturating_add(rect.height)
+}

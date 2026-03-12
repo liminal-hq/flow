@@ -79,6 +79,7 @@ pub struct TuiState {
     pub error_message: Option<String>,
     pub selected_scope_context: ScopeContext,
     pub status_scroll: u16,
+    pub thread_list_scroll: u16,
     pub poll_watermark: Option<String>,
     pub should_quit: bool,
     /// Whether the command palette popup is visible (triggered by `/` on empty line).
@@ -111,6 +112,7 @@ impl TuiState {
             error_message: None,
             selected_scope_context: ScopeContext::default(),
             status_scroll: 0,
+            thread_list_scroll: 0,
             poll_watermark: None,
             should_quit: false,
             show_command_palette: false,
@@ -361,6 +363,50 @@ impl TuiState {
             SelectedItem::Thread(i) => *i,
             SelectedItem::Branch(i, _) => *i,
         }
+    }
+
+    /// Keep the selected row visible within the thread-list viewport.
+    pub fn ensure_thread_selection_visible(&mut self, viewport_height: usize) {
+        if viewport_height == 0 {
+            self.thread_list_scroll = 0;
+            return;
+        }
+
+        let rows = self.visible_rows();
+        let Some(selected_row) = rows.iter().position(|row| *row == self.selected) else {
+            self.thread_list_scroll = 0;
+            return;
+        };
+
+        let scroll = self.thread_list_scroll as usize;
+        if selected_row < scroll {
+            self.thread_list_scroll = selected_row as u16;
+            return;
+        }
+
+        let viewport_end = scroll + viewport_height;
+        if selected_row >= viewport_end {
+            self.thread_list_scroll =
+                selected_row.saturating_sub(viewport_height.saturating_sub(1)) as u16;
+        }
+    }
+
+    /// Clamp the thread-list scroll offset to the current number of visible rows.
+    pub fn clamp_thread_list_scroll(&mut self, viewport_height: usize) {
+        let rows = self.visible_rows();
+        let max_scroll = rows.len().saturating_sub(viewport_height) as u16;
+        self.thread_list_scroll = self.thread_list_scroll.min(max_scroll);
+    }
+
+    /// Scroll the thread list viewport by a signed delta.
+    pub fn scroll_thread_list(&mut self, delta: i16, viewport_height: usize) {
+        let next = if delta.is_negative() {
+            self.thread_list_scroll.saturating_sub(delta.unsigned_abs())
+        } else {
+            self.thread_list_scroll.saturating_add(delta as u16)
+        };
+        self.thread_list_scroll = next;
+        self.clamp_thread_list_scroll(viewport_height);
     }
 
     /// Return the FlowId of the selected item (thread ID or branch ID).
