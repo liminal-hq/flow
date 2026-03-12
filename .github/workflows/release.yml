@@ -7,8 +7,8 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: Release tag (must start with v)
-        required: true
+        description: Release tag (must start with v). Leave blank to use the workspace version.
+        required: false
         type: string
       release_draft:
         description: Create or keep this release as draft
@@ -17,7 +17,7 @@ on:
         type: boolean
 
 concurrency:
-  group: "release-${{ github.event_name }}-${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}"
+  group: "release-${{ github.event_name }}-${{ github.event_name == 'workflow_dispatch' && (inputs.release_tag != '' && inputs.release_tag || github.ref_name) || github.ref_name }}"
   cancel-in-progress: true
 
 permissions:
@@ -41,6 +41,16 @@ jobs:
 
           if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
             TAG="${{ inputs.release_tag }}"
+            if [[ -z "${TAG}" ]]; then
+              VERSION="$(
+                sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -n 1
+              )"
+              if [[ -z "${VERSION}" ]]; then
+                echo "Failed to derive workspace version from Cargo.toml" >&2
+                exit 1
+              fi
+              TAG="v${VERSION}"
+            fi
           else
             TAG="${GITHUB_REF_NAME}"
           fi
