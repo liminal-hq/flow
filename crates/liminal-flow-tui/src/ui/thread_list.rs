@@ -97,6 +97,27 @@ pub fn render(frame: &mut Frame, area: Rect, state: &TuiState) {
         .border_style(theme::border())
         .title(Span::styled(" Threads ", theme::header()));
 
-    let list = List::new(items).block(block);
+    let rows = state.visible_rows();
+    let visible_height = area.height.saturating_sub(2) as usize;
+    let selected_row = rows
+        .iter()
+        .position(|row| *row == state.selected)
+        .unwrap_or(0);
+    let scroll_start = if visible_height == 0 {
+        0
+    } else {
+        selected_row.saturating_sub(visible_height.saturating_sub(1))
+    };
+    let visible_items = if visible_height == 0 {
+        Vec::new()
+    } else {
+        items
+            .into_iter()
+            .skip(scroll_start)
+            .take(visible_height)
+            .collect()
+    };
+
+    let list = List::new(visible_items).block(block);
     frame.render_widget(list, area);
 }

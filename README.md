@@ -74,11 +74,12 @@ The TUI starts in **Insert mode**:
 - Type slash commands (`/now`, `/branch`, `/back`, `/note`, `/where`, `/pause`, `/done`) or plain text (treated as a note)
 - Type `/` on an empty line to open the **command palette** — navigate with arrow keys, select with Enter
 - Type `?` on an empty line to see **shortcut hints**
-- **Up/Down** arrows navigate the thread list; **Enter** on empty input expands/collapses branches
+- **Up/Down** arrows navigate the thread list; the thread list auto-scrolls to keep selection visible; **Enter** on empty input expands/collapses branches
 - The **Status** pane follows the selected thread or branch for inspection
 - The **Capture** pane shows the active note target explicitly
 - Selected-item notes in the **Status** pane show compact timestamps and separators for readability
-- Press `Esc` for **Normal mode** where `j`/`k` navigate, `Enter` expands or collapses the selected thread, `r` resumes a selected item to make it active, `p` parks a selected branch, `?` opens help, `a` shows about, and `q` quits
+- Press `Esc` for **Normal mode** where `j`/`k` navigate, `Enter` expands or collapses the selected thread, `PageUp`/`PageDown` scroll the Status pane, `r` resumes a selected item to make it active, `p` parks a selected branch, `?` opens help, `a` shows about, and `q` quits
+- In the **Help** overlay, `j`/`k`/Up/Down and `PageUp`/`PageDown` scroll the help content on smaller terminals
 
 The TUI polls the database every 250ms, so changes made via `flo` CLI in another terminal appear automatically.
 

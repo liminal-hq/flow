@@ -109,6 +109,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &TuiState) {
 
     let paragraph = Paragraph::new(lines)
         .block(block)
+        .scroll((state.status_scroll, 0))
         .wrap(Wrap { trim: false });
     frame.render_widget(paragraph, area);
 }

@@ -25,6 +25,7 @@ const HELP_TEXT: &[(&str, &str)] = &[
     ("Up / Down", "Navigate threads & branches"),
     ("Enter (empty)", "Expand/collapse branches"),
     ("Enter (text)", "Submit input"),
+    ("PageUp / PageDown", "Scroll the Status pane"),
     ("Esc", "Switch to Normal mode"),
     (S, "Normal Mode"),
     ("i", "Switch to Insert mode"),
@@ -32,13 +33,18 @@ const HELP_TEXT: &[(&str, &str)] = &[
     ("Enter", "Expand/collapse branches"),
     ("r", "Resume selected item"),
     ("p", "Park selected branch"),
+    ("PageUp / PageDown", "Scroll the Status pane"),
     ("?", "Toggle this help"),
     ("a", "About"),
     ("q", "Quit"),
+    (S, "Help Mode"),
+    ("j / k / Up / Down", "Scroll the Help content"),
+    ("PageUp / PageDown", "Scroll faster"),
+    ("Esc / ? / q", "Close Help"),
 ];
 
 /// Render the help overlay centred on screen.
-pub fn render(frame: &mut Frame, area: Rect) {
+pub fn render(frame: &mut Frame, area: Rect, scroll: u16) {
     let popup_width = 64.min(area.width.saturating_sub(4));
     let popup_height = (HELP_TEXT.len() as u16 + 4).min(area.height.saturating_sub(2));
 
@@ -77,6 +83,6 @@ pub fn render(frame: &mut Frame, area: Rect) {
         .border_style(theme::accent())
         .title(Span::styled(" Help ", theme::header()));
 
-    let paragraph = Paragraph::new(lines).block(block);
+    let paragraph = Paragraph::new(lines).block(block).scroll((scroll, 0));
     frame.render_widget(paragraph, popup_area);
 }

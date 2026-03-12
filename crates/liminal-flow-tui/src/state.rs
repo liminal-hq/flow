@@ -70,6 +70,7 @@ pub struct TuiState {
     pub last_reply: Option<String>,
     pub error_message: Option<String>,
     pub selected_scope_context: ScopeContext,
+    pub status_scroll: u16,
     pub poll_watermark: Option<String>,
     pub should_quit: bool,
     /// Whether the command palette popup is visible (triggered by `/` on empty line).
@@ -78,6 +79,7 @@ pub struct TuiState {
     pub command_palette_index: usize,
     /// Whether the shortcut hints bar is visible (triggered by `?` on empty line).
     pub show_hints: bool,
+    pub help_scroll: u16,
     /// Set of thread indices whose branches are expanded in the list.
     /// Active threads are always expanded; this tracks user toggles.
     pub expanded: HashSet<usize>,
@@ -100,11 +102,13 @@ impl TuiState {
             last_reply: None,
             error_message: None,
             selected_scope_context: ScopeContext::default(),
+            status_scroll: 0,
             poll_watermark: None,
             should_quit: false,
             show_command_palette: false,
             command_palette_index: 0,
             show_hints: false,
+            help_scroll: 0,
             expanded: HashSet::new(),
             selected_notes: Vec::new(),
         }
@@ -274,8 +278,10 @@ impl TuiState {
                 .position(|branch| branch.status == liminal_flow_core::model::BranchStatus::Active)
             {
                 self.selected = SelectedItem::Branch(thread_idx, branch_idx);
+                self.status_scroll = 0;
             } else {
                 self.selected = SelectedItem::Thread(thread_idx);
+                self.status_scroll = 0;
             }
             return;
         }
@@ -290,6 +296,7 @@ impl TuiState {
         let current = rows.iter().position(|r| *r == self.selected).unwrap_or(0);
         let next = (current + 1) % rows.len();
         self.selected = rows[next].clone();
+        self.status_scroll = 0;
     }
 
     /// Move selection to the previous visible row, wrapping around.
@@ -305,6 +312,7 @@ impl TuiState {
             current - 1
         };
         self.selected = rows[prev].clone();
+        self.status_scroll = 0;
     }
 
     /// Toggle expansion of the currently selected thread's branches.
@@ -319,6 +327,7 @@ impl TuiState {
             // If a branch was selected, move selection to the parent thread
             if matches!(self.selected, SelectedItem::Branch(_, _)) {
                 self.selected = SelectedItem::Thread(thread_idx);
+                self.status_scroll = 0;
             }
         } else {
             self.expanded.insert(thread_idx);
@@ -362,8 +371,10 @@ impl TuiState {
             let thread_idx = self.selected_thread_index();
             if rows.contains(&SelectedItem::Thread(thread_idx)) {
                 self.selected = SelectedItem::Thread(thread_idx);
+                self.status_scroll = 0;
             } else {
                 self.selected = rows[0].clone();
+                self.status_scroll = 0;
             }
         }
     }

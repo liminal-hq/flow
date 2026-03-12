@@ -101,10 +101,12 @@ The TUI provides a three-pane interface:
 The thread list supports navigating both threads and their branches:
 
 - **Up/Down** (Insert or Normal mode) moves between all visible items — threads and branches within expanded threads
+- The thread list auto-scrolls to keep the selected row visible when the list exceeds the available height
 - **Enter** (on empty input in Insert, or in Normal mode) toggles expand/collapse for the selected thread's branches
 - The **Status** pane follows the selected item for inspection
 - Notes in the **Status** pane are rendered with compact timestamps and separators for readability
 - The **Capture** pane follows the active item and shows the current note target in its title
+- **PageUp** and **PageDown** (Normal mode) scroll the Status pane
 - **r** (Normal mode) resumes the selected item:
   - On a paused thread: activates it and restores the thread stack from where it left off
   - On a parked branch: activates it (parking other active branches, and activating the parent thread if needed)

@@ -102,7 +102,7 @@ fn run_loop(
             }
 
             if state.mode == Mode::Help {
-                help::render(frame, frame.area());
+                help::render(frame, frame.area(), state.help_scroll);
             } else if state.mode == Mode::About {
                 about::render(frame, frame.area());
             }
@@ -122,6 +122,18 @@ fn run_loop(
 
                 match state.mode {
                     Mode::Help => match key.code {
+                        KeyCode::Up | KeyCode::Char('k') => {
+                            state.help_scroll = state.help_scroll.saturating_sub(1);
+                        }
+                        KeyCode::Down | KeyCode::Char('j') => {
+                            state.help_scroll = state.help_scroll.saturating_add(1);
+                        }
+                        KeyCode::PageUp => {
+                            state.help_scroll = state.help_scroll.saturating_sub(8);
+                        }
+                        KeyCode::PageDown => {
+                            state.help_scroll = state.help_scroll.saturating_add(8);
+                        }
                         KeyCode::Esc | KeyCode::Char('?') | KeyCode::Char('q') => {
                             state.mode = Mode::Normal;
                         }
@@ -143,6 +155,7 @@ fn run_loop(
                             state.mode = Mode::Insert;
                         }
                         KeyCode::Char('?') => {
+                            state.help_scroll = 0;
                             state.mode = Mode::Help;
                         }
                         KeyCode::Char('a') => {
@@ -219,6 +232,12 @@ fn run_loop(
                         }
                         KeyCode::Char('k') | KeyCode::Up => {
                             state.select_prev();
+                        }
+                        KeyCode::PageUp => {
+                            state.status_scroll = state.status_scroll.saturating_sub(5);
+                        }
+                        KeyCode::PageDown => {
+                            state.status_scroll = state.status_scroll.saturating_add(5);
                         }
                         _ => {}
                     },
