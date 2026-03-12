@@ -14,6 +14,7 @@ BINARY_PATH=""
 MAN_DIR=""
 OUTPUT_PREFIX=""
 
+# Print CLI usage for local archive builds and workflow debugging.
 usage() {
 	cat <<'USAGE'
 Usage: scripts/build-release-archive.sh [options]
@@ -28,6 +29,7 @@ Options:
 USAGE
 }
 
+# Write a checksum file using whichever SHA-256 utility is available on the host.
 write_sha256_file() {
 	local input_file="$1"
 	local output_file="$2"
@@ -46,6 +48,7 @@ write_sha256_file() {
 	exit 1
 }
 
+# Collapse common architecture aliases onto the two release architectures we support.
 normalise_arch() {
 	case "$1" in
 		x64 | amd64 | x86_64)
@@ -61,6 +64,7 @@ normalise_arch() {
 	esac
 }
 
+# Find the newest generated man-page directory next to the built release binary.
 discover_man_dir() {
 	local binary_path="$1"
 	local release_dir
@@ -151,6 +155,7 @@ while IFS= read -r man_page; do
 done < <(find "${MAN_DIR}" -maxdepth 1 -type f -name '*.1' | sort)
 
 ARCHIVE_OUTPUT="${OUTPUT_PREFIX}.tar.gz"
+# Archive from the prepared prefix root so extraction lands in bin/ and share/man/man1/.
 tar -C "${ARCHIVE_ROOT}" -czf "${ARCHIVE_OUTPUT}" .
 write_sha256_file "${ARCHIVE_OUTPUT}" "${ARCHIVE_OUTPUT}.sha256"
 

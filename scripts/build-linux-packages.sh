@@ -22,6 +22,7 @@ PACKAGE_HOMEPAGE="https://github.com/liminal-hq/flow"
 PACKAGE_VENDOR="Liminal HQ"
 PACKAGE_CONTACT="Liminal HQ <contact@liminalhq.ca>"
 
+# Print CLI usage for local packaging runs and workflow debugging.
 usage() {
 	cat <<'USAGE'
 Usage: scripts/build-linux-packages.sh [options]
@@ -37,6 +38,7 @@ Options:
 USAGE
 }
 
+# Write a checksum file using whichever SHA-256 utility is available on the host.
 write_sha256_file() {
 	local input_file="$1"
 	local output_file="$2"
@@ -55,6 +57,7 @@ write_sha256_file() {
 	exit 1
 }
 
+# Collapse common architecture aliases onto the two release architectures we support.
 normalise_arch() {
 	case "$1" in
 		x64 | amd64 | x86_64)
@@ -70,6 +73,7 @@ normalise_arch() {
 	esac
 }
 
+# Find the newest generated man-page directory next to the built release binary.
 discover_man_dir() {
 	local binary_path="$1"
 	local release_dir
@@ -190,6 +194,7 @@ build_deb() {
 	local deb_root="${TMP_DIR}/deb-root"
 	mkdir -p "${deb_root}/DEBIAN" "${deb_root}/usr/bin" "${deb_root}/usr/share/man/man1"
 
+	# Debian packages install into distro-managed paths rather than a user-managed prefix.
 	install -m 0755 "${BINARY_PATH}" "${deb_root}/usr/bin/flo"
 	install -m 0644 "${MAN_SOURCE_DIR}"/*.1.gz "${deb_root}/usr/share/man/man1/"
 
@@ -231,6 +236,7 @@ POSTRM
 	echo "Built ${deb_output}"
 }
 
+# Build an RPM using a temporary rpmbuild root so release jobs stay self-contained.
 build_rpm() {
 	if ! command -v rpmbuild >/dev/null 2>&1; then
 		echo "rpmbuild is required to create RPM packages" >&2
@@ -240,6 +246,7 @@ build_rpm() {
 	local rpm_root="${TMP_DIR}/rpm"
 	mkdir -p "${rpm_root}/BUILD" "${rpm_root}/BUILDROOT" "${rpm_root}/RPMS" "${rpm_root}/SOURCES" "${rpm_root}/SPECS" "${rpm_root}/SRPMS"
 
+	# Stage the binary and generated man pages as rpmbuild sources for a simple spec-driven install.
 	install -m 0755 "${BINARY_PATH}" "${rpm_root}/SOURCES/flo"
 	install -m 0644 "${MAN_SOURCE_DIR}"/*.1.gz "${rpm_root}/SOURCES/"
 
