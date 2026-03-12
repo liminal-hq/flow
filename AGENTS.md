@@ -76,10 +76,13 @@
 
 **Requirement:** Do not push changes (especially force pushes) to the repository unless explicitly requested by the user.
 
+- **Fix branch naming:** When creating a branch for a fix, use `fix/issue-<number>-<short-description>` (for example, `fix/issue-19-wsl2-deb-runtime`).
+
 ## Testing
 
 - **Mandatory Testing:** Make sure the unit tests are run after changes to the code.
 - **Verification:** Always verify code changes by running relevant tests.
+- **Docker fallback:** When the host does not have the required tooling, Docker may be used to run builds, linting, formatting, or tests, but only after the user explicitly permits it.
 - **Build Check:** Run `cargo build` and `cargo clippy --workspace -- -D warnings` to surface any errors.
 - **Format Check:** Run `cargo fmt --check` to ensure consistent formatting.
 - **Test Commands:**
