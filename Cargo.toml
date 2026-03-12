@@ -13,6 +13,10 @@ version = "0.1.0"
 edition = "2021"
 license = "MIT"
 authors = ["Liminal HQ", "Scott Morris"]
+repository = "https://github.com/liminal-hq/flow"
+homepage = "https://github.com/liminal-hq/flow"
+documentation = "https://github.com/liminal-hq/flow#readme"
+rust-version = "1.85"
 
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }

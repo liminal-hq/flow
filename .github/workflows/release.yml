@@ -1,0 +1,229 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Release tag (must start with v)
+        required: true
+        type: string
+      release_draft:
+        description: Create or keep this release as draft
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: "release-${{ github.event_name }}-${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}"
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  prepare-release:
+    name: Prepare release metadata
+    runs-on: ubuntu-24.04
+    outputs:
+      tag_name: ${{ steps.meta.outputs.tag_name }}
+      release_name: ${{ steps.meta.outputs.release_name }}
+      release_id: ${{ steps.release.outputs.release_id }}
+      version: ${{ steps.meta.outputs.version }}
+    steps:
+      - name: Resolve release tag
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            TAG="${{ inputs.release_tag }}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+          fi
+
+          if [[ ! "${TAG}" =~ ^v.+$ ]]; then
+            echo "Invalid release tag: ${TAG}" >&2
+            echo "Expected a tag matching v*" >&2
+            exit 1
+          fi
+
+          VERSION="${TAG#v}"
+
+          echo "tag_name=${TAG}" >> "${GITHUB_OUTPUT}"
+          echo "release_name=flo ${TAG}" >> "${GITHUB_OUTPUT}"
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+
+      - name: Create or reuse release
+        id: release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ steps.meta.outputs.tag_name }}
+          RELEASE_NAME: ${{ steps.meta.outputs.release_name }}
+          MANUAL_RELEASE_DRAFT: ${{ inputs.release_draft }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            RELEASE_DRAFT="${MANUAL_RELEASE_DRAFT:-false}"
+          else
+            RELEASE_DRAFT="false"
+          fi
+
+          RELEASE_MATCH="$(
+            gh api --paginate "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+              --jq ".[] | select(.tag_name == \"${TAG_NAME}\") | [.id, .draft] | @tsv" \
+              | head -n 1 || true
+          )"
+
+          if [[ -z "${RELEASE_MATCH}" ]]; then
+            RELEASE_ID="$(
+              gh api \
+                --method POST \
+                "repos/${GITHUB_REPOSITORY}/releases" \
+                -f tag_name="${TAG_NAME}" \
+                -f target_commitish="${GITHUB_SHA}" \
+                -f name="${RELEASE_NAME}" \
+                -f body='See assets below for Linux downloads, packages, and checksums.' \
+                -F generate_release_notes=true \
+                -F draft="${RELEASE_DRAFT}" \
+                -F prerelease=false \
+                --jq '.id'
+            )"
+          else
+            RELEASE_ID="$(awk '{print $1}' <<< "${RELEASE_MATCH}")"
+            EXISTING_DRAFT="$(awk '{print $2}' <<< "${RELEASE_MATCH}")"
+
+            if [[ "${EXISTING_DRAFT}" == "true" && "${RELEASE_DRAFT}" == "false" ]]; then
+              gh api \
+                --method PATCH \
+                "repos/${GITHUB_REPOSITORY}/releases/${RELEASE_ID}" \
+                -F draft=false > /dev/null
+            fi
+          fi
+
+          echo "release_id=${RELEASE_ID}" >> "${GITHUB_OUTPUT}"
+
+      - name: Write summary
+        shell: bash
+        run: |
+          {
+            echo "## Release preparation"
+            echo
+            echo "- Tag: \`${{ steps.meta.outputs.tag_name }}\`"
+            echo "- Version: \`${{ steps.meta.outputs.version }}\`"
+            echo "- Release name: \`${{ steps.meta.outputs.release_name }}\`"
+            echo "- Release ID: \`${{ steps.release.outputs.release_id }}\`"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  build-linux:
+    name: Build Linux (${{ matrix.artefact_suffix }})
+    runs-on: ${{ matrix.os }}
+    needs: prepare-release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            arch: x64
+            artefact_suffix: linux-x64
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            arch: arm64
+            artefact_suffix: linux-arm64
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Restore Cargo cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: release-${{ matrix.target }}
+          shared-key: release-linux
+
+      - name: Install RPM tooling
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y rpm
+
+      - name: Build release binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo build --locked --release --package liminal-flow-cli --target "${{ matrix.target }}"
+
+      - name: Prepare release artefacts
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p dist
+
+          TAG="${{ needs.prepare-release.outputs.tag_name }}"
+          TARGET="${{ matrix.target }}"
+          ARCH="${{ matrix.arch }}"
+          SUFFIX="${{ matrix.artefact_suffix }}"
+          BINARY_SOURCE="target/${TARGET}/release/flo"
+          BINARY_OUTPUT="dist/flo-${TAG}-${SUFFIX}"
+
+          cp "${BINARY_SOURCE}" "${BINARY_OUTPUT}"
+          sha256sum "${BINARY_OUTPUT}" > "${BINARY_OUTPUT}.sha256"
+
+          scripts/build-release-archive.sh \
+            --version "${TAG}" \
+            --arch "${ARCH}" \
+            --binary "${BINARY_SOURCE}" \
+            --output-prefix "dist/flo-${TAG}-${SUFFIX}"
+
+          scripts/build-linux-packages.sh \
+            --version "${TAG}" \
+            --arch "${ARCH}" \
+            --binary "${BINARY_SOURCE}" \
+            --output-prefix "dist/flo-${TAG}-${SUFFIX}"
+
+      - name: Upload workflow artefacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: flo-${{ matrix.artefact_suffix }}
+          path: |
+            dist/flo-${{ needs.prepare-release.outputs.tag_name }}-${{ matrix.artefact_suffix }}*
+          if-no-files-found: error
+
+      - name: Upload release assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          gh release upload "${{ needs.prepare-release.outputs.tag_name }}" \
+            dist/flo-${{ needs.prepare-release.outputs.tag_name }}-${{ matrix.artefact_suffix }}* \
+            --clobber
+
+      - name: Write summary
+        shell: bash
+        run: |
+          {
+            echo "## Linux build summary"
+            echo
+            echo "- Runner: \`${{ matrix.os }}\`"
+            echo "- Target triple: \`${{ matrix.target }}\`"
+            echo "- Artefact suffix: \`${{ matrix.artefact_suffix }}\`"
+            echo "- Standalone binary: \`flo-${{ needs.prepare-release.outputs.tag_name }}-${{ matrix.artefact_suffix }}\`"
+            echo "- Archive: \`flo-${{ needs.prepare-release.outputs.tag_name }}-${{ matrix.artefact_suffix }}.tar.gz\`"
+            echo "- Debian package: \`flo-${{ needs.prepare-release.outputs.tag_name }}-${{ matrix.artefact_suffix }}.deb\`"
+            echo "- RPM package: \`flo-${{ needs.prepare-release.outputs.tag_name }}-${{ matrix.artefact_suffix }}.rpm\`"
+            echo "- Checksums: generated for every uploaded artefact"
+          } >> "${GITHUB_STEP_SUMMARY}"

@@ -159,6 +159,34 @@ All data is stored in a local SQLite database using WAL mode for safe concurrent
 - Database: `~/Library/Application Support/ca.liminalhq.liminal-flow/liminal-flow.db`
 - Config: `~/Library/Application Support/ca.liminalhq.liminal-flow/config.toml`
 
+## Distribution and install paths
+
+The initial public release target is Linux only, with support for:
+
+- `amd64`
+- `arm64`
+
+The first release should publish:
+
+- standalone binaries
+- `.tar.gz` archives
+- `.deb` packages
+- `.rpm` packages
+- SHA256 checksum files for every artefact
+
+Linux release packages must install into package-managed paths:
+
+- binary: `/usr/bin/flo`
+- man pages: `/usr/share/man/man1/*.1.gz`
+
+Linux release tarballs must unpack into a prefix-friendly layout:
+
+- `bin/flo`
+- `share/man/man1/flo.1.gz`
+- `share/man/man1/flo-*.1.gz`
+
+All generated subcommand man pages must ship in both Linux packages and release tarballs.
+
 ## Five Core Rules
 
 1. **Single active thread** — only one thread can be active at any time
