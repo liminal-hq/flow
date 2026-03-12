@@ -1,5 +1,9 @@
 name: Release
 
+env:
+  # Opt JavaScript-based actions into the GitHub-hosted Node 24 runtime ahead of the Node 20 deprecation.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 on:
   push:
     tags:
