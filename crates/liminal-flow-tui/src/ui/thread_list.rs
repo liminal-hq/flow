@@ -59,16 +59,24 @@ pub fn render(frame: &mut Frame, area: Rect, state: &TuiState) {
         if is_expanded {
             for (j, branch) in entry.branches.iter().enumerate() {
                 let is_branch_selected = state.selected == SelectedItem::Branch(i, j);
+                let is_effectively_active = entry.thread.status == ThreadStatus::Active
+                    && branch.status == BranchStatus::Active;
 
-                let branch_style = if is_branch_selected {
+                let branch_style = if is_branch_selected && is_effectively_active {
+                    theme::active().add_modifier(ratatui::style::Modifier::BOLD)
+                } else if is_branch_selected {
                     theme::selected()
-                } else if branch.status == BranchStatus::Active {
-                    theme::accent()
+                } else if is_effectively_active {
+                    theme::active()
                 } else {
                     theme::muted()
                 };
 
-                let suffix = if branch.status != BranchStatus::Active {
+                let suffix = if entry.thread.status == ThreadStatus::Paused
+                    && branch.status == BranchStatus::Active
+                {
+                    "  (thread paused)".to_string()
+                } else if branch.status != BranchStatus::Active {
                     format!("  ({})", branch.status)
                 } else {
                     String::new()

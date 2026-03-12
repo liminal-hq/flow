@@ -38,10 +38,11 @@ pub const SLASH_COMMANDS: &[(&str, &str)] = &[
 
 /// Keyboard shortcut hints shown when ? is typed on an empty line.
 pub const SHORTCUT_HINTS: &[(&str, &str)] = &[
-    ("/ for commands", "Esc to Normal mode"),
-    ("Enter to submit/expand", "i to Insert mode"),
-    ("? for shortcuts", "q to quit (Normal)"),
-    ("Up/Down navigate items", "r resume selected (Normal)"),
+    ("/ for commands (Insert)", "Esc to Normal mode"),
+    ("Enter submits/expands (Insert)", "i switches to Insert"),
+    ("Up/Down move selection", "r resumes selected (Normal)"),
+    ("p parks selected branch (Normal)", "q quits (Normal)"),
+    ("Capture targets active item", "? opens full help"),
 ];
 
 /// A thread together with its branches, for display in the thread list.
@@ -67,7 +68,7 @@ pub struct TuiState {
     pub selected: SelectedItem,
     pub last_reply: Option<String>,
     pub error_message: Option<String>,
-    pub scope_context: ScopeContext,
+    pub selected_scope_context: ScopeContext,
     pub poll_watermark: Option<String>,
     pub should_quit: bool,
     /// Whether the command palette popup is visible (triggered by `/` on empty line).
@@ -79,8 +80,8 @@ pub struct TuiState {
     /// Set of thread indices whose branches are expanded in the list.
     /// Active threads are always expanded; this tracks user toggles.
     pub expanded: HashSet<usize>,
-    /// Recent notes (captures) for the active thread/branch, shown in the status pane.
-    pub recent_notes: Vec<Capture>,
+    /// Recent notes (captures) for the selected thread or branch, shown in the status pane.
+    pub selected_notes: Vec<Capture>,
 }
 
 impl Default for TuiState {
@@ -97,14 +98,14 @@ impl TuiState {
             selected: SelectedItem::Thread(0),
             last_reply: None,
             error_message: None,
-            scope_context: ScopeContext::default(),
+            selected_scope_context: ScopeContext::default(),
             poll_watermark: None,
             should_quit: false,
             show_command_palette: false,
             command_palette_index: 0,
             show_hints: false,
             expanded: HashSet::new(),
-            recent_notes: Vec::new(),
+            selected_notes: Vec::new(),
         }
     }
 
@@ -138,62 +139,9 @@ impl TuiState {
             })
             .collect();
 
-        // Load scope context for the active thread
-        self.scope_context = ScopeContext::default();
-        if let Some(active) = self.active_thread() {
-            let scopes =
-                scope_repo::find_by_target(conn, "thread", &active.thread.id).unwrap_or_default();
-            for scope in &scopes {
-                match scope.kind {
-                    liminal_flow_core::model::ScopeKind::Repo => {
-                        self.scope_context.repo = Some(scope.value.clone());
-                    }
-                    liminal_flow_core::model::ScopeKind::GitBranch => {
-                        self.scope_context.git_branch = Some(scope.value.clone());
-                    }
-                    liminal_flow_core::model::ScopeKind::Cwd => {
-                        self.scope_context.cwd = Some(scope.value.clone());
-                    }
-                    _ => {}
-                }
-            }
-        }
-
-        // Load recent notes for the active thread (and its active branch)
-        self.recent_notes = Vec::new();
-        if let Some(active) = self.active_thread() {
-            // Notes on the thread itself
-            let thread_captures =
-                capture_repo::find_by_target(conn, "thread", &active.thread.id, 5)
-                    .unwrap_or_default();
-
-            // Notes on active branches
-            let branch_captures: Vec<Capture> = active
-                .branches
-                .iter()
-                .filter(|b| b.status == liminal_flow_core::model::BranchStatus::Active)
-                .flat_map(|b| {
-                    capture_repo::find_by_target(conn, "branch", &b.id, 3).unwrap_or_default()
-                })
-                .collect();
-
-            // Merge and filter to just notes (AddNote intent), most recent first
-            let mut all: Vec<Capture> = thread_captures
-                .into_iter()
-                .chain(branch_captures)
-                .filter(|c| {
-                    c.inferred_intent
-                        .as_ref()
-                        .is_some_and(|i| *i == liminal_flow_core::model::Intent::AddNote)
-                })
-                .collect();
-            all.sort_by(|a, b| b.created_at.cmp(&a.created_at));
-            all.truncate(5);
-            self.recent_notes = all;
-        }
-
         // Clamp selection to valid visible rows
         self.clamp_selection();
+        self.refresh_selected_details(conn);
     }
 
     /// Return the active thread entry, if any.
@@ -201,6 +149,131 @@ impl TuiState {
         self.threads
             .iter()
             .find(|e| e.thread.status == ThreadStatus::Active)
+    }
+
+    /// Return the active branch on the active thread, if any.
+    pub fn active_branch(&self) -> Option<&Branch> {
+        self.active_thread().and_then(|entry| {
+            entry
+                .branches
+                .iter()
+                .find(|b| b.status == liminal_flow_core::model::BranchStatus::Active)
+        })
+    }
+
+    /// Return the display label for the current capture target.
+    pub fn active_capture_target_label(&self) -> Option<String> {
+        if let Some(branch) = self.active_branch() {
+            return Some(format!("branch: {}", branch.title));
+        }
+
+        self.active_thread()
+            .map(|entry| format!("thread: {}", entry.thread.title))
+    }
+
+    /// Return the currently selected thread entry.
+    pub fn selected_thread(&self) -> Option<&ThreadEntry> {
+        match &self.selected {
+            SelectedItem::Thread(i) | SelectedItem::Branch(i, _) => self.threads.get(*i),
+        }
+    }
+
+    /// Return the currently selected branch, if any.
+    pub fn selected_branch(&self) -> Option<&Branch> {
+        match &self.selected {
+            SelectedItem::Thread(_) => None,
+            SelectedItem::Branch(i, j) => self.threads.get(*i).and_then(|e| e.branches.get(*j)),
+        }
+    }
+
+    /// Return a label describing the selected item for the status pane.
+    pub fn selected_title(&self) -> Option<String> {
+        match (
+            &self.selected,
+            self.selected_thread(),
+            self.selected_branch(),
+        ) {
+            (SelectedItem::Thread(_), Some(entry), _) => Some(entry.thread.title.clone()),
+            (SelectedItem::Branch(_, _), _, Some(branch)) => Some(branch.title.clone()),
+            _ => None,
+        }
+    }
+
+    /// Return whether the selected item is currently active.
+    pub fn selected_is_active(&self) -> bool {
+        match (
+            &self.selected,
+            self.selected_thread(),
+            self.selected_branch(),
+        ) {
+            (SelectedItem::Thread(_), Some(entry), _) => {
+                entry.thread.status == ThreadStatus::Active
+            }
+            (SelectedItem::Branch(_, _), Some(entry), Some(branch)) => {
+                entry.thread.status == ThreadStatus::Active
+                    && branch.status == liminal_flow_core::model::BranchStatus::Active
+            }
+            _ => false,
+        }
+    }
+
+    /// Return a short status label for the selected item.
+    pub fn selected_status_label(&self) -> Option<String> {
+        match (
+            &self.selected,
+            self.selected_thread(),
+            self.selected_branch(),
+        ) {
+            (SelectedItem::Thread(_), Some(entry), _) => Some(entry.thread.status.to_string()),
+            (SelectedItem::Branch(_, _), Some(entry), Some(branch)) => {
+                if entry.thread.status == ThreadStatus::Paused
+                    && branch.status == liminal_flow_core::model::BranchStatus::Active
+                {
+                    Some("inactive (thread paused)".into())
+                } else {
+                    Some(branch.status.to_string())
+                }
+            }
+            _ => None,
+        }
+    }
+
+    /// Return a compact label describing the selected item kind.
+    pub fn selected_kind_label(&self) -> &'static str {
+        match self.selected {
+            SelectedItem::Thread(_) => "Thread",
+            SelectedItem::Branch(_, _) => "Branch",
+        }
+    }
+
+    /// Return the parent thread title when a branch is selected.
+    pub fn selected_parent_title(&self) -> Option<String> {
+        match (&self.selected, self.selected_thread()) {
+            (SelectedItem::Branch(_, _), Some(entry)) => Some(entry.thread.title.clone()),
+            _ => None,
+        }
+    }
+
+    /// Move selection to the currently active branch, or the active thread if no branch is active.
+    pub fn select_active_item(&mut self) {
+        for (thread_idx, entry) in self.threads.iter().enumerate() {
+            if entry.thread.status != ThreadStatus::Active {
+                continue;
+            }
+
+            self.expanded.insert(thread_idx);
+
+            if let Some(branch_idx) = entry
+                .branches
+                .iter()
+                .position(|branch| branch.status == liminal_flow_core::model::BranchStatus::Active)
+            {
+                self.selected = SelectedItem::Branch(thread_idx, branch_idx);
+            } else {
+                self.selected = SelectedItem::Thread(thread_idx);
+            }
+            return;
+        }
     }
 
     /// Move selection to the next visible row, wrapping around.
@@ -248,13 +321,7 @@ impl TuiState {
     }
 
     /// Whether a thread at the given index should show its branches.
-    /// Active threads are always expanded.
     pub fn is_expanded(&self, index: usize) -> bool {
-        if let Some(entry) = self.threads.get(index) {
-            if entry.thread.status == ThreadStatus::Active {
-                return true;
-            }
-        }
         self.expanded.contains(&index)
     }
 
@@ -294,5 +361,49 @@ impl TuiState {
                 self.selected = rows[0].clone();
             }
         }
+    }
+
+    fn refresh_selected_details(&mut self, conn: &Connection) {
+        self.selected_scope_context = ScopeContext::default();
+        self.selected_notes = Vec::new();
+
+        let (target_type, target_id) = match (
+            &self.selected,
+            self.selected_thread(),
+            self.selected_branch(),
+        ) {
+            (SelectedItem::Thread(_), Some(entry), _) => ("thread", entry.thread.id.clone()),
+            (SelectedItem::Branch(_, _), _, Some(branch)) => ("branch", branch.id.clone()),
+            _ => return,
+        };
+
+        let scopes = scope_repo::find_by_target(conn, target_type, &target_id).unwrap_or_default();
+        for scope in &scopes {
+            match scope.kind {
+                liminal_flow_core::model::ScopeKind::Repo => {
+                    self.selected_scope_context.repo = Some(scope.value.clone());
+                }
+                liminal_flow_core::model::ScopeKind::GitBranch => {
+                    self.selected_scope_context.git_branch = Some(scope.value.clone());
+                }
+                liminal_flow_core::model::ScopeKind::Cwd => {
+                    self.selected_scope_context.cwd = Some(scope.value.clone());
+                }
+                _ => {}
+            }
+        }
+
+        let mut notes = capture_repo::find_by_target(conn, target_type, &target_id, 5)
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|c| {
+                c.inferred_intent
+                    .as_ref()
+                    .is_some_and(|i| *i == liminal_flow_core::model::Intent::AddNote)
+            })
+            .collect::<Vec<_>>();
+        notes.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        notes.truncate(5);
+        self.selected_notes = notes;
     }
 }

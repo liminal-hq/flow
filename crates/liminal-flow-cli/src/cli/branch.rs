@@ -21,6 +21,18 @@ pub fn handle(conn: &Connection, text: &str) -> Result<()> {
         bail!("No active thread. Use `flo now` to start one first.");
     };
 
+    let existing_branches = branch_repo::find_by_thread(conn, &thread.id)?;
+    for existing in &existing_branches {
+        if existing.status == BranchStatus::Active {
+            branch_repo::update_status(
+                conn,
+                &existing.id,
+                &BranchStatus::Parked,
+                &now.to_rfc3339(),
+            )?;
+        }
+    }
+
     let branch_id = FlowId::new();
 
     let branch = Branch {

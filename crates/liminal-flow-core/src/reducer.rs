@@ -102,6 +102,20 @@ pub fn apply(state: &mut AppState, event: &AppEvent) -> Result<(), CoreError> {
             state.last_reply = Some(format!("Returned to parent thread: {thread_title}"));
         }
 
+        AppEvent::BranchParked {
+            branch_id,
+            thread_id: _,
+            created_at,
+        } => {
+            if let Some(branch) = state.branches.get_mut(branch_id) {
+                branch.status = BranchStatus::Parked;
+                branch.updated_at = *created_at;
+
+                let title = branch.title.clone();
+                state.last_reply = Some(format!("Parked branch: {title}"));
+            }
+        }
+
         AppEvent::NoteAttached { .. } => {
             state.last_reply = Some("Note attached.".to_string());
         }

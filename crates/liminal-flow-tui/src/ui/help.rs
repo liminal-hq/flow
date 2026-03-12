@@ -16,14 +16,9 @@ const S: &str = "";
 
 const HELP_TEXT: &[(&str, &str)] = &[
     (S, "Slash Commands"),
-    ("/now <text>", "Set current thread"),
-    ("/branch <text>", "Branch off current thread"),
-    ("/back", "Return to parent thread"),
-    ("/note <text>", "Attach a note"),
-    ("/where", "Show current state"),
-    ("/pause", "Pause current thread"),
-    ("/done", "Mark current thread done"),
-    ("", ""),
+    ("/now /branch /back", "Set thread, branch, or return"),
+    ("/note /where", "Add a note or show current state"),
+    ("/pause /done", "Pause or finish current thread"),
     (S, "Insert Mode"),
     ("/ (empty line)", "Open command palette"),
     ("? (empty line)", "Show shortcut hints"),
@@ -31,12 +26,12 @@ const HELP_TEXT: &[(&str, &str)] = &[
     ("Enter (empty)", "Expand/collapse branches"),
     ("Enter (text)", "Submit input"),
     ("Esc", "Switch to Normal mode"),
-    ("", ""),
     (S, "Normal Mode"),
     ("i", "Switch to Insert mode"),
     ("j / k / Up / Down", "Navigate threads & branches"),
     ("Enter", "Expand/collapse branches"),
     ("r", "Resume selected item"),
+    ("p", "Park selected branch"),
     ("?", "Toggle this help"),
     ("a", "About"),
     ("q", "Quit"),
@@ -44,7 +39,7 @@ const HELP_TEXT: &[(&str, &str)] = &[
 
 /// Render the help overlay centred on screen.
 pub fn render(frame: &mut Frame, area: Rect) {
-    let popup_width = 54.min(area.width.saturating_sub(4));
+    let popup_width = 64.min(area.width.saturating_sub(4));
     let popup_height = (HELP_TEXT.len() as u16 + 4).min(area.height.saturating_sub(2));
 
     let vert = Layout::vertical([Constraint::Length(popup_height)])

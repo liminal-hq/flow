@@ -27,6 +27,17 @@ use crate::ui::{
 
 const TICK_RATE: Duration = Duration::from_millis(250);
 
+fn should_follow_active_after_submit(input: &str) -> bool {
+    matches!(
+        input::parsed_intent(input),
+        Some(
+            liminal_flow_core::model::Intent::SetCurrentThread
+                | liminal_flow_core::model::Intent::StartBranch
+                | liminal_flow_core::model::Intent::ReturnToParent
+        )
+    )
+}
+
 /// Run the TUI application. Takes ownership of the database connection.
 pub fn run(conn: Connection) -> Result<()> {
     // Set up terminal
@@ -74,7 +85,14 @@ fn run_loop(
             layout::render_header(frame, app_layout.header);
             thread_list::render(frame, app_layout.thread_list, &state);
             reply_pane::render(frame, app_layout.reply_pane, &state);
-            input_pane::render(frame, app_layout.input_pane, &textarea, state.mode);
+            let active_target = state.active_capture_target_label();
+            input_pane::render(
+                frame,
+                app_layout.input_pane,
+                &textarea,
+                state.mode,
+                active_target.as_deref(),
+            );
 
             // Floating overlays above the input pane
             if state.show_command_palette {
@@ -160,6 +178,39 @@ fn run_loop(
                                     InputResult::None => {}
                                 }
                                 state.refresh_from_db(conn);
+                                state.select_active_item();
+                                state.poll_watermark = poll::current_watermark(conn);
+                            }
+                        }
+                        KeyCode::Char('p') => {
+                            let result = match &state.selected {
+                                crate::state::SelectedItem::Thread(_) => None,
+                                crate::state::SelectedItem::Branch(i, j) => {
+                                    state.threads.get(*i).and_then(|entry| {
+                                        entry.branches.get(*j).map(|branch| {
+                                            input::park_branch(conn, &entry.thread.id, &branch.id)
+                                        })
+                                    })
+                                }
+                            };
+                            if let Some(result) = result {
+                                match result {
+                                    InputResult::Reply(msg) => {
+                                        state.last_reply = Some(msg);
+                                        state.error_message = None;
+                                        if let crate::state::SelectedItem::Branch(i, _) =
+                                            state.selected
+                                        {
+                                            state.selected = crate::state::SelectedItem::Thread(i);
+                                        }
+                                    }
+                                    InputResult::Error(msg) => {
+                                        state.error_message = Some(msg);
+                                    }
+                                    InputResult::None => {}
+                                }
+                                state.refresh_from_db(conn);
+                                state.select_active_item();
                                 state.poll_watermark = poll::current_watermark(conn);
                             }
                         }
@@ -281,6 +332,7 @@ fn run_loop(
                                         .set_cursor_line_style(ratatui::style::Style::default());
 
                                     // Process the input
+                                    let follow_active = should_follow_active_after_submit(&text);
                                     match input::process_input(conn, &text) {
                                         InputResult::Reply(msg) => {
                                             state.last_reply = Some(msg);
@@ -294,6 +346,9 @@ fn run_loop(
 
                                     // Refresh state from DB after mutation
                                     state.refresh_from_db(conn);
+                                    if follow_active {
+                                        state.select_active_item();
+                                    }
                                     state.poll_watermark = poll::current_watermark(conn);
                                 }
                                 KeyCode::Char('/') if is_empty => {

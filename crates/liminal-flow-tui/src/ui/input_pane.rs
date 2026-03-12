@@ -13,11 +13,18 @@ use crate::state::Mode;
 use crate::ui::theme;
 
 /// Render the input textarea into the given area.
-pub fn render(frame: &mut Frame, area: Rect, textarea: &TextArea, mode: Mode) {
-    let mode_label = match mode {
-        Mode::Insert => " > Capture ",
-        Mode::Normal => " Normal ",
-        Mode::Help | Mode::About => " Help ",
+pub fn render(
+    frame: &mut Frame,
+    area: Rect,
+    textarea: &TextArea,
+    mode: Mode,
+    active_target: Option<&str>,
+) {
+    let mode_label: String = match (mode, active_target) {
+        (Mode::Insert, Some(target)) => format!(" > Capture ({target}) "),
+        (Mode::Insert, None) => " > Capture (no active target) ".into(),
+        (Mode::Normal, _) => " Normal ".into(),
+        (Mode::Help | Mode::About, _) => " Help ".into(),
     };
 
     let border_style = if mode == Mode::Insert {

@@ -71,20 +71,20 @@ The TUI provides a three-pane interface:
 ┌────────────────────────────────┬─────────────────────────────────┐
 │ Liminal Flow                   │                        < flo >  │
 ├────────────────────────────────┼─────────────────────────────────┤
-│ > ▼ improving AIDX             │ Current thread: improving AIDX  │
-│       answering support        │ 1 active branch                 │
+│ > ▼ improving AIDX             │ Branch: answering support       │
+│       answering support        │ Thread: improving AIDX          │
 │       reading article          │ Repo: component-library         │
 │   ▶ wear os sync  paused      │ Git: feature/aidx               │
 │                                │                                 │
 │                                │ Notes                           │
 │                                │   | need to check auth flow     │
 ├────────────────────────────────┴─────────────────────────────────┤
-│ > Capture                                                        │
+│ > Capture (branch: answering support)                            │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
 - **Left pane (30%):** Thread list with branches indented beneath
-- **Right pane (70%):** Status display with scope context
+- **Right pane (70%):** Detail view for the selected thread or branch, with scope context and recent notes
 - **Bottom (3 lines):** Chat-style input with tui-textarea
 
 ### Modes
@@ -92,7 +92,7 @@ The TUI provides a three-pane interface:
 | Mode | Description |
 |---|---|
 | Insert | Text input active. Enter submits. Esc switches to Normal. |
-| Normal | Keyboard navigation. `j`/`k`/Up/Down to move through threads and branches, `r` to resume selected item, `i` to insert, `?` for help, `a` for about, `q` to quit. |
+| Normal | Keyboard navigation. `j`/`k`/Up/Down to move through threads and branches, `Enter` to expand or collapse the selected thread, `r` to resume the selected item and make it active, `p` to park a selected branch, `i` to insert, `?` for help, `a` for about, `q` to quit. |
 | Help | Help overlay. Esc or `?` to dismiss. |
 | About | About overlay with app info. Esc, `q`, or Enter to dismiss. |
 
@@ -102,9 +102,12 @@ The thread list supports navigating both threads and their branches:
 
 - **Up/Down** (Insert or Normal mode) moves between all visible items — threads and branches within expanded threads
 - **Enter** (on empty input in Insert, or in Normal mode) toggles expand/collapse for the selected thread's branches
+- The **Status** pane follows the selected item for inspection
+- The **Capture** pane follows the active item and shows the current note target in its title
 - **r** (Normal mode) resumes the selected item:
-  - On a paused thread: activates it (pausing the current active thread)
+  - On a paused thread: activates it and restores the thread stack from where it left off
   - On a parked branch: activates it (parking other active branches, and activating the parent thread if needed)
+- **p** (Normal mode) parks the selected branch while leaving the parent thread as the main focus
 
 ### Command Palette and Hints
 
@@ -118,6 +121,7 @@ The TUI accepts the same commands as the CLI, prefixed with `/`:
 `/now`, `/branch`, `/back`, `/note`, `/where`, `/pause`, `/done`
 
 Plain text (without a `/` prefix) is treated as a note attached to the current focus target.
+In the TUI, the current capture target is always the active item and is shown in the capture pane title.
 
 ### Polling
 

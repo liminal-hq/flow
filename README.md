@@ -56,8 +56,8 @@ Run `flo` with no arguments to launch the terminal UI:
 │ Liminal Flow                                    <flo>      │
 ├──────────────────┬─────────────────────────────────────────┤
 │ Threads          │ Status                                  │
-│ > ▼ improving    │ Current thread: improving AIDX          │
-│     debugging    │ 1 active branch                         │
+│ > ▼ improving    │ Branch: debugging auth                  │
+│     debugging    │ Thread: improving AIDX                  │
 │   ▶ wear os sync │ Repo: component-library                 │
 │                  │ Git: feature/aidx                        │
 │                  │                                          │
@@ -65,7 +65,7 @@ Run `flo` with no arguments to launch the terminal UI:
 │                  │   need to check the auth token flow      │
 │                  │   waiting on API response                │
 ├──────────────────┴─────────────────────────────────────────┤
-│ > Capture                                                  │
+│ > Capture (branch: debugging auth)                         │
 └────────────────────────────────────────────────────────────┘
 ```
 
@@ -75,7 +75,9 @@ The TUI starts in **Insert mode**:
 - Type `/` on an empty line to open the **command palette** — navigate with arrow keys, select with Enter
 - Type `?` on an empty line to see **shortcut hints**
 - **Up/Down** arrows navigate the thread list; **Enter** on empty input expands/collapses branches
-- Press `Esc` for **Normal mode** where `j`/`k` navigate, `r` resumes a selected thread, `?` opens help, `a` shows about, and `q` quits
+- The **Status** pane follows the selected thread or branch for inspection
+- The **Capture** pane shows the active note target explicitly
+- Press `Esc` for **Normal mode** where `j`/`k` navigate, `Enter` expands or collapses the selected thread, `r` resumes a selected item to make it active, `p` parks a selected branch, `?` opens help, `a` shows about, and `q` quits
 
 The TUI polls the database every 250ms, so changes made via `flo` CLI in another terminal appear automatically.
 

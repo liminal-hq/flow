@@ -21,6 +21,11 @@ pub enum InputResult {
     None,
 }
 
+/// Parse the user input into an intent when it maps cleanly to a known command.
+pub fn parsed_intent(raw: &str) -> Option<Intent> {
+    parse_slash_command(raw.trim()).map(|(intent, _)| intent)
+}
+
 /// Process a line of input from the TUI textarea.
 /// Parses slash commands or treats plain text as a note.
 pub fn process_input(conn: &Connection, raw: &str) -> InputResult {
@@ -106,6 +111,18 @@ fn execute_intent(conn: &Connection, intent: Intent, text: &str) -> Result<Strin
             let Some(thread) = thread_repo::find_active(conn)? else {
                 anyhow::bail!("No active thread. Use /now to start one first.");
             };
+
+            let existing_branches = branch_repo::find_by_thread(conn, &thread.id)?;
+            for existing in &existing_branches {
+                if existing.status == BranchStatus::Active {
+                    branch_repo::update_status(
+                        conn,
+                        &existing.id,
+                        &BranchStatus::Parked,
+                        &now.to_rfc3339(),
+                    )?;
+                }
+            }
 
             let title = normalise_title(text);
             let branch_id = FlowId::new();
@@ -281,9 +298,14 @@ fn execute_intent(conn: &Connection, intent: Intent, text: &str) -> Result<Strin
 pub fn resume_branch(conn: &Connection, thread_id: &FlowId, branch_id: &FlowId) -> InputResult {
     let now = Utc::now();
 
-    // Check if the branch is already active
+    let parent_is_active = thread_repo::find_by_id(conn, thread_id)
+        .ok()
+        .flatten()
+        .is_some_and(|thread| thread.status == ThreadStatus::Active);
+
+    // Check if the branch is already effectively active
     if let Ok(Some(branch)) = branch_repo::find_by_id(conn, branch_id) {
-        if branch.status == BranchStatus::Active {
+        if parent_is_active && branch.status == BranchStatus::Active {
             return InputResult::Reply("Branch is already active.".into());
         }
     }
@@ -348,6 +370,34 @@ pub fn resume_branch(conn: &Connection, thread_id: &FlowId, branch_id: &FlowId) 
     InputResult::Reply(format!("Resumed branch: {title}"))
 }
 
+/// Park a specific branch by ID while leaving its parent thread selected as the main focus.
+pub fn park_branch(conn: &Connection, thread_id: &FlowId, branch_id: &FlowId) -> InputResult {
+    let now = Utc::now();
+
+    let Ok(Some(branch)) = branch_repo::find_by_id(conn, branch_id) else {
+        return InputResult::Error("Branch not found.".into());
+    };
+
+    if branch.status == BranchStatus::Parked {
+        return InputResult::Reply(format!("Branch already parked: {}", branch.title));
+    }
+
+    if let Err(e) =
+        branch_repo::update_status(conn, branch_id, &BranchStatus::Parked, &now.to_rfc3339())
+    {
+        return InputResult::Error(format!("Failed to park branch: {e}"));
+    }
+
+    let event = AppEvent::BranchParked {
+        branch_id: branch_id.clone(),
+        thread_id: thread_id.clone(),
+        created_at: now,
+    };
+    let _ = event_repo::insert(conn, &event, "tui");
+
+    InputResult::Reply(format!("Parked branch: {}", branch.title))
+}
+
 /// Resume a specific thread by ID — pauses the current active thread first.
 pub fn resume_thread(conn: &Connection, thread_id: &FlowId) -> InputResult {
     let now = Utc::now();
@@ -384,4 +434,69 @@ pub fn resume_thread(conn: &Connection, thread_id: &FlowId) -> InputResult {
     let _ = event_repo::insert(conn, &event, "tui");
 
     InputResult::Reply(format!("Resumed thread: {title}"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use liminal_flow_store::db::open_store_in_memory;
+    use liminal_flow_store::repo::{branch_repo, thread_repo};
+
+    fn make_thread(id: &str, title: &str, status: ThreadStatus) -> Thread {
+        let now = Utc::now();
+        Thread {
+            id: FlowId::from(id),
+            title: title.into(),
+            raw_origin_text: title.into(),
+            status,
+            short_summary: None,
+            created_at: now,
+            updated_at: now,
+        }
+    }
+
+    fn make_branch(id: &str, thread_id: &str, title: &str, status: BranchStatus) -> Branch {
+        let now = Utc::now();
+        Branch {
+            id: FlowId::from(id),
+            thread_id: FlowId::from(thread_id),
+            title: title.into(),
+            status,
+            short_summary: None,
+            created_at: now,
+            updated_at: now,
+        }
+    }
+
+    #[test]
+    fn park_branch_marks_selected_branch_parked() {
+        let conn = open_store_in_memory().unwrap();
+        let thread = make_thread("t1", "improving AIDX", ThreadStatus::Active);
+        let branch = make_branch("b1", "t1", "answering support", BranchStatus::Active);
+        thread_repo::upsert(&conn, &thread).unwrap();
+        branch_repo::upsert(&conn, &branch).unwrap();
+
+        let result = park_branch(&conn, &thread.id, &branch.id);
+        assert!(matches!(result, InputResult::Reply(_)));
+
+        let parked = branch_repo::find_by_id(&conn, &branch.id).unwrap().unwrap();
+        assert_eq!(parked.status, BranchStatus::Parked);
+    }
+
+    #[test]
+    fn resume_branch_reactivates_paused_parent_thread() {
+        let conn = open_store_in_memory().unwrap();
+        let thread = make_thread("t1", "improving AIDX", ThreadStatus::Paused);
+        let branch = make_branch("b1", "t1", "answering support", BranchStatus::Active);
+        thread_repo::upsert(&conn, &thread).unwrap();
+        branch_repo::upsert(&conn, &branch).unwrap();
+
+        let result = resume_branch(&conn, &thread.id, &branch.id);
+        assert!(matches!(result, InputResult::Reply(_)));
+
+        let resumed_thread = thread_repo::find_by_id(&conn, &thread.id).unwrap().unwrap();
+        let resumed_branch = branch_repo::find_by_id(&conn, &branch.id).unwrap().unwrap();
+        assert_eq!(resumed_thread.status, ThreadStatus::Active);
+        assert_eq!(resumed_branch.status, BranchStatus::Active);
+    }
 }

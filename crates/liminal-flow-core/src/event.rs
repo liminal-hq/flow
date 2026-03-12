@@ -35,6 +35,11 @@ pub enum AppEvent {
         parked_branch_ids: Vec<FlowId>,
         created_at: DateTime<Utc>,
     },
+    BranchParked {
+        branch_id: FlowId,
+        thread_id: FlowId,
+        created_at: DateTime<Utc>,
+    },
     NoteAttached {
         capture_id: FlowId,
         target_type: String,
@@ -72,6 +77,7 @@ impl AppEvent {
             Self::ThreadSetCurrent { .. } => "thread_set_current",
             Self::BranchStarted { .. } => "branch_started",
             Self::ReturnedToParent { .. } => "returned_to_parent",
+            Self::BranchParked { .. } => "branch_parked",
             Self::NoteAttached { .. } => "note_attached",
             Self::ThreadPaused { .. } => "thread_paused",
             Self::ThreadMarkedDone { .. } => "thread_marked_done",
