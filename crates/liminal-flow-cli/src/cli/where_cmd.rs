@@ -11,12 +11,17 @@ use rusqlite::Connection;
 use super::colour;
 
 pub fn handle(conn: &Connection) -> Result<()> {
+    let now = chrono::Utc::now().to_rfc3339();
+    thread_repo::normalize_active(conn, &now)?;
+
     let current_thread = thread_repo::find_active(conn)?;
 
     let Some(thread) = current_thread else {
         println!("{}", colour::muted("(no active thread)"));
         return Ok(());
     };
+
+    branch_repo::normalize_active_for_thread(conn, &thread.id, &now)?;
 
     // Thread header
     println!(

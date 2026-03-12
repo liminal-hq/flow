@@ -51,7 +51,9 @@ pub fn find_active_for_thread(
 ) -> Result<Option<Branch>, StoreError> {
     let mut stmt = conn.prepare(
         "SELECT id, thread_id, title, status, short_summary, created_at, updated_at
-         FROM branches WHERE thread_id = ?1 AND status = 'active' LIMIT 1",
+         FROM branches WHERE thread_id = ?1 AND status = 'active'
+         ORDER BY updated_at DESC, created_at DESC
+         LIMIT 1",
     )?;
 
     let mut rows = stmt.query_map(params![thread_id.as_str()], row_to_branch)?;
@@ -60,6 +62,33 @@ pub fn find_active_for_thread(
         Some(Err(e)) => Err(StoreError::Database(e)),
         None => Ok(None),
     }
+}
+
+/// Normalize branch state so there is at most one active branch on a thread.
+pub fn normalize_active_for_thread(
+    conn: &Connection,
+    thread_id: &FlowId,
+    updated_at: &str,
+) -> Result<Option<Branch>, StoreError> {
+    let mut stmt = conn.prepare(
+        "SELECT id, thread_id, title, status, short_summary, created_at, updated_at
+         FROM branches WHERE thread_id = ?1 AND status = 'active'
+         ORDER BY updated_at DESC, created_at DESC",
+    )?;
+
+    let branches = stmt
+        .query_map(params![thread_id.as_str()], row_to_branch)?
+        .collect::<Result<Vec<_>, _>>()?;
+
+    let Some(primary) = branches.first().cloned() else {
+        return Ok(None);
+    };
+
+    for branch in branches.iter().skip(1) {
+        update_status(conn, &branch.id, &BranchStatus::Parked, updated_at)?;
+    }
+
+    Ok(Some(primary))
 }
 
 /// Find a branch by ID.
@@ -190,5 +219,44 @@ mod tests {
 
         let branches = find_by_thread(&conn, &FlowId::from("t1")).unwrap();
         assert_eq!(branches[0].status, BranchStatus::Parked);
+    }
+
+    #[test]
+    fn normalize_active_for_thread_parks_older_active_branches() {
+        let conn = open_store_in_memory().unwrap();
+        thread_repo::upsert(&conn, &make_thread("t1")).unwrap();
+        let now = Utc::now();
+
+        let older = Branch {
+            id: FlowId::from("b1"),
+            thread_id: FlowId::from("t1"),
+            title: "older".into(),
+            status: BranchStatus::Active,
+            short_summary: None,
+            created_at: now,
+            updated_at: now,
+        };
+        let newer = Branch {
+            id: FlowId::from("b2"),
+            thread_id: FlowId::from("t1"),
+            title: "newer".into(),
+            status: BranchStatus::Active,
+            short_summary: None,
+            created_at: now,
+            updated_at: now + chrono::TimeDelta::seconds(5),
+        };
+
+        upsert(&conn, &older).unwrap();
+        upsert(&conn, &newer).unwrap();
+
+        let normalized =
+            normalize_active_for_thread(&conn, &FlowId::from("t1"), &Utc::now().to_rfc3339())
+                .unwrap()
+                .unwrap();
+        assert_eq!(normalized.id, FlowId::from("b2"));
+
+        let branches = find_by_thread(&conn, &FlowId::from("t1")).unwrap();
+        assert_eq!(branches[0].status, BranchStatus::Parked);
+        assert_eq!(branches[1].status, BranchStatus::Active);
     }
 }

@@ -35,7 +35,9 @@ pub fn upsert(conn: &Connection, thread: &Thread) -> Result<(), StoreError> {
 pub fn find_active(conn: &Connection) -> Result<Option<Thread>, StoreError> {
     let mut stmt = conn.prepare(
         "SELECT id, title, raw_origin_text, status, short_summary, created_at, updated_at
-         FROM threads WHERE status = 'active' LIMIT 1",
+         FROM threads WHERE status = 'active'
+         ORDER BY updated_at DESC, created_at DESC
+         LIMIT 1",
     )?;
 
     let mut rows = stmt.query_map([], row_to_thread)?;
@@ -44,6 +46,29 @@ pub fn find_active(conn: &Connection) -> Result<Option<Thread>, StoreError> {
         Some(Err(e)) => Err(StoreError::Database(e)),
         None => Ok(None),
     }
+}
+
+/// Normalize active thread state so there is at most one active thread.
+pub fn normalize_active(conn: &Connection, updated_at: &str) -> Result<Option<Thread>, StoreError> {
+    let mut stmt = conn.prepare(
+        "SELECT id, title, raw_origin_text, status, short_summary, created_at, updated_at
+         FROM threads WHERE status = 'active'
+         ORDER BY updated_at DESC, created_at DESC",
+    )?;
+
+    let threads = stmt
+        .query_map([], row_to_thread)?
+        .collect::<Result<Vec<_>, _>>()?;
+
+    let Some(primary) = threads.first().cloned() else {
+        return Ok(None);
+    };
+
+    for thread in threads.iter().skip(1) {
+        update_status(conn, &thread.id, &ThreadStatus::Paused, updated_at)?;
+    }
+
+    Ok(Some(primary))
 }
 
 /// Find a thread by ID.
@@ -211,5 +236,43 @@ mod tests {
 
         let found = find_by_id(&conn, &FlowId::from("t1")).unwrap().unwrap();
         assert_eq!(found.status, ThreadStatus::Done);
+    }
+
+    #[test]
+    fn normalize_active_pauses_older_active_threads() {
+        let conn = open_store_in_memory().unwrap();
+        let now = Utc::now();
+
+        let older = Thread {
+            id: FlowId::from("t1"),
+            title: "older".into(),
+            raw_origin_text: "older".into(),
+            status: ThreadStatus::Active,
+            short_summary: None,
+            created_at: now,
+            updated_at: now,
+        };
+        let newer = Thread {
+            id: FlowId::from("t2"),
+            title: "newer".into(),
+            raw_origin_text: "newer".into(),
+            status: ThreadStatus::Active,
+            short_summary: None,
+            created_at: now,
+            updated_at: now + chrono::TimeDelta::seconds(5),
+        };
+
+        upsert(&conn, &older).unwrap();
+        upsert(&conn, &newer).unwrap();
+
+        let normalized = normalize_active(&conn, &Utc::now().to_rfc3339())
+            .unwrap()
+            .unwrap();
+        assert_eq!(normalized.id, FlowId::from("t2"));
+
+        let older = find_by_id(&conn, &FlowId::from("t1")).unwrap().unwrap();
+        let newer = find_by_id(&conn, &FlowId::from("t2")).unwrap().unwrap();
+        assert_eq!(older.status, ThreadStatus::Paused);
+        assert_eq!(newer.status, ThreadStatus::Active);
     }
 }

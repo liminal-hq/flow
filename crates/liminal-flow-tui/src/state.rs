@@ -5,6 +5,7 @@
 
 use std::collections::HashSet;
 
+use chrono::Utc;
 use liminal_flow_core::model::{Branch, Capture, FlowId, Thread, ThreadStatus};
 use liminal_flow_store::repo::{branch_repo, capture_repo, scope_repo, thread_repo};
 use rusqlite::Connection;
@@ -126,6 +127,9 @@ impl TuiState {
 
     /// Refresh state from the database.
     pub fn refresh_from_db(&mut self, conn: &Connection) {
+        let now = Utc::now().to_rfc3339();
+        let _ = thread_repo::normalize_active(conn, &now);
+
         // Load active and paused threads
         let threads =
             thread_repo::list_by_statuses(conn, &[ThreadStatus::Active, ThreadStatus::Paused])
@@ -134,6 +138,7 @@ impl TuiState {
         self.threads = threads
             .into_iter()
             .map(|thread| {
+                let _ = branch_repo::normalize_active_for_thread(conn, &thread.id, &now);
                 let branches = branch_repo::find_by_thread(conn, &thread.id).unwrap_or_default();
                 ThreadEntry { thread, branches }
             })

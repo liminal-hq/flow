@@ -198,10 +198,12 @@ fn execute_intent(conn: &Connection, intent: Intent, text: &str) -> Result<Strin
         }
 
         Intent::AddNote => {
+            let _ = thread_repo::normalize_active(conn, &now.to_rfc3339())?;
             let Some(thread) = thread_repo::find_active(conn)? else {
                 anyhow::bail!("No active thread. Use /now to start one first.");
             };
 
+            let _ = branch_repo::normalize_active_for_thread(conn, &thread.id, &now.to_rfc3339())?;
             let (target_type, target_id) =
                 if let Some(branch) = branch_repo::find_active_for_thread(conn, &thread.id)? {
                     ("branch".to_string(), branch.id)
@@ -418,6 +420,8 @@ pub fn resume_thread(conn: &Connection, thread_id: &FlowId) -> InputResult {
         return InputResult::Error(format!("Failed to resume thread: {e}"));
     }
 
+    let _ = branch_repo::normalize_active_for_thread(conn, thread_id, &now.to_rfc3339());
+
     // Find thread title for the reply message
     let title = thread_repo::find_by_id(conn, thread_id)
         .ok()
@@ -440,7 +444,7 @@ pub fn resume_thread(conn: &Connection, thread_id: &FlowId) -> InputResult {
 mod tests {
     use super::*;
     use liminal_flow_store::db::open_store_in_memory;
-    use liminal_flow_store::repo::{branch_repo, thread_repo};
+    use liminal_flow_store::repo::{branch_repo, capture_repo, thread_repo};
 
     fn make_thread(id: &str, title: &str, status: ThreadStatus) -> Thread {
         let now = Utc::now();
@@ -498,5 +502,59 @@ mod tests {
         let resumed_branch = branch_repo::find_by_id(&conn, &branch.id).unwrap().unwrap();
         assert_eq!(resumed_thread.status, ThreadStatus::Active);
         assert_eq!(resumed_branch.status, BranchStatus::Active);
+    }
+
+    #[test]
+    fn add_note_targets_normalized_active_branch() {
+        let conn = open_store_in_memory().unwrap();
+        let now = Utc::now();
+        let thread = Thread {
+            id: FlowId::from("t1"),
+            title: "improving AIDX".into(),
+            raw_origin_text: "improving AIDX".into(),
+            status: ThreadStatus::Active,
+            short_summary: None,
+            created_at: now,
+            updated_at: now,
+        };
+        let older = Branch {
+            id: FlowId::from("b1"),
+            thread_id: FlowId::from("t1"),
+            title: "older".into(),
+            status: BranchStatus::Active,
+            short_summary: None,
+            created_at: now,
+            updated_at: now,
+        };
+        let newer = Branch {
+            id: FlowId::from("b2"),
+            thread_id: FlowId::from("t1"),
+            title: "newer".into(),
+            status: BranchStatus::Active,
+            short_summary: None,
+            created_at: now,
+            updated_at: now + chrono::TimeDelta::seconds(5),
+        };
+
+        thread_repo::upsert(&conn, &thread).unwrap();
+        branch_repo::upsert(&conn, &older).unwrap();
+        branch_repo::upsert(&conn, &newer).unwrap();
+
+        let result = process_input(&conn, "note for the latest branch");
+        assert!(matches!(result, InputResult::Reply(_)));
+
+        let older = branch_repo::find_by_id(&conn, &FlowId::from("b1"))
+            .unwrap()
+            .unwrap();
+        let newer = branch_repo::find_by_id(&conn, &FlowId::from("b2"))
+            .unwrap()
+            .unwrap();
+        assert_eq!(older.status, BranchStatus::Parked);
+        assert_eq!(newer.status, BranchStatus::Active);
+
+        let newer_captures =
+            capture_repo::find_by_target(&conn, "branch", &FlowId::from("b2"), 5).unwrap();
+        assert_eq!(newer_captures.len(), 1);
+        assert_eq!(newer_captures[0].text, "note for the latest branch");
     }
 }

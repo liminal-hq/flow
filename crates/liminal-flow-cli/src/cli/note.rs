@@ -12,12 +12,14 @@ use rusqlite::Connection;
 
 pub fn handle(conn: &Connection, text: &str) -> Result<()> {
     let now = Utc::now();
+    thread_repo::normalize_active(conn, &now.to_rfc3339())?;
 
     let current_thread = thread_repo::find_active(conn)?;
     let Some(thread) = current_thread else {
         bail!("No active thread. Use `flo now` to start one first.");
     };
 
+    branch_repo::normalize_active_for_thread(conn, &thread.id, &now.to_rfc3339())?;
     // Attach to the active branch if one exists, otherwise to the thread
     let (target_type, target_id) =
         if let Some(branch) = branch_repo::find_active_for_thread(conn, &thread.id)? {
