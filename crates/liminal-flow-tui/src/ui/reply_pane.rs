@@ -41,28 +41,6 @@ pub fn render(frame: &mut Frame, area: Rect, state: &TuiState) {
                 theme::muted(),
             )));
         }
-
-        lines.push(Line::from(""));
-
-        // Scope context
-        if let Some(ref repo) = state.selected_scope_context.repo {
-            lines.push(Line::from(vec![
-                Span::styled("Repo: ", theme::muted()),
-                Span::styled(repo.clone(), theme::text()),
-            ]));
-        }
-        if let Some(ref git_branch) = state.selected_scope_context.git_branch {
-            lines.push(Line::from(vec![
-                Span::styled("Git: ", theme::muted()),
-                Span::styled(git_branch.clone(), theme::text()),
-            ]));
-        }
-        if let Some(ref cwd) = state.selected_scope_context.cwd {
-            lines.push(Line::from(vec![
-                Span::styled("Dir: ", theme::muted()),
-                Span::styled(cwd.clone(), theme::text()),
-            ]));
-        }
     } else {
         lines.push(Line::from(Span::styled(
             "(no active thread)",
@@ -73,7 +51,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &TuiState) {
     // Recent notes
     if !state.selected_notes.is_empty() {
         lines.push(Line::from(""));
-        lines.push(Line::from(Span::styled("Notes", theme::header())));
+        lines.push(Line::from(Span::styled("Notes", theme::accent())));
         for (index, note) in state.selected_notes.iter().enumerate() {
             if index > 0 {
                 lines.push(Line::from(Span::styled("  ---", theme::border())));
@@ -100,6 +78,31 @@ pub fn render(frame: &mut Frame, area: Rect, state: &TuiState) {
     } else if let Some(ref reply) = state.last_reply {
         lines.push(Line::from(""));
         lines.push(Line::from(Span::styled(reply.clone(), theme::text())));
+    }
+
+    let has_scope = state.selected_scope_context.repo.is_some()
+        || state.selected_scope_context.git_branch.is_some()
+        || state.selected_scope_context.cwd.is_some();
+    if has_scope {
+        lines.push(Line::from(""));
+        if let Some(ref repo) = state.selected_scope_context.repo {
+            lines.push(Line::from(vec![
+                Span::styled("Repo: ", theme::muted()),
+                Span::styled(repo.clone(), theme::text()),
+            ]));
+        }
+        if let Some(ref git_branch) = state.selected_scope_context.git_branch {
+            lines.push(Line::from(vec![
+                Span::styled("Git: ", theme::muted()),
+                Span::styled(git_branch.clone(), theme::text()),
+            ]));
+        }
+        if let Some(ref cwd) = state.selected_scope_context.cwd {
+            lines.push(Line::from(vec![
+                Span::styled("Dir: ", theme::muted()),
+                Span::styled(cwd.clone(), theme::text()),
+            ]));
+        }
     }
 
     let block = Block::default()
