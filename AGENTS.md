@@ -51,6 +51,16 @@
 - Use user-facing, outcome-focused language in PR titles and descriptions.
 - Only include internal process details in PR content when explicitly requested by the user.
 
+**PR Description Format:**
+
+- Prefer a compact markdown structure with `## Summary` and `## Test plan`.
+- Under `## Summary`, use `###` sub-sections when they help group the change cleanly. Good defaults include `### User-facing changes`, `### Packaging`, `### Workflow runtime`, `### Documentation`, or similar outcome-oriented labels.
+- Under each summary section, use flat bullets with bold lead-ins for scanability.
+- Keep the summary focused on outcomes and behaviour changes, not commit history or implementation chronology.
+- Under `## Test plan`, use checklist bullets (`- [x]` / `- [ ]`) and include the concrete commands, validations, or remaining gaps.
+- If something could not be verified, state that plainly at the end of `## Test plan` or immediately below it.
+- Prefer the PR style established in PR `#13`: concise top-level sections, no unnecessary headings beyond `##` and `###`, and no large narrative blocks when a short structured summary will do.
+
 ## Pull Request Labels
 
 **Requirement:** Every PR must include labels that describe the change and map to release-note categories.
