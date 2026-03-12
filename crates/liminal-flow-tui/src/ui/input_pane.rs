@@ -5,7 +5,7 @@
 
 use ratatui::layout::Rect;
 use ratatui::text::Span;
-use ratatui::widgets::{Block, Borders};
+use ratatui::widgets::{Block, BorderType, Borders};
 use ratatui::Frame;
 use tui_textarea::TextArea;
 
@@ -35,6 +35,7 @@ pub fn render(
 
     let block = Block::default()
         .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
         .border_style(border_style)
         .title(Span::styled(mode_label, theme::header()));
 

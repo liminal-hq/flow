@@ -6,7 +6,7 @@
 use ratatui::layout::{Constraint, Flex, Layout, Rect};
 use ratatui::style::Modifier;
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Clear, Paragraph};
+use ratatui::widgets::{Block, BorderType, Borders, Clear, Paragraph};
 use ratatui::Frame;
 
 use crate::ui::theme;
@@ -80,6 +80,7 @@ pub fn render(frame: &mut Frame, area: Rect, scroll: u16) {
 
     let block = Block::default()
         .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
         .border_style(theme::accent())
         .title(Span::styled(" Help ", theme::header()));
 
