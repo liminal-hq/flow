@@ -49,7 +49,7 @@ pub fn handle(conn: &Connection, show_all: bool) -> Result<()> {
 
         if show_all {
             // Show branches
-            let branches = branch_repo::find_by_thread(conn, &thread.id)?;
+            let branches = branch_repo::find_visible_by_thread(conn, &thread.id)?;
             for branch in &branches {
                 let is_effectively_active =
                     thread.status == ThreadStatus::Active && branch.status == BranchStatus::Active;

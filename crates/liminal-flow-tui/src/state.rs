@@ -216,7 +216,8 @@ impl TuiState {
             .into_iter()
             .map(|thread| {
                 let _ = branch_repo::normalize_active_for_thread(conn, &thread.id, &now);
-                let branches = branch_repo::find_by_thread(conn, &thread.id).unwrap_or_default();
+                let branches =
+                    branch_repo::find_visible_by_thread(conn, &thread.id).unwrap_or_default();
                 ThreadEntry { thread, branches }
             })
             .collect();

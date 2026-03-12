@@ -31,11 +31,29 @@ pub fn upsert(conn: &Connection, branch: &Branch) -> Result<(), StoreError> {
     Ok(())
 }
 
-/// Find all branches for a given thread.
+/// Find all branches for a given thread, including archived ones.
 pub fn find_by_thread(conn: &Connection, thread_id: &FlowId) -> Result<Vec<Branch>, StoreError> {
     let mut stmt = conn.prepare(
         "SELECT id, thread_id, title, status, short_summary, created_at, updated_at
          FROM branches WHERE thread_id = ?1 ORDER BY created_at ASC",
+    )?;
+
+    let branches = stmt
+        .query_map(params![thread_id.as_str()], row_to_branch)?
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(branches)
+}
+
+/// Find non-archived branches for a given thread.
+pub fn find_visible_by_thread(
+    conn: &Connection,
+    thread_id: &FlowId,
+) -> Result<Vec<Branch>, StoreError> {
+    let mut stmt = conn.prepare(
+        "SELECT id, thread_id, title, status, short_summary, created_at, updated_at
+         FROM branches
+         WHERE thread_id = ?1 AND status != 'archived'
+         ORDER BY created_at ASC",
     )?;
 
     let branches = stmt
@@ -201,6 +219,24 @@ mod tests {
         let active = find_active_for_thread(&conn, &FlowId::from("t1")).unwrap();
         assert!(active.is_some());
         assert_eq!(active.unwrap().title, "active one");
+    }
+
+    #[test]
+    fn find_visible_by_thread_excludes_archived_branches() {
+        let conn = open_store_in_memory().unwrap();
+        thread_repo::upsert(&conn, &make_thread("t1")).unwrap();
+
+        let mut visible = make_branch("b1", "t1", "visible");
+        visible.status = BranchStatus::Parked;
+        upsert(&conn, &visible).unwrap();
+
+        let mut archived = make_branch("b2", "t1", "archived");
+        archived.status = BranchStatus::Archived;
+        upsert(&conn, &archived).unwrap();
+
+        let branches = find_visible_by_thread(&conn, &FlowId::from("t1")).unwrap();
+        assert_eq!(branches.len(), 1);
+        assert_eq!(branches[0].id, FlowId::from("b1"));
     }
 
     #[test]

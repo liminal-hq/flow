@@ -14,10 +14,11 @@ pub fn handle(conn: &Connection) -> Result<()> {
     let now = Utc::now();
 
     if let Some(active_thread) = thread_repo::find_active(conn)? {
-        let mut resumable_branches: Vec<_> = branch_repo::find_by_thread(conn, &active_thread.id)?
-            .into_iter()
-            .filter(|branch| matches!(branch.status, BranchStatus::Parked | BranchStatus::Done))
-            .collect();
+        let mut resumable_branches: Vec<_> =
+            branch_repo::find_visible_by_thread(conn, &active_thread.id)?
+                .into_iter()
+                .filter(|branch| matches!(branch.status, BranchStatus::Parked | BranchStatus::Done))
+                .collect();
         resumable_branches.sort_by(|left, right| right.updated_at.cmp(&left.updated_at));
 
         if let Some(branch) = resumable_branches.into_iter().next() {
@@ -46,6 +47,10 @@ pub fn handle(conn: &Connection) -> Result<()> {
             println!("Resumed branch: {}", branch.title);
             return Ok(());
         }
+
+        bail!(
+            "An active thread is already in focus. No parked or done branch is available to resume on it."
+        );
     }
 
     let mut resumable_threads =
@@ -166,5 +171,49 @@ mod tests {
             .unwrap()
             .unwrap();
         assert_eq!(resumed.status, ThreadStatus::Active);
+    }
+
+    #[test]
+    fn resume_does_not_switch_to_another_thread_when_one_is_active() {
+        let conn = open_store_in_memory().unwrap();
+        let now = Utc::now();
+
+        thread_repo::upsert(
+            &conn,
+            &Thread {
+                id: FlowId::from("t1"),
+                title: "active thread".into(),
+                raw_origin_text: "active thread".into(),
+                status: ThreadStatus::Active,
+                short_summary: None,
+                created_at: now,
+                updated_at: now,
+            },
+        )
+        .unwrap();
+        thread_repo::upsert(
+            &conn,
+            &Thread {
+                id: FlowId::from("t2"),
+                title: "paused thread".into(),
+                raw_origin_text: "paused thread".into(),
+                status: ThreadStatus::Paused,
+                short_summary: None,
+                created_at: now,
+                updated_at: now + chrono::TimeDelta::seconds(5),
+            },
+        )
+        .unwrap();
+
+        let error = handle(&conn).unwrap_err().to_string();
+        assert!(error.contains("No parked or done branch"));
+
+        let active = thread_repo::find_active(&conn).unwrap().unwrap();
+        assert_eq!(active.id, FlowId::from("t1"));
+
+        let paused = thread_repo::find_by_id(&conn, &FlowId::from("t2"))
+            .unwrap()
+            .unwrap();
+        assert_eq!(paused.status, ThreadStatus::Paused);
     }
 }

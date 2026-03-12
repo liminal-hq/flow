@@ -31,7 +31,7 @@ pub fn handle(conn: &Connection) -> Result<()> {
     );
 
     // Branches
-    let branches = branch_repo::find_by_thread(conn, &thread.id)?;
+    let branches = branch_repo::find_visible_by_thread(conn, &thread.id)?;
     if !branches.is_empty() {
         for branch in &branches {
             let marker = if branch.status == BranchStatus::Active {
