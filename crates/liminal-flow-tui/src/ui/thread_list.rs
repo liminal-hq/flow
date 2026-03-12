@@ -1,0 +1,122 @@
+// Left pane — thread and branch list rendering
+//
+// (c) Copyright 2026 Liminal HQ, Scott Morris
+// SPDX-License-Identifier: MIT
+
+use liminal_flow_core::model::{BranchStatus, ThreadStatus};
+use ratatui::layout::Rect;
+use ratatui::text::{Line, Span};
+use ratatui::widgets::{Block, BorderType, Borders, List, ListItem};
+use ratatui::Frame;
+
+use crate::state::{SelectedItem, TuiState};
+use crate::ui::theme;
+
+/// Render the thread list into the given area.
+pub fn render(frame: &mut Frame, area: Rect, state: &TuiState) {
+    let mut items: Vec<ListItem> = Vec::new();
+
+    for (i, entry) in state.threads.iter().enumerate() {
+        let is_thread_selected = state.selected == SelectedItem::Thread(i);
+        let is_active = entry.thread.status == ThreadStatus::Active;
+        let is_expanded = state.is_expanded(i);
+        let has_branches = !entry.branches.is_empty();
+
+        // Thread line with expand/collapse indicator
+        let marker = if is_active { ">" } else { " " };
+        let expand_indicator = if has_branches {
+            if is_expanded {
+                "▼ "
+            } else {
+                "▶ "
+            }
+        } else {
+            "  "
+        };
+        let status_suffix = match entry.thread.status {
+            ThreadStatus::Paused => "  paused",
+            ThreadStatus::Done => "  done",
+            _ => "",
+        };
+
+        let style = if is_thread_selected {
+            theme::selected()
+        } else if is_active {
+            theme::active()
+        } else if entry.thread.status == ThreadStatus::Done {
+            theme::done()
+        } else {
+            theme::text()
+        };
+
+        let thread_line = Line::from(vec![
+            Span::styled(format!("{marker} "), style),
+            Span::styled(expand_indicator, theme::muted()),
+            Span::styled(entry.thread.title.clone(), style),
+            Span::styled(status_suffix, theme::muted()),
+        ]);
+        items.push(ListItem::new(thread_line));
+
+        // Branch lines (indented beneath their thread) — only when expanded
+        if is_expanded {
+            for (j, branch) in entry.branches.iter().enumerate() {
+                let is_branch_selected = state.selected == SelectedItem::Branch(i, j);
+                let is_effectively_active = entry.thread.status == ThreadStatus::Active
+                    && branch.status == BranchStatus::Active;
+
+                let branch_style = if is_branch_selected && is_effectively_active {
+                    theme::active().add_modifier(ratatui::style::Modifier::BOLD)
+                } else if is_branch_selected {
+                    theme::selected()
+                } else if is_effectively_active {
+                    theme::active()
+                } else if branch.status == BranchStatus::Done {
+                    theme::done()
+                } else {
+                    theme::muted()
+                };
+
+                let suffix = match (entry.thread.status.clone(), branch.status.clone()) {
+                    (ThreadStatus::Paused, BranchStatus::Active) => "  (thread paused)".to_string(),
+                    (ThreadStatus::Done, BranchStatus::Active) => "  (thread done)".to_string(),
+                    (_, status) if status != BranchStatus::Active => format!("  ({status})"),
+                    _ => String::new(),
+                };
+
+                let branch_line = Line::from(vec![
+                    Span::styled("      ", theme::text()),
+                    Span::styled(branch.title.clone(), branch_style),
+                    Span::styled(suffix, theme::muted()),
+                ]);
+                items.push(ListItem::new(branch_line));
+            }
+        }
+    }
+
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_type(BorderType::Rounded)
+        .border_style(theme::border())
+        .title(Span::styled(" Threads ", theme::header()));
+
+    let rows = state.visible_rows();
+    let visible_height = area.height.saturating_sub(2) as usize;
+    let scroll_start = if visible_height == 0 {
+        0
+    } else {
+        let max_scroll = rows.len().saturating_sub(visible_height);
+        usize::from(state.thread_list_scroll).min(max_scroll)
+    };
+    let visible_items = if visible_height == 0 {
+        Vec::new()
+    } else {
+        items
+            .into_iter()
+            .skip(scroll_start)
+            .take(visible_height)
+            .collect()
+    };
+
+    let list = List::new(visible_items).block(block);
+    frame.render_widget(list, area);
+}
