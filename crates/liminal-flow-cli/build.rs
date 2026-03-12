@@ -37,6 +37,8 @@ enum Command {
     },
     /// Return to the parent thread
     Back,
+    /// Park the active branch
+    Park,
     /// Attach a note to the current focus target
     Note {
         /// The note text

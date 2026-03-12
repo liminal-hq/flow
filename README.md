@@ -19,6 +19,7 @@ cargo build --release
 ./target/release/flo where        # Show current state
 ./target/release/flo resume       # Resume recent work
 ./target/release/flo back         # Return to parent
+./target/release/flo park         # Park the active branch
 ./target/release/flo done         # Mark the active focus done
 ./target/release/flo archive      # Archive the active focus
 ```
@@ -43,6 +44,7 @@ Liminal Flow keeps track of your working context so you don't have to. When you 
 | `flo now <text>` | Set or replace the current thread |
 | `flo branch <text>` | Create a branch beneath the current thread |
 | `flo back` | Return to the parent thread |
+| `flo park` | Park the active branch |
 | `flo note <text>` | Attach a note to the current focus target |
 | `flo where` | Print current thread and branches |
 | `flo resume` | Resume the most recent paused, done, or parked work |
@@ -75,7 +77,7 @@ Run `flo` with no arguments to launch the terminal UI:
 
 The TUI starts in **Insert mode**:
 
-- Type slash commands (`/now`, `/branch`, `/back`, `/note`, `/where`, `/resume`, `/pause`, `/done`) or plain text (treated as a note)
+- Type slash commands (`/now`, `/branch`, `/back`, `/park`, `/archive`, `/note`, `/where`, `/resume`, `/pause`, `/done`) or plain text (treated as a note)
 - Type `/` on an empty line to open the **command palette** — navigate with arrow keys, select with Enter
 - Type `?` on an empty line to see **shortcut hints**
 - **Up/Down** arrows navigate the thread list; the thread list auto-scrolls to keep selection visible; **Enter** on empty input expands/collapses branches

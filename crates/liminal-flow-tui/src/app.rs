@@ -22,7 +22,7 @@ use tui_textarea::TextArea;
 
 use crate::input::{self, InputResult};
 use crate::poll;
-use crate::state::SLASH_COMMANDS;
+use crate::state::filtered_slash_commands;
 use crate::state::{Mode, TuiState};
 use crate::ui::{
     about, command_palette, help, hints_bar, input_pane, layout, reply_pane, thread_list,
@@ -33,14 +33,17 @@ const TICK_RATE: Duration = Duration::from_millis(250);
 fn should_follow_active_after_submit(input: &str) -> bool {
     let trimmed = input.trim();
     trimmed == "/resume"
+        || trimmed == "/park"
         || matches!(
             input::parsed_intent(input),
             Some(
                 liminal_flow_core::model::Intent::SetCurrentThread
                     | liminal_flow_core::model::Intent::StartBranch
                     | liminal_flow_core::model::Intent::ReturnToParent
+                    | liminal_flow_core::model::Intent::AddNote
             )
         )
+        || (!trimmed.is_empty() && !trimmed.starts_with('/'))
 }
 
 /// Run the TUI application. Takes ownership of the database connection.
@@ -128,7 +131,8 @@ fn run_loop(
 
             // Floating overlays above the input pane
             if state.show_command_palette {
-                command_palette::render(frame, app_layout.input_pane, &state);
+                let query = textarea.lines().join("\n");
+                command_palette::render(frame, app_layout.input_pane, &state, &query);
             } else if state.show_hints {
                 hints_bar::render(frame, app_layout.input_pane);
             }
@@ -451,6 +455,16 @@ fn run_loop(
                             let is_empty = textarea.lines().iter().all(|l| l.is_empty());
 
                             if state.show_command_palette {
+                                let clamp_palette_selection =
+                                    |state: &mut TuiState, query: &str| {
+                                        let count = filtered_slash_commands(query).len();
+                                        if count == 0 {
+                                            state.command_palette_index = 0;
+                                        } else if state.command_palette_index >= count {
+                                            state.command_palette_index = count - 1;
+                                        }
+                                    };
+
                                 // Command palette is open — handle navigation
                                 match key.code {
                                     KeyCode::Esc => {
@@ -461,40 +475,59 @@ fn run_loop(
                                         .set_cursor_line_style(ratatui::style::Style::default());
                                     }
                                     KeyCode::Up => {
-                                        if state.command_palette_index > 0 {
+                                        let query = textarea.lines().join("\n");
+                                        let count = filtered_slash_commands(&query).len();
+                                        if count == 0 {
+                                            state.command_palette_index = 0;
+                                        } else if state.command_palette_index > 0 {
                                             state.command_palette_index -= 1;
                                         } else {
-                                            state.command_palette_index = SLASH_COMMANDS.len() - 1;
+                                            state.command_palette_index = count - 1;
                                         }
                                     }
                                     KeyCode::Down => {
-                                        state.command_palette_index = (state.command_palette_index
-                                            + 1)
-                                            % SLASH_COMMANDS.len();
+                                        let query = textarea.lines().join("\n");
+                                        let count = filtered_slash_commands(&query).len();
+                                        if count > 0 {
+                                            state.command_palette_index =
+                                                (state.command_palette_index + 1) % count;
+                                        }
                                     }
                                     KeyCode::Enter | KeyCode::Tab => {
-                                        // Insert the selected command into the textarea
-                                        let (cmd, _) = SLASH_COMMANDS[state.command_palette_index];
-                                        // Extract just the command name (e.g., "/now" from "/now <text>")
-                                        let cmd_name = cmd.split_whitespace().next().unwrap_or(cmd);
-                                        textarea = TextArea::default();
-                                        textarea
-                                        .set_cursor_line_style(ratatui::style::Style::default());
-                                        // Insert command text followed by a space
-                                        textarea.insert_str(format!("{cmd_name} "));
-                                        state.show_command_palette = false;
+                                        let query = textarea.lines().join("\n");
+                                        let filtered = filtered_slash_commands(&query);
+                                        if let Some((_, cmd, _)) =
+                                            filtered.get(state.command_palette_index)
+                                        {
+                                            let cmd_name =
+                                                cmd.split_whitespace().next().unwrap_or(cmd);
+                                            textarea = TextArea::default();
+                                            textarea.set_cursor_line_style(
+                                                ratatui::style::Style::default(),
+                                            );
+                                            textarea.insert_str(format!("{cmd_name} "));
+                                            state.show_command_palette = false;
+                                        }
                                     }
                                     KeyCode::Backspace => {
-                                        // Close palette and clear input
-                                        state.show_command_palette = false;
-                                        textarea = TextArea::default();
-                                        textarea
-                                        .set_cursor_line_style(ratatui::style::Style::default());
+                                        textarea.input(Event::Key(key));
+                                        let query = textarea.lines().join("\n");
+                                        if query.trim().is_empty()
+                                            || !query.trim_start().starts_with('/')
+                                        {
+                                            state.show_command_palette = false;
+                                        } else {
+                                            clamp_palette_selection(&mut state, &query);
+                                        }
                                     }
                                     KeyCode::Char(_) => {
-                                        // Any other character closes the palette and types into textarea
-                                        state.show_command_palette = false;
                                         textarea.input(Event::Key(key));
+                                        let query = textarea.lines().join("\n");
+                                        if !query.trim_start().starts_with('/') {
+                                            state.show_command_palette = false;
+                                        } else {
+                                            clamp_palette_selection(&mut state, &query);
+                                        }
                                     }
                                     _ => {}
                                 }
@@ -595,6 +628,62 @@ fn run_loop(
                                                     }
                                                     InputResult::None => {}
                                                 }
+                                            }
+                                        } else if text.trim() == "/park" {
+                                            let result = state.active_thread().and_then(|entry| {
+                                                state.active_branch().map(|branch| {
+                                                    input::park_branch(
+                                                        conn,
+                                                        &entry.thread.id,
+                                                        &branch.id,
+                                                    )
+                                                })
+                                            });
+                                            if let Some(result) = result {
+                                                match result {
+                                                    InputResult::Reply(msg) => {
+                                                        state.last_reply = Some(msg);
+                                                        state.error_message = None;
+                                                    }
+                                                    InputResult::Error(msg) => {
+                                                        state.error_message = Some(msg);
+                                                    }
+                                                    InputResult::None => {}
+                                                }
+                                            } else {
+                                                state.error_message =
+                                                    Some("No active branch to park.".into());
+                                            }
+                                        } else if text.trim() == "/archive" {
+                                            let result = if let Some(active_branch) =
+                                                state.active_branch()
+                                            {
+                                                state.active_thread().map(|entry| {
+                                                    input::archive_branch(
+                                                        conn,
+                                                        &entry.thread.id,
+                                                        &active_branch.id,
+                                                    )
+                                                })
+                                            } else {
+                                                state.active_thread().map(|entry| {
+                                                    input::archive_thread(conn, &entry.thread.id)
+                                                })
+                                            };
+                                            if let Some(result) = result {
+                                                match result {
+                                                    Ok(msg) => {
+                                                        state.last_reply = Some(msg);
+                                                        state.error_message = None;
+                                                    }
+                                                    Err(err) => {
+                                                        state.error_message = Some(err.to_string());
+                                                    }
+                                                }
+                                            } else {
+                                                state.error_message = Some(
+                                                    "No active thread or branch to archive.".into(),
+                                                );
                                             }
                                         } else {
                                             match input::process_input(conn, &text) {

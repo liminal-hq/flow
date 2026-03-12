@@ -17,6 +17,8 @@ const S: &str = "";
 const HELP_TEXT: &[(&str, &str)] = &[
     (S, "Slash Commands"),
     ("/now /branch /back", "Set thread, branch, or return"),
+    ("/park", "Park the active branch"),
+    ("/archive", "Archive the active thread or branch"),
     ("/note /where", "Add a note or show current state"),
     ("/resume", "Resume the selected item"),
     ("/pause /done", "Pause thread or finish active focus"),

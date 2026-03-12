@@ -22,6 +22,7 @@ mod cli;
           flo note \"try the new endpoint\"       # Attach a note\n  \
           flo where                              # See current state\n  \
           flo back                               # Return to parent\n  \
+          flo park                               # Park the active branch\n  \
           flo list                               # Show all threads\n  \
           flo done                               # Mark the active focus done\n  \
           flo resume                             # Resume recent work\n  \
@@ -63,6 +64,13 @@ enum Command {
             Parked branches remain visible in the thread list."
     )]
     Back,
+
+    /// Park the active branch
+    #[command(
+        long_about = "Park the active branch and leave the parent thread active.\n\n\
+            This is the direct CLI equivalent of the TUI's park action."
+    )]
+    Park,
 
     /// Attach a note to the current focus target
     #[command(long_about = "Attach a note to the current focus target.\n\n\
@@ -146,6 +154,7 @@ async fn main() -> anyhow::Result<()> {
                 Command::Now { text } => cli::now::handle(&conn, &text)?,
                 Command::Branch { text } => cli::branch::handle(&conn, &text)?,
                 Command::Back => cli::back::handle(&conn)?,
+                Command::Park => cli::park::handle(&conn)?,
                 Command::Note { text } => cli::note::handle(&conn, &text)?,
                 Command::Where => cli::where_cmd::handle(&conn)?,
                 Command::Resume => cli::resume::handle(&conn)?,

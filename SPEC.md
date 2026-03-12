@@ -44,6 +44,7 @@ Every state mutation produces an event stored in the events table. Events serve 
 | `flo now <text>` | Set or replace the current thread |
 | `flo branch <text>` | Create a branch beneath the current thread |
 | `flo back` | Return to the parent thread, parking active branches |
+| `flo park` | Park the active branch |
 | `flo note <text>` | Attach a note to the current focus target |
 | `flo where` | Print the current thread and its branches |
 | `flo resume` | Resume the most recent paused, done, or parked work |
@@ -124,13 +125,15 @@ The thread list supports navigating both threads and their branches:
 ### Command Palette and Hints
 
 - Type `/` on an empty input line to open the **command palette** — a floating popup showing available slash commands. Navigate with Up/Down, select with Enter/Tab, dismiss with Esc.
+- Typing after `/` filters the command palette by both command name and description text.
+- Command-name matches outrank description-only matches, so `/par` prefers `/park` before `/back` even though `back` mentions `parent`.
 - Type `?` on an empty input line to show **shortcut hints** — a compact reference bar. Any key dismisses it.
 
 ### Slash Commands
 
 The TUI accepts the same commands as the CLI, prefixed with `/`, plus selection-aware resume:
 
-`/now`, `/branch`, `/back`, `/note`, `/where`, `/resume`, `/pause`, `/done`
+`/now`, `/branch`, `/back`, `/park`, `/archive`, `/note`, `/where`, `/resume`, `/pause`, `/done`
 
 Plain text (without a `/` prefix) is treated as a note attached to the current focus target.
 In the TUI, the current capture target is always the active item and is shown in the capture pane title.

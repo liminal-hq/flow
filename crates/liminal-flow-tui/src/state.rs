@@ -31,12 +31,69 @@ pub const SLASH_COMMANDS: &[(&str, &str)] = &[
     ("/now <text>", "Set or replace the current thread"),
     ("/branch <text>", "Start a branch beneath current thread"),
     ("/back", "Return to the parent thread"),
+    ("/park", "Park the active branch"),
+    ("/archive", "Archive the active thread or branch"),
     ("/note <text>", "Attach a note (or just type plain text)"),
     ("/where", "Show current thread and branches"),
     ("/resume", "Resume the selected item"),
     ("/pause", "Pause the current thread"),
     ("/done", "Mark the active thread or branch done"),
 ];
+
+/// Return slash commands filtered by the current palette query.
+pub fn filtered_slash_commands(query: &str) -> Vec<(usize, &'static str, &'static str)> {
+    let normalized = query.trim();
+    let needle = normalized
+        .strip_prefix('/')
+        .unwrap_or(normalized)
+        .trim()
+        .to_ascii_lowercase();
+
+    let mut matches = SLASH_COMMANDS
+        .iter()
+        .enumerate()
+        .filter(|(_, (cmd, desc))| {
+            if needle.is_empty() {
+                return true;
+            }
+
+            let cmd_name = cmd
+                .split_whitespace()
+                .next()
+                .unwrap_or(cmd)
+                .trim_start_matches('/')
+                .to_ascii_lowercase();
+            let desc_text = desc.to_ascii_lowercase();
+
+            cmd_name.contains(&needle) || desc_text.contains(&needle)
+        })
+        .map(|(index, (cmd, desc))| (index, *cmd, *desc))
+        .collect::<Vec<_>>();
+
+    matches.sort_by_key(|(_index, cmd, desc)| {
+        if needle.is_empty() {
+            return (0_u8, 0_usize, 0_usize);
+        }
+
+        let cmd_name = cmd
+            .split_whitespace()
+            .next()
+            .unwrap_or(cmd)
+            .trim_start_matches('/')
+            .to_ascii_lowercase();
+        let desc_text = desc.to_ascii_lowercase();
+
+        if let Some(position) = cmd_name.find(&needle) {
+            (0_u8, position, 0_usize)
+        } else if let Some(position) = desc_text.find(&needle) {
+            (1_u8, position, 0_usize)
+        } else {
+            (2_u8, usize::MAX, 0_usize)
+        }
+    });
+
+    matches
+}
 
 /// Keyboard shortcut hints shown when ? is typed on an empty line.
 pub const SHORTCUT_HINTS: &[(&str, &str)] = &[
@@ -569,5 +626,27 @@ mod tests {
         state.refresh_selected_details(&conn);
         assert_eq!(state.selected_notes.len(), 1);
         assert_eq!(state.selected_notes[0].text, "note on branch two");
+    }
+
+    #[test]
+    fn slash_commands_filter_by_query() {
+        let filtered = filtered_slash_commands("/res");
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(filtered[0].1, "/resume");
+
+        let filtered = filtered_slash_commands("/note");
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(filtered[0].1, "/note <text>");
+
+        let filtered = filtered_slash_commands("/arch");
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(filtered[0].1, "/archive");
+    }
+
+    #[test]
+    fn slash_command_name_matches_outrank_description_matches() {
+        let filtered = filtered_slash_commands("/par");
+        assert_eq!(filtered[0].1, "/park");
+        assert_eq!(filtered[1].1, "/back");
     }
 }
