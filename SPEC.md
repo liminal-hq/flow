@@ -48,6 +48,7 @@ Every state mutation produces an event stored in the events table. Events serve 
 | `flo where` | Print the current thread and its branches |
 | `flo pause` | Pause the current thread |
 | `flo done` | Mark the active thread or branch done |
+| `flo archive` | Archive the active thread or branch |
 | `flo list` | List active, paused, and done threads |
 | `flo list -a` | List threads with branches, statuses, and recent notes |
 
@@ -92,7 +93,7 @@ The TUI provides a three-pane interface:
 | Mode | Description |
 |---|---|
 | Insert | Text input active. Enter submits. Esc switches to Normal. |
-| Normal | Keyboard navigation. `j`/`k`/Up/Down to move through threads and branches, `Enter` to expand or collapse the selected thread, `r` to resume the selected item and make it active, `p` to park a selected branch, `d` to mark the selected item done, `i` to insert, `?` for help, `a` for about, `q` to quit. |
+| Normal | Keyboard navigation. `j`/`k`/Up/Down to move through threads and branches, `Enter` to expand or collapse the selected thread, `r` to resume the selected item and make it active, `p` to park a selected branch, `d` to mark the selected item done, `Shift+A` to archive the selected item, `i` to insert, `?` for help, `a` for about, `q` to quit. |
 | Help | Help overlay. Esc or `?` to dismiss. |
 | About | About overlay with app info. Esc, `q`, or Enter to dismiss. |
 
@@ -114,6 +115,7 @@ The thread list supports navigating both threads and their branches:
   - On a parked branch: activates it (parking other active branches, and activating the parent thread if needed)
 - **p** (Normal mode) parks the selected branch while leaving the parent thread as the main focus
 - **d** (Normal mode) marks the selected thread or branch done
+- **Shift+A** (Normal mode) archives the selected thread or branch and removes it from the working view
 
 ### Command Palette and Hints
 

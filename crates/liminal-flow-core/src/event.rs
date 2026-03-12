@@ -59,6 +59,15 @@ pub enum AppEvent {
         thread_id: FlowId,
         created_at: DateTime<Utc>,
     },
+    ThreadArchived {
+        thread_id: FlowId,
+        created_at: DateTime<Utc>,
+    },
+    BranchArchived {
+        branch_id: FlowId,
+        thread_id: FlowId,
+        created_at: DateTime<Utc>,
+    },
     ScopeObserved {
         scope_id: FlowId,
         target_type: String,
@@ -87,6 +96,8 @@ impl AppEvent {
             Self::ThreadPaused { .. } => "thread_paused",
             Self::ThreadMarkedDone { .. } => "thread_marked_done",
             Self::BranchMarkedDone { .. } => "branch_marked_done",
+            Self::ThreadArchived { .. } => "thread_archived",
+            Self::BranchArchived { .. } => "branch_archived",
             Self::ScopeObserved { .. } => "scope_observed",
             Self::ReplyUpdated { .. } => "reply_updated",
         }

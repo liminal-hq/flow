@@ -46,7 +46,7 @@ pub const SHORTCUT_HINTS: &[(&str, &str)] = &[
         "p parks selected branch (Normal)",
         "d marks selected done (Normal)",
     ),
-    ("q quits (Normal)", "? opens full help"),
+    ("A archives selected item (Normal)", "q quits (Normal)"),
     (
         "Capture targets active item",
         "r revives selected done item",

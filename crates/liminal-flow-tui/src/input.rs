@@ -349,6 +349,51 @@ pub fn mark_thread_done(conn: &Connection, thread_id: &FlowId) -> Result<String>
     Ok(format!("Done: {}", thread.title))
 }
 
+/// Archive a specific branch by ID.
+pub fn archive_branch(conn: &Connection, thread_id: &FlowId, branch_id: &FlowId) -> Result<String> {
+    let now = Utc::now();
+    let Some(branch) = branch_repo::find_by_id(conn, branch_id)? else {
+        anyhow::bail!("Branch not found.");
+    };
+
+    if branch.status == BranchStatus::Archived {
+        return Ok(format!("Already archived: {}", branch.title));
+    }
+
+    branch_repo::update_status(conn, branch_id, &BranchStatus::Archived, &now.to_rfc3339())?;
+
+    let event = AppEvent::BranchArchived {
+        branch_id: branch_id.clone(),
+        thread_id: thread_id.clone(),
+        created_at: now,
+    };
+    event_repo::insert(conn, &event, "tui")?;
+
+    Ok(format!("Archived: {}", branch.title))
+}
+
+/// Archive a specific thread by ID.
+pub fn archive_thread(conn: &Connection, thread_id: &FlowId) -> Result<String> {
+    let now = Utc::now();
+    let Some(thread) = thread_repo::find_by_id(conn, thread_id)? else {
+        anyhow::bail!("Thread not found.");
+    };
+
+    if thread.status == ThreadStatus::Archived {
+        return Ok(format!("Already archived: {}", thread.title));
+    }
+
+    thread_repo::update_status(conn, thread_id, &ThreadStatus::Archived, &now.to_rfc3339())?;
+
+    let event = AppEvent::ThreadArchived {
+        thread_id: thread_id.clone(),
+        created_at: now,
+    };
+    event_repo::insert(conn, &event, "tui")?;
+
+    Ok(format!("Archived: {}", thread.title))
+}
+
 /// Resume a specific branch by ID — parks other active branches on the same thread first.
 /// Also ensures the parent thread is active.
 pub fn resume_branch(conn: &Connection, thread_id: &FlowId, branch_id: &FlowId) -> InputResult {
@@ -644,5 +689,33 @@ mod tests {
             .unwrap();
         assert_eq!(thread.status, ThreadStatus::Active);
         assert_eq!(branch.status, BranchStatus::Done);
+    }
+
+    #[test]
+    fn archive_thread_updates_thread_status() {
+        let conn = open_store_in_memory().unwrap();
+        let thread = make_thread("t1", "improving AIDX", ThreadStatus::Done);
+        thread_repo::upsert(&conn, &thread).unwrap();
+
+        let reply = archive_thread(&conn, &thread.id).unwrap();
+        assert!(reply.contains("Archived"));
+
+        let archived_thread = thread_repo::find_by_id(&conn, &thread.id).unwrap().unwrap();
+        assert_eq!(archived_thread.status, ThreadStatus::Archived);
+    }
+
+    #[test]
+    fn archive_branch_updates_branch_status() {
+        let conn = open_store_in_memory().unwrap();
+        let thread = make_thread("t1", "improving AIDX", ThreadStatus::Active);
+        let branch = make_branch("b1", "t1", "windows support", BranchStatus::Done);
+        thread_repo::upsert(&conn, &thread).unwrap();
+        branch_repo::upsert(&conn, &branch).unwrap();
+
+        let reply = archive_branch(&conn, &thread.id, &branch.id).unwrap();
+        assert!(reply.contains("Archived"));
+
+        let archived_branch = branch_repo::find_by_id(&conn, &branch.id).unwrap().unwrap();
+        assert_eq!(archived_branch.status, BranchStatus::Archived);
     }
 }

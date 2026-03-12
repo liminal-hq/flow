@@ -34,6 +34,7 @@ const HELP_TEXT: &[(&str, &str)] = &[
     ("r", "Resume selected item"),
     ("p", "Park selected branch"),
     ("d", "Mark selected item done"),
+    ("A", "Archive selected item"),
     ("PageUp / PageDown", "Scroll the Status pane"),
     ("?", "Toggle this help"),
     ("a", "About"),

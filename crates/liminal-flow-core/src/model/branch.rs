@@ -15,6 +15,7 @@ pub enum BranchStatus {
     Active,
     Parked,
     Done,
+    Archived,
     Dropped,
 }
 
@@ -24,6 +25,7 @@ impl BranchStatus {
             Self::Active => "active",
             Self::Parked => "parked",
             Self::Done => "done",
+            Self::Archived => "archived",
             Self::Dropped => "dropped",
         }
     }
@@ -43,6 +45,7 @@ impl std::str::FromStr for BranchStatus {
             "active" => Ok(Self::Active),
             "parked" => Ok(Self::Parked),
             "done" => Ok(Self::Done),
+            "archived" => Ok(Self::Archived),
             "dropped" => Ok(Self::Dropped),
             _ => Err(format!("unknown branch status: {s}")),
         }

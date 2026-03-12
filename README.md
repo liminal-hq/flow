@@ -19,6 +19,7 @@ cargo build --release
 ./target/release/flo where        # Show current state
 ./target/release/flo back         # Return to parent
 ./target/release/flo done         # Mark the active focus done
+./target/release/flo archive      # Archive the active focus
 ```
 
 ## What It Does
@@ -45,6 +46,7 @@ Liminal Flow keeps track of your working context so you don't have to. When you 
 | `flo where` | Print current thread and branches |
 | `flo pause` | Pause the current thread |
 | `flo done` | Mark the active thread or branch done |
+| `flo archive` | Archive the active thread or branch |
 | `flo list` | List active, paused, and done threads |
 
 ## TUI
@@ -79,7 +81,8 @@ The TUI starts in **Insert mode**:
 - The **Capture** pane shows the active note target explicitly
 - Selected-item notes in the **Status** pane show compact timestamps and separators for readability
 - Press `Esc` for **Normal mode** where `j`/`k` navigate, `Enter` expands or collapses the selected thread, `PageUp`/`PageDown` scroll the Status pane, `r` resumes a selected item to make it active again, `p` parks a selected branch, `d` marks the selected item done, `?` opens help, `a` shows about, and `q` quits
-- Done threads and branches stay visible as tombstones until a later archive pass, so you can still inspect and revive them with `r`
+- Press `Shift+A` in Normal mode to archive the selected item and remove it from the main working list
+- Done threads and branches stay visible as tombstones until they are archived, so you can still inspect and revive them with `r`
 - In the **Help** overlay, `j`/`k`/Up/Down and `PageUp`/`PageDown` scroll the help content on smaller terminals
 
 The TUI polls the database every 250ms, so changes made via `flo` CLI in another terminal appear automatically.

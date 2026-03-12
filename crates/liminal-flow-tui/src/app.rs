@@ -259,6 +259,38 @@ fn run_loop(
                                 state.poll_watermark = poll::current_watermark(conn);
                             }
                         }
+                        KeyCode::Char('A') => {
+                            let result = match &state.selected {
+                                crate::state::SelectedItem::Thread(i) => state
+                                    .threads
+                                    .get(*i)
+                                    .map(|entry| input::archive_thread(conn, &entry.thread.id)),
+                                crate::state::SelectedItem::Branch(i, j) => {
+                                    state.threads.get(*i).and_then(|entry| {
+                                        entry.branches.get(*j).map(|branch| {
+                                            input::archive_branch(
+                                                conn,
+                                                &entry.thread.id,
+                                                &branch.id,
+                                            )
+                                        })
+                                    })
+                                }
+                            };
+                            if let Some(result) = result {
+                                match result {
+                                    Ok(msg) => {
+                                        state.last_reply = Some(msg);
+                                        state.error_message = None;
+                                    }
+                                    Err(err) => {
+                                        state.error_message = Some(err.to_string());
+                                    }
+                                }
+                                state.refresh_from_db(conn);
+                                state.poll_watermark = poll::current_watermark(conn);
+                            }
+                        }
                         KeyCode::Char('j') | KeyCode::Down => {
                             state.select_next();
                         }

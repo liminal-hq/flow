@@ -78,6 +78,6 @@ mod tests {
                 row.get(0)
             })
             .expect("should query schema version");
-        assert_eq!(version, 1);
+        assert_eq!(version, 2);
     }
 }

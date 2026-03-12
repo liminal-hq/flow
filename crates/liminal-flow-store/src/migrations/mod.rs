@@ -4,6 +4,7 @@
 // SPDX-License-Identifier: MIT
 
 pub mod v001_initial;
+pub mod v002_archive_statuses;
 
 use rusqlite::Connection;
 
@@ -14,7 +15,10 @@ pub fn run_migrations(conn: &Connection) -> Result<(), StoreError> {
     let current_version = get_current_version(conn)?;
 
     type Migration = (i64, &'static str, fn(&Connection) -> Result<(), StoreError>);
-    let migrations: Vec<Migration> = vec![(1, "initial schema", v001_initial::migrate)];
+    let migrations: Vec<Migration> = vec![
+        (1, "initial schema", v001_initial::migrate),
+        (2, "archive statuses", v002_archive_statuses::migrate),
+    ];
 
     for (version, name, migrate_fn) in migrations {
         if version > current_version {
@@ -58,7 +62,7 @@ mod tests {
         run_migrations(&conn).expect("migrations should succeed");
 
         let version = get_current_version(&conn).expect("should get version");
-        assert_eq!(version, 1);
+        assert_eq!(version, 2);
     }
 
     #[test]
@@ -68,6 +72,6 @@ mod tests {
         run_migrations(&conn).expect("second run should succeed");
 
         let version = get_current_version(&conn).expect("should get version");
-        assert_eq!(version, 1);
+        assert_eq!(version, 2);
     }
 }

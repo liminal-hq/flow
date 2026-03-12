@@ -48,6 +48,8 @@ enum Command {
     Pause,
     /// Mark the active focus target done
     Done,
+    /// Archive the active focus target
+    Archive,
     /// List active, paused, and done threads
     List {
         /// Show branches and recent notes for each thread

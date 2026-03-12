@@ -174,6 +174,39 @@ pub fn apply(state: &mut AppState, event: &AppEvent) -> Result<(), CoreError> {
             }
         }
 
+        AppEvent::ThreadArchived {
+            thread_id,
+            created_at,
+        } => {
+            if let Some(thread) = state.threads.get_mut(thread_id) {
+                thread.status = ThreadStatus::Archived;
+                thread.updated_at = *created_at;
+
+                let title = thread.title.clone();
+                state.last_reply = Some(format!("Archived: {title}"));
+
+                if state.current_thread_id.as_ref() == Some(thread_id) {
+                    state.current_thread_id = None;
+                }
+            } else {
+                return Err(CoreError::ThreadNotFound(thread_id.to_string()));
+            }
+        }
+
+        AppEvent::BranchArchived {
+            branch_id,
+            thread_id: _,
+            created_at,
+        } => {
+            if let Some(branch) = state.branches.get_mut(branch_id) {
+                branch.status = BranchStatus::Archived;
+                branch.updated_at = *created_at;
+
+                let title = branch.title.clone();
+                state.last_reply = Some(format!("Archived: {title}"));
+            }
+        }
+
         AppEvent::CaptureReceived { .. } => {
             // Rule 4: raw capture is always stored (persistence handled by caller)
             // No state mutation needed here.
@@ -526,6 +559,81 @@ mod tests {
             BranchStatus::Done
         );
         assert!(state.last_reply.as_ref().unwrap().contains("Done"));
+    }
+
+    #[test]
+    fn archive_thread() {
+        let mut state = AppState::default();
+        let ts = now();
+
+        apply(
+            &mut state,
+            &AppEvent::ThreadSetCurrent {
+                thread_id: FlowId::from("t1"),
+                title: "improving AIDX".into(),
+                raw_text: "improving AIDX".into(),
+                created_at: ts,
+            },
+        )
+        .unwrap();
+
+        apply(
+            &mut state,
+            &AppEvent::ThreadArchived {
+                thread_id: FlowId::from("t1"),
+                created_at: ts,
+            },
+        )
+        .unwrap();
+
+        assert_eq!(
+            state.threads.get(&FlowId::from("t1")).unwrap().status,
+            ThreadStatus::Archived
+        );
+        assert_eq!(state.current_thread_id, None);
+    }
+
+    #[test]
+    fn archive_branch() {
+        let mut state = AppState::default();
+        let ts = now();
+
+        apply(
+            &mut state,
+            &AppEvent::ThreadSetCurrent {
+                thread_id: FlowId::from("t1"),
+                title: "improving AIDX".into(),
+                raw_text: "improving AIDX".into(),
+                created_at: ts,
+            },
+        )
+        .unwrap();
+
+        apply(
+            &mut state,
+            &AppEvent::BranchStarted {
+                branch_id: FlowId::from("b1"),
+                thread_id: FlowId::from("t1"),
+                title: "windows support".into(),
+                created_at: ts,
+            },
+        )
+        .unwrap();
+
+        apply(
+            &mut state,
+            &AppEvent::BranchArchived {
+                branch_id: FlowId::from("b1"),
+                thread_id: FlowId::from("t1"),
+                created_at: ts,
+            },
+        )
+        .unwrap();
+
+        assert_eq!(
+            state.branches.get(&FlowId::from("b1")).unwrap().status,
+            BranchStatus::Archived
+        );
     }
 
     #[test]

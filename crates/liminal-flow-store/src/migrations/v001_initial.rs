@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS threads (
     title           TEXT NOT NULL,
     raw_origin_text TEXT NOT NULL,
     status          TEXT NOT NULL DEFAULT 'active'
-                    CHECK (status IN ('active', 'paused', 'done', 'dropped')),
+                    CHECK (status IN ('active', 'paused', 'done', 'archived', 'dropped')),
     short_summary   TEXT,
     created_at      TEXT NOT NULL,
     updated_at      TEXT NOT NULL
@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS branches (
     thread_id       TEXT NOT NULL REFERENCES threads(id),
     title           TEXT NOT NULL,
     status          TEXT NOT NULL DEFAULT 'active'
-                    CHECK (status IN ('active', 'parked', 'done', 'dropped')),
+                    CHECK (status IN ('active', 'parked', 'done', 'archived', 'dropped')),
     short_summary   TEXT,
     created_at      TEXT NOT NULL,
     updated_at      TEXT NOT NULL

@@ -23,7 +23,8 @@ mod cli;
           flo where                              # See current state\n  \
           flo back                               # Return to parent\n  \
           flo list                               # Show all threads\n  \
-          flo done                               # Mark the active focus done",
+          flo done                               # Mark the active focus done\n  \
+          flo archive                            # Archive the active focus",
     after_help = "Run `flo` with no arguments to launch the TUI."
 )]
 struct Cli {
@@ -94,6 +95,13 @@ enum Command {
             Done items remain visible until they are archived.")]
     Done,
 
+    /// Archive the active focus target
+    #[command(long_about = "Archive the active focus target.\n\n\
+            If a branch is active, that branch is archived.\n\
+            Otherwise the current thread is archived.\n\n\
+            Archived items are removed from the default working views.")]
+    Archive,
+
     /// List active, paused, and done threads
     #[command(
         long_about = "List all active, paused, and done threads with their branches.\n\n\
@@ -135,6 +143,7 @@ async fn main() -> anyhow::Result<()> {
                 Command::Pause => cli::pause::handle(&conn)?,
                 Command::Done => cli::done::handle(&conn)?,
                 Command::List { all } => cli::list::handle(&conn, all)?,
+                Command::Archive => cli::archive::handle(&conn)?,
             }
         }
     }

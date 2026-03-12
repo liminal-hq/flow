@@ -15,6 +15,7 @@ pub enum ThreadStatus {
     Active,
     Paused,
     Done,
+    Archived,
     Dropped,
 }
 
@@ -24,6 +25,7 @@ impl ThreadStatus {
             Self::Active => "active",
             Self::Paused => "paused",
             Self::Done => "done",
+            Self::Archived => "archived",
             Self::Dropped => "dropped",
         }
     }
@@ -43,6 +45,7 @@ impl std::str::FromStr for ThreadStatus {
             "active" => Ok(Self::Active),
             "paused" => Ok(Self::Paused),
             "done" => Ok(Self::Done),
+            "archived" => Ok(Self::Archived),
             "dropped" => Ok(Self::Dropped),
             _ => Err(format!("unknown thread status: {s}")),
         }
