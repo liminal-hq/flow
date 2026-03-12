@@ -33,7 +33,11 @@ const TICK_RATE: Duration = Duration::from_millis(250);
 fn should_follow_active_after_submit(input: &str) -> bool {
     let trimmed = input.trim();
     trimmed == "/resume"
+        || trimmed.starts_with("/resume ")
         || trimmed == "/park"
+        || trimmed.starts_with("/park ")
+        || trimmed == "/archive"
+        || trimmed.starts_with("/archive ")
         || matches!(
             input::parsed_intent(input),
             Some(
@@ -598,7 +602,29 @@ fn run_loop(
                                         // Process the input
                                         let follow_active =
                                             should_follow_active_after_submit(&text);
-                                        if text.trim() == "/resume" {
+                                        if text.trim() == "/resume"
+                                            || text.trim().starts_with("/resume ")
+                                        {
+                                            let note_text = text
+                                                .trim()
+                                                .strip_prefix("/resume")
+                                                .unwrap_or("")
+                                                .trim()
+                                                .to_string();
+                                            let note_target = match &state.selected {
+                                                crate::state::SelectedItem::Thread(i) => {
+                                                    state.threads.get(*i).map(|entry| {
+                                                        ("thread", entry.thread.id.clone())
+                                                    })
+                                                }
+                                                crate::state::SelectedItem::Branch(i, j) => {
+                                                    state.threads.get(*i).and_then(|entry| {
+                                                        entry.branches.get(*j).map(|branch| {
+                                                            ("branch", branch.id.clone())
+                                                        })
+                                                    })
+                                                }
+                                            };
                                             let result = match &state.selected {
                                                 crate::state::SelectedItem::Thread(i) => {
                                                     state.threads.get(*i).map(|entry| {
@@ -629,17 +655,43 @@ fn run_loop(
                                                     InputResult::None => {}
                                                 }
                                             }
-                                        } else if text.trim() == "/park" {
+                                            if state.error_message.is_none()
+                                                && !note_text.is_empty()
+                                            {
+                                                if let Some((target_type, target_id)) = note_target
+                                                {
+                                                    if let Err(err) = input::attach_note_to_target(
+                                                        conn,
+                                                        target_type,
+                                                        &target_id,
+                                                        &note_text,
+                                                    ) {
+                                                        state.error_message = Some(err.to_string());
+                                                    }
+                                                }
+                                            }
+                                        } else if text.trim() == "/park"
+                                            || text.trim().starts_with("/park ")
+                                        {
+                                            let note_text = text
+                                                .trim()
+                                                .strip_prefix("/park")
+                                                .unwrap_or("")
+                                                .trim()
+                                                .to_string();
                                             let result = state.active_thread().and_then(|entry| {
                                                 state.active_branch().map(|branch| {
-                                                    input::park_branch(
-                                                        conn,
-                                                        &entry.thread.id,
-                                                        &branch.id,
+                                                    (
+                                                        input::park_branch(
+                                                            conn,
+                                                            &entry.thread.id,
+                                                            &branch.id,
+                                                        ),
+                                                        branch.id.clone(),
                                                     )
                                                 })
                                             });
-                                            if let Some(result) = result {
+                                            if let Some((result, branch_id)) = result {
                                                 match result {
                                                     InputResult::Reply(msg) => {
                                                         state.last_reply = Some(msg);
@@ -650,27 +702,53 @@ fn run_loop(
                                                     }
                                                     InputResult::None => {}
                                                 }
+                                                if state.error_message.is_none()
+                                                    && !note_text.is_empty()
+                                                {
+                                                    if let Err(err) = input::attach_note_to_target(
+                                                        conn, "branch", &branch_id, &note_text,
+                                                    ) {
+                                                        state.error_message = Some(err.to_string());
+                                                    }
+                                                }
                                             } else {
                                                 state.error_message =
                                                     Some("No active branch to park.".into());
                                             }
-                                        } else if text.trim() == "/archive" {
+                                        } else if text.trim() == "/archive"
+                                            || text.trim().starts_with("/archive ")
+                                        {
+                                            let note_text = text
+                                                .trim()
+                                                .strip_prefix("/archive")
+                                                .unwrap_or("")
+                                                .trim()
+                                                .to_string();
                                             let result = if let Some(active_branch) =
                                                 state.active_branch()
                                             {
                                                 state.active_thread().map(|entry| {
-                                                    input::archive_branch(
-                                                        conn,
-                                                        &entry.thread.id,
-                                                        &active_branch.id,
+                                                    (
+                                                        input::archive_branch(
+                                                            conn,
+                                                            &entry.thread.id,
+                                                            &active_branch.id,
+                                                        ),
+                                                        Some(("branch", active_branch.id.clone())),
                                                     )
                                                 })
                                             } else {
                                                 state.active_thread().map(|entry| {
-                                                    input::archive_thread(conn, &entry.thread.id)
+                                                    (
+                                                        input::archive_thread(
+                                                            conn,
+                                                            &entry.thread.id,
+                                                        ),
+                                                        Some(("thread", entry.thread.id.clone())),
+                                                    )
                                                 })
                                             };
-                                            if let Some(result) = result {
+                                            if let Some((result, target)) = result {
                                                 match result {
                                                     Ok(msg) => {
                                                         state.last_reply = Some(msg);
@@ -678,6 +756,23 @@ fn run_loop(
                                                     }
                                                     Err(err) => {
                                                         state.error_message = Some(err.to_string());
+                                                    }
+                                                }
+                                                if state.error_message.is_none()
+                                                    && !note_text.is_empty()
+                                                {
+                                                    if let Some((target_type, target_id)) = target {
+                                                        if let Err(err) =
+                                                            input::attach_note_to_target(
+                                                                conn,
+                                                                target_type,
+                                                                &target_id,
+                                                                &note_text,
+                                                            )
+                                                        {
+                                                            state.error_message =
+                                                                Some(err.to_string());
+                                                        }
                                                     }
                                                 }
                                             } else {

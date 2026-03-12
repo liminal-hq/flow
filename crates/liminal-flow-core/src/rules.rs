@@ -41,8 +41,7 @@ pub fn normalise_title(raw: &str) -> String {
 
 /// Detect the intent of a slash command from TUI input.
 ///
-/// Returns `None` if the input doesn't match a known slash command,
-/// meaning it should be treated as a note.
+/// Returns `None` if the input doesn't match a known slash command.
 pub fn parse_slash_command(input: &str) -> Option<(Intent, String)> {
     let trimmed = input.trim();
 
@@ -60,8 +59,12 @@ pub fn parse_slash_command(input: &str) -> Option<(Intent, String)> {
         }
     }
 
-    if trimmed == "/back" || trimmed.starts_with("/back ") {
+    if trimmed == "/back" {
         return Some((Intent::ReturnToParent, String::new()));
+    }
+
+    if let Some(rest) = trimmed.strip_prefix("/back ") {
+        return Some((Intent::ReturnToParent, rest.trim().to_string()));
     }
 
     if let Some(rest) = trimmed.strip_prefix("/note ") {
@@ -79,8 +82,16 @@ pub fn parse_slash_command(input: &str) -> Option<(Intent, String)> {
         return Some((Intent::Pause, String::new()));
     }
 
+    if let Some(rest) = trimmed.strip_prefix("/pause ") {
+        return Some((Intent::Pause, rest.trim().to_string()));
+    }
+
     if trimmed == "/done" {
         return Some((Intent::Done, String::new()));
+    }
+
+    if let Some(rest) = trimmed.strip_prefix("/done ") {
+        return Some((Intent::Done, rest.trim().to_string()));
     }
 
     // Heuristic: questions end with ?
@@ -195,6 +206,27 @@ mod tests {
     fn parse_done_command() {
         let result = parse_slash_command("/done");
         assert_eq!(result, Some((Intent::Done, String::new())));
+    }
+
+    #[test]
+    fn parse_back_command_with_note() {
+        let result = parse_slash_command("/back need more data first");
+        assert_eq!(
+            result,
+            Some((Intent::ReturnToParent, "need more data first".into()))
+        );
+    }
+
+    #[test]
+    fn parse_pause_command_with_note() {
+        let result = parse_slash_command("/pause blocked on review");
+        assert_eq!(result, Some((Intent::Pause, "blocked on review".into())));
+    }
+
+    #[test]
+    fn parse_done_command_with_note() {
+        let result = parse_slash_command("/done shipped first pass");
+        assert_eq!(result, Some((Intent::Done, "shipped first pass".into())));
     }
 
     #[test]

@@ -138,6 +138,8 @@ The TUI accepts the same commands as the CLI, prefixed with `/`, plus selection-
 Plain text (without a `/` prefix) is treated as a note attached to the current focus target.
 In the TUI, the current capture target is always the active item and is shown in the capture pane title.
 `/done` marks the active branch when one exists, otherwise the active thread.
+Lifecycle slash commands can also carry trailing note text. For example, `/park need more data first` parks the active branch and stores `need more data first` as a note on that branch.
+Unknown slash commands should surface an error instead of silently becoming notes.
 
 ### Polling
 

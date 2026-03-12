@@ -78,6 +78,8 @@ Run `flo` with no arguments to launch the terminal UI:
 The TUI starts in **Insert mode**:
 
 - Type slash commands (`/now`, `/branch`, `/back`, `/park`, `/archive`, `/note`, `/where`, `/resume`, `/pause`, `/done`) or plain text (treated as a note)
+- Lifecycle slash commands can carry trailing note text, for example `/park need more data first` or `/done shipped first pass`
+- Unknown slash commands now error instead of silently being stored as notes
 - Type `/` on an empty line to open the **command palette** — navigate with arrow keys, select with Enter
 - Type `?` on an empty line to see **shortcut hints**
 - **Up/Down** arrows navigate the thread list; the thread list auto-scrolls to keep selection visible; **Enter** on empty input expands/collapses branches
