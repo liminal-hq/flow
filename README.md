@@ -77,6 +77,7 @@ The TUI starts in **Insert mode**:
 - **Up/Down** arrows navigate the thread list; **Enter** on empty input expands/collapses branches
 - The **Status** pane follows the selected thread or branch for inspection
 - The **Capture** pane shows the active note target explicitly
+- Selected-item notes in the **Status** pane show compact timestamps and separators for readability
 - Press `Esc` for **Normal mode** where `j`/`k` navigate, `Enter` expands or collapses the selected thread, `r` resumes a selected item to make it active, `p` parks a selected branch, `?` opens help, `a` shows about, and `q` quits
 
 The TUI polls the database every 250ms, so changes made via `flo` CLI in another terminal appear automatically.

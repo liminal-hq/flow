@@ -74,7 +74,18 @@ pub fn render(frame: &mut Frame, area: Rect, state: &TuiState) {
     if !state.selected_notes.is_empty() {
         lines.push(Line::from(""));
         lines.push(Line::from(Span::styled("Notes", theme::header())));
-        for note in &state.selected_notes {
+        for (index, note) in state.selected_notes.iter().enumerate() {
+            if index > 0 {
+                lines.push(Line::from(Span::styled("  ---", theme::border())));
+            }
+
+            lines.push(Line::from(vec![
+                Span::styled("  ", theme::text()),
+                Span::styled(
+                    note.created_at.format("%Y-%m-%d %H:%M").to_string(),
+                    theme::muted(),
+                ),
+            ]));
             lines.push(Line::from(vec![
                 Span::styled("  ", theme::text()),
                 Span::styled(note.text.clone(), theme::text()),
