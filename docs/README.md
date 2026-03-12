@@ -4,6 +4,7 @@
 
 - [Implementation Plan](implementation/liminal_flow_implementation_plan.md) — Detailed technical plan for the v1 implementation
 - [Concept Document](implementation/doing_sidecar_v_1_concept.md) — Original design concept for the working-memory sidecar
+- [Distribution Strategy](release/distribution-strategy.md) — Linux-first release and packaging plan modelled on the SMDU flow
 
 ## Quick Reference
 

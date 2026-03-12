@@ -24,6 +24,59 @@ cargo build --release
 ./target/release/flo archive      # Archive the active focus
 ```
 
+## Installation
+
+### From GitHub Releases
+
+Flow releases publish Linux artefacts for:
+
+- `x86_64-unknown-linux-gnu` (`amd64`)
+- `aarch64-unknown-linux-gnu` (`arm64`)
+
+Each Linux release publishes:
+
+- a standalone `flo` binary
+- a prefix-friendly `.tar.gz` archive containing `bin/flo` and generated man pages under `share/man/man1/`
+- `.deb` and `.rpm` packages
+- `.sha256` checksum files for every artefact
+
+### Linux package installs
+
+Install paths for Linux packages:
+
+- binary: `/usr/bin/flo`
+- man pages: `/usr/share/man/man1/`
+
+Example package installs:
+
+```bash
+# Debian/Ubuntu
+sudo dpkg -i flo-v0.0.1-linux-x64.deb
+
+# Fedora/RHEL/openSUSE
+sudo rpm -i flo-v0.0.1-linux-x64.rpm
+```
+
+### Manual archive installs
+
+Release tarballs unpack into a prefix-friendly layout:
+
+```text
+bin/flo
+share/man/man1/flo.1.gz
+share/man/man1/flo-*.1.gz
+```
+
+Example manual install into `/usr/local`:
+
+```bash
+tar -xzf flo-v0.0.1-linux-x64.tar.gz
+sudo install -Dm755 bin/flo /usr/local/bin/flo
+sudo install -Dm644 share/man/man1/flo.1.gz /usr/local/share/man/man1/flo.1.gz
+sudo install -d /usr/local/share/man/man1
+sudo cp share/man/man1/flo-*.1.gz /usr/local/share/man/man1/
+```
+
 ## What It Does
 
 Liminal Flow keeps track of your working context so you don't have to. When you switch between tasks, branch into sub-problems, or need to remember what you were doing — `flo` has your back.
@@ -146,6 +199,12 @@ level = "info"
 ## Persistence
 
 SQLite database at the platform data directory (e.g., `~/.local/share/liminal-flow/liminal-flow.db` on Linux). WAL mode is enabled for safe concurrent access.
+
+## Uninstall
+
+- Debian/Ubuntu: `sudo dpkg -r flo`
+- RPM-based systems: `sudo rpm -e flo`
+- Manual installs: remove `flo` and the installed man pages from the same prefix
 
 ## Licence
 
