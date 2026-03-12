@@ -17,6 +17,7 @@ cargo build --release
 ./target/release/flo now "improving AIDX"   # Set current thread
 ./target/release/flo branch "debugging auth"  # Branch off
 ./target/release/flo where        # Show current state
+./target/release/flo resume       # Resume recent work
 ./target/release/flo back         # Return to parent
 ./target/release/flo done         # Mark the active focus done
 ./target/release/flo archive      # Archive the active focus
@@ -44,6 +45,7 @@ Liminal Flow keeps track of your working context so you don't have to. When you 
 | `flo back` | Return to the parent thread |
 | `flo note <text>` | Attach a note to the current focus target |
 | `flo where` | Print current thread and branches |
+| `flo resume` | Resume the most recent paused, done, or parked work |
 | `flo pause` | Pause the current thread |
 | `flo done` | Mark the active thread or branch done |
 | `flo archive` | Archive the active thread or branch |
@@ -73,13 +75,14 @@ Run `flo` with no arguments to launch the terminal UI:
 
 The TUI starts in **Insert mode**:
 
-- Type slash commands (`/now`, `/branch`, `/back`, `/note`, `/where`, `/pause`, `/done`) or plain text (treated as a note)
+- Type slash commands (`/now`, `/branch`, `/back`, `/note`, `/where`, `/resume`, `/pause`, `/done`) or plain text (treated as a note)
 - Type `/` on an empty line to open the **command palette** — navigate with arrow keys, select with Enter
 - Type `?` on an empty line to see **shortcut hints**
 - **Up/Down** arrows navigate the thread list; the thread list auto-scrolls to keep selection visible; **Enter** on empty input expands/collapses branches
 - The **Status** pane follows the selected thread or branch for inspection
 - The **Capture** pane shows the active note target explicitly
 - Selected-item notes in the **Status** pane show compact timestamps and separators for readability
+- Type `/resume` in Insert mode to activate the currently selected thread or branch without switching to Normal mode
 - Press `Esc` for **Normal mode** where `j`/`k` navigate, `Enter` expands or collapses the selected thread, `PageUp`/`PageDown` scroll the Status pane, `r` resumes a selected item to make it active again, `p` parks a selected branch, `d` marks the selected item done, `?` opens help, `a` shows about, and `q` quits
 - Press `Shift+A` in Normal mode to archive the selected item and remove it from the main working list
 - Done threads and branches stay visible as tombstones until they are archived, so you can still inspect and revive them with `r`

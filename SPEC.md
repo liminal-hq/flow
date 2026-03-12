@@ -46,6 +46,7 @@ Every state mutation produces an event stored in the events table. Events serve 
 | `flo back` | Return to the parent thread, parking active branches |
 | `flo note <text>` | Attach a note to the current focus target |
 | `flo where` | Print the current thread and its branches |
+| `flo resume` | Resume the most recent paused, done, or parked work |
 | `flo pause` | Pause the current thread |
 | `flo done` | Mark the active thread or branch done |
 | `flo archive` | Archive the active thread or branch |
@@ -107,6 +108,7 @@ The thread list supports navigating both threads and their branches:
 - The **Status** pane follows the selected item for inspection
 - Notes in the **Status** pane are rendered with compact timestamps and separators for readability
 - The **Capture** pane follows the active item and shows the current note target in its title
+- `/resume` in Insert mode resumes the currently selected thread or branch without leaving the input flow
 - Done threads and branches remain visible as tombstones until they are archived
 - **PageUp** and **PageDown** (Normal mode) scroll the Status pane
 - **r** (Normal mode) resumes the selected item:
@@ -124,9 +126,9 @@ The thread list supports navigating both threads and their branches:
 
 ### Slash Commands
 
-The TUI accepts the same commands as the CLI, prefixed with `/`:
+The TUI accepts the same commands as the CLI, prefixed with `/`, plus selection-aware resume:
 
-`/now`, `/branch`, `/back`, `/note`, `/where`, `/pause`, `/done`
+`/now`, `/branch`, `/back`, `/note`, `/where`, `/resume`, `/pause`, `/done`
 
 Plain text (without a `/` prefix) is treated as a note attached to the current focus target.
 In the TUI, the current capture target is always the active item and is shown in the capture pane title.

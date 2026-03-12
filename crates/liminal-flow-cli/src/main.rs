@@ -24,6 +24,7 @@ mod cli;
           flo back                               # Return to parent\n  \
           flo list                               # Show all threads\n  \
           flo done                               # Mark the active focus done\n  \
+          flo resume                             # Resume recent work\n  \
           flo archive                            # Archive the active focus",
     after_help = "Run `flo` with no arguments to launch the TUI."
 )]
@@ -81,6 +82,13 @@ enum Command {
             Shows the active thread with all branches and their current state."
     )]
     Where,
+
+    /// Resume the most recent paused, done, or parked work
+    #[command(long_about = "Resume the most recent resumable work item.\n\n\
+            If a thread is already active, this revives the most recent parked or done branch on that thread.\n\
+            Otherwise it revives the most recent paused or done thread.\n\n\
+            This keeps the CLI aligned with the TUI's revive behaviour without requiring explicit IDs.")]
+    Resume,
 
     /// Pause the current thread
     #[command(long_about = "Pause the current thread.\n\n\
@@ -140,6 +148,7 @@ async fn main() -> anyhow::Result<()> {
                 Command::Back => cli::back::handle(&conn)?,
                 Command::Note { text } => cli::note::handle(&conn, &text)?,
                 Command::Where => cli::where_cmd::handle(&conn)?,
+                Command::Resume => cli::resume::handle(&conn)?,
                 Command::Pause => cli::pause::handle(&conn)?,
                 Command::Done => cli::done::handle(&conn)?,
                 Command::List { all } => cli::list::handle(&conn, all)?,

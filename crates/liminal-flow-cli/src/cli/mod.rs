@@ -13,4 +13,5 @@ pub mod list;
 pub mod note;
 pub mod now;
 pub mod pause;
+pub mod resume;
 pub mod where_cmd;

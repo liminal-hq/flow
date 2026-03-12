@@ -33,6 +33,7 @@ pub const SLASH_COMMANDS: &[(&str, &str)] = &[
     ("/back", "Return to the parent thread"),
     ("/note <text>", "Attach a note (or just type plain text)"),
     ("/where", "Show current thread and branches"),
+    ("/resume", "Resume the selected item"),
     ("/pause", "Pause the current thread"),
     ("/done", "Mark the active thread or branch done"),
 ];
@@ -394,7 +395,7 @@ impl TuiState {
         }
     }
 
-    fn refresh_selected_details(&mut self, conn: &Connection) {
+    pub fn refresh_selected_details(&mut self, conn: &Connection) {
         self.selected_scope_context = ScopeContext::default();
         self.selected_notes = Vec::new();
 
@@ -436,5 +437,91 @@ impl TuiState {
         notes.sort_by(|a, b| b.created_at.cmp(&a.created_at));
         notes.truncate(5);
         self.selected_notes = notes;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use liminal_flow_core::model::{BranchStatus, CaptureSource, Intent, ThreadStatus};
+    use liminal_flow_store::db::open_store_in_memory;
+    use liminal_flow_store::repo::{branch_repo, capture_repo, thread_repo};
+
+    #[test]
+    fn selected_notes_follow_the_selected_branch() {
+        let conn = open_store_in_memory().unwrap();
+        let now = Utc::now();
+
+        let thread = Thread {
+            id: FlowId::from("t1"),
+            title: "thread".into(),
+            raw_origin_text: "thread".into(),
+            status: ThreadStatus::Active,
+            short_summary: None,
+            created_at: now,
+            updated_at: now,
+        };
+        thread_repo::upsert(&conn, &thread).unwrap();
+
+        let branch_one = Branch {
+            id: FlowId::from("b1"),
+            thread_id: thread.id.clone(),
+            title: "branch one".into(),
+            status: BranchStatus::Active,
+            short_summary: None,
+            created_at: now,
+            updated_at: now,
+        };
+        let branch_two = Branch {
+            id: FlowId::from("b2"),
+            thread_id: thread.id.clone(),
+            title: "branch two".into(),
+            status: BranchStatus::Parked,
+            short_summary: None,
+            created_at: now,
+            updated_at: now,
+        };
+        branch_repo::upsert(&conn, &branch_one).unwrap();
+        branch_repo::upsert(&conn, &branch_two).unwrap();
+
+        capture_repo::insert(
+            &conn,
+            &Capture {
+                id: FlowId::from("c1"),
+                target_type: "branch".into(),
+                target_id: FlowId::from("b1"),
+                text: "note on branch one".into(),
+                source: CaptureSource::Keyboard,
+                inferred_intent: Some(Intent::AddNote),
+                created_at: now,
+            },
+        )
+        .unwrap();
+        capture_repo::insert(
+            &conn,
+            &Capture {
+                id: FlowId::from("c2"),
+                target_type: "branch".into(),
+                target_id: FlowId::from("b2"),
+                text: "note on branch two".into(),
+                source: CaptureSource::Keyboard,
+                inferred_intent: Some(Intent::AddNote),
+                created_at: now,
+            },
+        )
+        .unwrap();
+
+        let mut state = TuiState::new();
+        state.refresh_from_db(&conn);
+
+        state.selected = SelectedItem::Branch(0, 0);
+        state.refresh_selected_details(&conn);
+        assert_eq!(state.selected_notes.len(), 1);
+        assert_eq!(state.selected_notes[0].text, "note on branch one");
+
+        state.selected = SelectedItem::Branch(0, 1);
+        state.refresh_selected_details(&conn);
+        assert_eq!(state.selected_notes.len(), 1);
+        assert_eq!(state.selected_notes[0].text, "note on branch two");
     }
 }

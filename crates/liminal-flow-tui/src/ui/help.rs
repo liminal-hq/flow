@@ -18,6 +18,7 @@ const HELP_TEXT: &[(&str, &str)] = &[
     (S, "Slash Commands"),
     ("/now /branch /back", "Set thread, branch, or return"),
     ("/note /where", "Add a note or show current state"),
+    ("/resume", "Resume the selected item"),
     ("/pause /done", "Pause thread or finish active focus"),
     (S, "Insert Mode"),
     ("/ (empty line)", "Open command palette"),

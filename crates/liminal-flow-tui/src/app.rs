@@ -28,14 +28,16 @@ use crate::ui::{
 const TICK_RATE: Duration = Duration::from_millis(250);
 
 fn should_follow_active_after_submit(input: &str) -> bool {
-    matches!(
-        input::parsed_intent(input),
-        Some(
-            liminal_flow_core::model::Intent::SetCurrentThread
-                | liminal_flow_core::model::Intent::StartBranch
-                | liminal_flow_core::model::Intent::ReturnToParent
+    let trimmed = input.trim();
+    trimmed == "/resume"
+        || matches!(
+            input::parsed_intent(input),
+            Some(
+                liminal_flow_core::model::Intent::SetCurrentThread
+                    | liminal_flow_core::model::Intent::StartBranch
+                    | liminal_flow_core::model::Intent::ReturnToParent
+            )
         )
-    )
 }
 
 /// Run the TUI application. Takes ownership of the database connection.
@@ -163,6 +165,7 @@ fn run_loop(
                         }
                         KeyCode::Enter => {
                             state.toggle_expanded();
+                            state.refresh_selected_details(conn);
                         }
                         KeyCode::Char('r') => {
                             // Resume/activate the selected thread or branch
@@ -293,9 +296,11 @@ fn run_loop(
                         }
                         KeyCode::Char('j') | KeyCode::Down => {
                             state.select_next();
+                            state.refresh_selected_details(conn);
                         }
                         KeyCode::Char('k') | KeyCode::Up => {
                             state.select_prev();
+                            state.refresh_selected_details(conn);
                         }
                         KeyCode::PageUp => {
                             state.status_scroll = state.status_scroll.saturating_sub(5);
@@ -392,16 +397,19 @@ fn run_loop(
                                 KeyCode::Up => {
                                     // Arrow keys navigate the thread list
                                     state.select_prev();
+                                    state.refresh_selected_details(conn);
                                 }
                                 KeyCode::Down => {
                                     // Arrow keys navigate the thread list
                                     state.select_next();
+                                    state.refresh_selected_details(conn);
                                 }
                                 KeyCode::Enter => {
                                     // If input is empty, toggle thread expansion
                                     let is_empty = textarea.lines().iter().all(|l| l.is_empty());
                                     if is_empty {
                                         state.toggle_expanded();
+                                        state.refresh_selected_details(conn);
                                         continue;
                                     }
 
@@ -416,15 +424,48 @@ fn run_loop(
 
                                     // Process the input
                                     let follow_active = should_follow_active_after_submit(&text);
-                                    match input::process_input(conn, &text) {
-                                        InputResult::Reply(msg) => {
-                                            state.last_reply = Some(msg);
-                                            state.error_message = None;
+                                    if text.trim() == "/resume" {
+                                        let result = match &state.selected {
+                                            crate::state::SelectedItem::Thread(i) => {
+                                                state.threads.get(*i).map(|entry| {
+                                                    input::resume_thread(conn, &entry.thread.id)
+                                                })
+                                            }
+                                            crate::state::SelectedItem::Branch(i, j) => {
+                                                state.threads.get(*i).and_then(|entry| {
+                                                    entry.branches.get(*j).map(|branch| {
+                                                        input::resume_branch(
+                                                            conn,
+                                                            &entry.thread.id,
+                                                            &branch.id,
+                                                        )
+                                                    })
+                                                })
+                                            }
+                                        };
+                                        if let Some(result) = result {
+                                            match result {
+                                                InputResult::Reply(msg) => {
+                                                    state.last_reply = Some(msg);
+                                                    state.error_message = None;
+                                                }
+                                                InputResult::Error(msg) => {
+                                                    state.error_message = Some(msg);
+                                                }
+                                                InputResult::None => {}
+                                            }
                                         }
-                                        InputResult::Error(msg) => {
-                                            state.error_message = Some(msg);
+                                    } else {
+                                        match input::process_input(conn, &text) {
+                                            InputResult::Reply(msg) => {
+                                                state.last_reply = Some(msg);
+                                                state.error_message = None;
+                                            }
+                                            InputResult::Error(msg) => {
+                                                state.error_message = Some(msg);
+                                            }
+                                            InputResult::None => {}
                                         }
-                                        InputResult::None => {}
                                     }
 
                                     // Refresh state from DB after mutation

@@ -44,6 +44,8 @@ enum Command {
     },
     /// Print current thread and branches
     Where,
+    /// Resume the most recent paused, done, or parked work
+    Resume,
     /// Pause the current thread
     Pause,
     /// Mark the active focus target done
