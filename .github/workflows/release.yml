@@ -34,6 +34,12 @@ jobs:
       release_id: ${{ steps.release.outputs.release_id }}
       version: ${{ steps.meta.outputs.version }}
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          # Cargo.toml must be present when deriving a manual release tag from the workspace version.
+          ref: ${{ github.sha }}
+
       - name: Resolve release tag
         id: meta
         shell: bash
@@ -152,6 +158,9 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
+        with:
+          # Manual releases with an explicit tag must build that tagged ref, not the branch that launched the run.
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag != '' && needs.prepare-release.outputs.tag_name || github.sha }}
 
       - name: Install Rust toolchain
         uses: dtolnay/rust-toolchain@stable
