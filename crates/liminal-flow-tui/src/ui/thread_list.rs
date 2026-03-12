@@ -33,16 +33,18 @@ pub fn render(frame: &mut Frame, area: Rect, state: &TuiState) {
         } else {
             "  "
         };
-        let status_suffix = if entry.thread.status == ThreadStatus::Paused {
-            "  paused"
-        } else {
-            ""
+        let status_suffix = match entry.thread.status {
+            ThreadStatus::Paused => "  paused",
+            ThreadStatus::Done => "  done",
+            _ => "",
         };
 
         let style = if is_thread_selected {
             theme::selected()
         } else if is_active {
             theme::active()
+        } else if entry.thread.status == ThreadStatus::Done {
+            theme::done()
         } else {
             theme::text()
         };
@@ -68,18 +70,17 @@ pub fn render(frame: &mut Frame, area: Rect, state: &TuiState) {
                     theme::selected()
                 } else if is_effectively_active {
                     theme::active()
+                } else if branch.status == BranchStatus::Done {
+                    theme::done()
                 } else {
                     theme::muted()
                 };
 
-                let suffix = if entry.thread.status == ThreadStatus::Paused
-                    && branch.status == BranchStatus::Active
-                {
-                    "  (thread paused)".to_string()
-                } else if branch.status != BranchStatus::Active {
-                    format!("  ({})", branch.status)
-                } else {
-                    String::new()
+                let suffix = match (entry.thread.status.clone(), branch.status.clone()) {
+                    (ThreadStatus::Paused, BranchStatus::Active) => "  (thread paused)".to_string(),
+                    (ThreadStatus::Done, BranchStatus::Active) => "  (thread done)".to_string(),
+                    (_, status) if status != BranchStatus::Active => format!("  ({status})"),
+                    _ => String::new(),
                 };
 
                 let branch_line = Line::from(vec![

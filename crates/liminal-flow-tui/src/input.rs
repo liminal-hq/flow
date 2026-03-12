@@ -279,8 +279,13 @@ fn execute_intent(conn: &Connection, intent: Intent, text: &str) -> Result<Strin
 
         Intent::Done => {
             let Some(thread) = thread_repo::find_active(conn)? else {
-                anyhow::bail!("No active thread to mark done.");
+                anyhow::bail!("No active thread or branch to mark done.");
             };
+
+            let _ = branch_repo::normalize_active_for_thread(conn, &thread.id, &now.to_rfc3339())?;
+            if let Some(branch) = branch_repo::find_active_for_thread(conn, &thread.id)? {
+                return mark_branch_done(conn, &thread.id, &branch.id);
+            }
 
             thread_repo::update_status(conn, &thread.id, &ThreadStatus::Done, &now.to_rfc3339())?;
 
@@ -293,6 +298,55 @@ fn execute_intent(conn: &Connection, intent: Intent, text: &str) -> Result<Strin
             Ok(format!("Done: {}", thread.title))
         }
     }
+}
+
+/// Mark a specific branch done by ID.
+pub fn mark_branch_done(
+    conn: &Connection,
+    thread_id: &FlowId,
+    branch_id: &FlowId,
+) -> Result<String> {
+    let now = Utc::now();
+    let Some(branch) = branch_repo::find_by_id(conn, branch_id)? else {
+        anyhow::bail!("Branch not found.");
+    };
+
+    if branch.status == BranchStatus::Done {
+        return Ok(format!("Already done: {}", branch.title));
+    }
+
+    branch_repo::update_status(conn, branch_id, &BranchStatus::Done, &now.to_rfc3339())?;
+
+    let event = AppEvent::BranchMarkedDone {
+        branch_id: branch_id.clone(),
+        thread_id: thread_id.clone(),
+        created_at: now,
+    };
+    event_repo::insert(conn, &event, "tui")?;
+
+    Ok(format!("Done: {}", branch.title))
+}
+
+/// Mark a specific thread done by ID.
+pub fn mark_thread_done(conn: &Connection, thread_id: &FlowId) -> Result<String> {
+    let now = Utc::now();
+    let Some(thread) = thread_repo::find_by_id(conn, thread_id)? else {
+        anyhow::bail!("Thread not found.");
+    };
+
+    if thread.status == ThreadStatus::Done {
+        return Ok(format!("Already done: {}", thread.title));
+    }
+
+    thread_repo::update_status(conn, thread_id, &ThreadStatus::Done, &now.to_rfc3339())?;
+
+    let event = AppEvent::ThreadMarkedDone {
+        thread_id: thread_id.clone(),
+        created_at: now,
+    };
+    event_repo::insert(conn, &event, "tui")?;
+
+    Ok(format!("Done: {}", thread.title))
 }
 
 /// Resume a specific branch by ID — parks other active branches on the same thread first.
@@ -556,5 +610,39 @@ mod tests {
             capture_repo::find_by_target(&conn, "branch", &FlowId::from("b2"), 5).unwrap();
         assert_eq!(newer_captures.len(), 1);
         assert_eq!(newer_captures[0].text, "note for the latest branch");
+    }
+
+    #[test]
+    fn mark_branch_done_updates_branch_status() {
+        let conn = open_store_in_memory().unwrap();
+        let thread = make_thread("t1", "improving AIDX", ThreadStatus::Active);
+        let branch = make_branch("b1", "t1", "windows support", BranchStatus::Active);
+        thread_repo::upsert(&conn, &thread).unwrap();
+        branch_repo::upsert(&conn, &branch).unwrap();
+
+        let reply = mark_branch_done(&conn, &thread.id, &branch.id).unwrap();
+        assert!(reply.contains("Done"));
+
+        let done_branch = branch_repo::find_by_id(&conn, &branch.id).unwrap().unwrap();
+        assert_eq!(done_branch.status, BranchStatus::Done);
+    }
+
+    #[test]
+    fn done_intent_targets_active_branch_before_thread() {
+        let conn = open_store_in_memory().unwrap();
+        let thread = make_thread("t1", "improving AIDX", ThreadStatus::Active);
+        let branch = make_branch("b1", "t1", "windows support", BranchStatus::Active);
+        thread_repo::upsert(&conn, &thread).unwrap();
+        branch_repo::upsert(&conn, &branch).unwrap();
+
+        let result = process_input(&conn, "/done");
+        assert!(matches!(result, InputResult::Reply(_)));
+
+        let thread = thread_repo::find_by_id(&conn, &thread.id).unwrap().unwrap();
+        let branch = branch_repo::find_by_id(&conn, &FlowId::from("b1"))
+            .unwrap()
+            .unwrap();
+        assert_eq!(thread.status, ThreadStatus::Active);
+        assert_eq!(branch.status, BranchStatus::Done);
     }
 }

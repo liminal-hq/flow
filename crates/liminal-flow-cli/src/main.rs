@@ -23,7 +23,7 @@ mod cli;
           flo where                              # See current state\n  \
           flo back                               # Return to parent\n  \
           flo list                               # Show all threads\n  \
-          flo done                               # Mark thread done",
+          flo done                               # Mark the active focus done",
     after_help = "Run `flo` with no arguments to launch the TUI."
 )]
 struct Cli {
@@ -87,14 +87,16 @@ enum Command {
             with `flo now` or via the TUI.")]
     Pause,
 
-    /// Mark the current thread done
-    #[command(long_about = "Mark the current thread as done.\n\n\
-            Done threads are removed from the active list.")]
+    /// Mark the active focus target done
+    #[command(long_about = "Mark the active focus target as done.\n\n\
+            If a branch is active, that branch is marked done.\n\
+            Otherwise the current thread is marked done.\n\n\
+            Done items remain visible until they are archived.")]
     Done,
 
-    /// List active and paused threads
+    /// List active, paused, and done threads
     #[command(
-        long_about = "List all active and paused threads with their branches.\n\n\
+        long_about = "List all active, paused, and done threads with their branches.\n\n\
             Use --all to include branches and notes.\n\n\
             The active thread is marked with `>`."
     )]

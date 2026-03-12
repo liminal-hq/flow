@@ -17,6 +17,7 @@ pub const ACTIVE: Color = Color::Rgb(0x2e, 0xc6, 0x6a);
 pub const LINE: Color = Color::Rgb(0x2e, 0x35, 0x40);
 pub const HEADER: Color = Color::Rgb(0x9a, 0xa4, 0xb2);
 pub const ERROR: Color = Color::Rgb(0xfc, 0xa5, 0xa5);
+pub const DONE: Color = Color::Rgb(0xe6, 0xb4, 0x50);
 
 // ── Compound styles ─────────────────────────────────────────────────
 
@@ -42,6 +43,10 @@ pub fn header() -> Style {
 
 pub fn error() -> Style {
     Style::default().fg(ERROR)
+}
+
+pub fn done() -> Style {
+    Style::default().fg(DONE)
 }
 
 pub fn selected() -> Style {

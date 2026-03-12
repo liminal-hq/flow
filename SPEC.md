@@ -47,8 +47,8 @@ Every state mutation produces an event stored in the events table. Events serve 
 | `flo note <text>` | Attach a note to the current focus target |
 | `flo where` | Print the current thread and its branches |
 | `flo pause` | Pause the current thread |
-| `flo done` | Mark the current thread done |
-| `flo list` | List active and paused threads |
+| `flo done` | Mark the active thread or branch done |
+| `flo list` | List active, paused, and done threads |
 | `flo list -a` | List threads with branches, statuses, and recent notes |
 
 ### Title Normalisation
@@ -92,7 +92,7 @@ The TUI provides a three-pane interface:
 | Mode | Description |
 |---|---|
 | Insert | Text input active. Enter submits. Esc switches to Normal. |
-| Normal | Keyboard navigation. `j`/`k`/Up/Down to move through threads and branches, `Enter` to expand or collapse the selected thread, `r` to resume the selected item and make it active, `p` to park a selected branch, `i` to insert, `?` for help, `a` for about, `q` to quit. |
+| Normal | Keyboard navigation. `j`/`k`/Up/Down to move through threads and branches, `Enter` to expand or collapse the selected thread, `r` to resume the selected item and make it active, `p` to park a selected branch, `d` to mark the selected item done, `i` to insert, `?` for help, `a` for about, `q` to quit. |
 | Help | Help overlay. Esc or `?` to dismiss. |
 | About | About overlay with app info. Esc, `q`, or Enter to dismiss. |
 
@@ -106,11 +106,14 @@ The thread list supports navigating both threads and their branches:
 - The **Status** pane follows the selected item for inspection
 - Notes in the **Status** pane are rendered with compact timestamps and separators for readability
 - The **Capture** pane follows the active item and shows the current note target in its title
+- Done threads and branches remain visible as tombstones until they are archived
 - **PageUp** and **PageDown** (Normal mode) scroll the Status pane
 - **r** (Normal mode) resumes the selected item:
   - On a paused thread: activates it and restores the thread stack from where it left off
+  - On a done thread or branch: revives it by making it active again
   - On a parked branch: activates it (parking other active branches, and activating the parent thread if needed)
 - **p** (Normal mode) parks the selected branch while leaving the parent thread as the main focus
+- **d** (Normal mode) marks the selected thread or branch done
 
 ### Command Palette and Hints
 
@@ -125,6 +128,7 @@ The TUI accepts the same commands as the CLI, prefixed with `/`:
 
 Plain text (without a `/` prefix) is treated as a note attached to the current focus target.
 In the TUI, the current capture target is always the active item and is shown in the capture pane title.
+`/done` marks the active branch when one exists, otherwise the active thread.
 
 ### Polling
 

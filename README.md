@@ -18,7 +18,7 @@ cargo build --release
 ./target/release/flo branch "debugging auth"  # Branch off
 ./target/release/flo where        # Show current state
 ./target/release/flo back         # Return to parent
-./target/release/flo done         # Mark thread done
+./target/release/flo done         # Mark the active focus done
 ```
 
 ## What It Does
@@ -44,8 +44,8 @@ Liminal Flow keeps track of your working context so you don't have to. When you 
 | `flo note <text>` | Attach a note to the current focus target |
 | `flo where` | Print current thread and branches |
 | `flo pause` | Pause the current thread |
-| `flo done` | Mark the current thread done |
-| `flo list` | List active and paused threads |
+| `flo done` | Mark the active thread or branch done |
+| `flo list` | List active, paused, and done threads |
 
 ## TUI
 
@@ -78,7 +78,8 @@ The TUI starts in **Insert mode**:
 - The **Status** pane follows the selected thread or branch for inspection
 - The **Capture** pane shows the active note target explicitly
 - Selected-item notes in the **Status** pane show compact timestamps and separators for readability
-- Press `Esc` for **Normal mode** where `j`/`k` navigate, `Enter` expands or collapses the selected thread, `PageUp`/`PageDown` scroll the Status pane, `r` resumes a selected item to make it active, `p` parks a selected branch, `?` opens help, `a` shows about, and `q` quits
+- Press `Esc` for **Normal mode** where `j`/`k` navigate, `Enter` expands or collapses the selected thread, `PageUp`/`PageDown` scroll the Status pane, `r` resumes a selected item to make it active again, `p` parks a selected branch, `d` marks the selected item done, `?` opens help, `a` shows about, and `q` quits
+- Done threads and branches stay visible as tombstones until a later archive pass, so you can still inspect and revive them with `r`
 - In the **Help** overlay, `j`/`k`/Up/Down and `PageUp`/`PageDown` scroll the help content on smaller terminals
 
 The TUI polls the database every 250ms, so changes made via `flo` CLI in another terminal appear automatically.

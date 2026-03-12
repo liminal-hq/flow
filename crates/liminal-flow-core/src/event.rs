@@ -54,6 +54,11 @@ pub enum AppEvent {
         thread_id: FlowId,
         created_at: DateTime<Utc>,
     },
+    BranchMarkedDone {
+        branch_id: FlowId,
+        thread_id: FlowId,
+        created_at: DateTime<Utc>,
+    },
     ScopeObserved {
         scope_id: FlowId,
         target_type: String,
@@ -81,6 +86,7 @@ impl AppEvent {
             Self::NoteAttached { .. } => "note_attached",
             Self::ThreadPaused { .. } => "thread_paused",
             Self::ThreadMarkedDone { .. } => "thread_marked_done",
+            Self::BranchMarkedDone { .. } => "branch_marked_done",
             Self::ScopeObserved { .. } => "scope_observed",
             Self::ReplyUpdated { .. } => "reply_updated",
         }

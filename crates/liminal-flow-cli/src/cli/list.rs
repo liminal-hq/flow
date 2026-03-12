@@ -11,11 +11,17 @@ use rusqlite::Connection;
 use super::colour;
 
 pub fn handle(conn: &Connection, show_all: bool) -> Result<()> {
-    let threads =
-        thread_repo::list_by_statuses(conn, &[ThreadStatus::Active, ThreadStatus::Paused])?;
+    let threads = thread_repo::list_by_statuses(
+        conn,
+        &[
+            ThreadStatus::Active,
+            ThreadStatus::Paused,
+            ThreadStatus::Done,
+        ],
+    )?;
 
     if threads.is_empty() {
-        println!("{}", colour::muted("No active threads."));
+        println!("{}", colour::muted("No visible threads."));
         return Ok(());
     }
 
@@ -33,10 +39,10 @@ pub fn handle(conn: &Connection, show_all: bool) -> Result<()> {
         } else {
             thread.title.clone()
         };
-        let status_label = if thread.status == ThreadStatus::Paused {
-            format!("  {}", colour::muted("paused"))
-        } else {
-            String::new()
+        let status_label = match thread.status {
+            ThreadStatus::Paused => format!("  {}", colour::muted("paused")),
+            ThreadStatus::Done => format!("  {}", colour::muted("done")),
+            _ => String::new(),
         };
 
         println!("{marker} {title}{status_label}");
@@ -45,20 +51,31 @@ pub fn handle(conn: &Connection, show_all: bool) -> Result<()> {
             // Show branches
             let branches = branch_repo::find_by_thread(conn, &thread.id)?;
             for branch in &branches {
-                let branch_marker = if branch.status == BranchStatus::Active {
+                let is_effectively_active =
+                    thread.status == ThreadStatus::Active && branch.status == BranchStatus::Active;
+                let branch_marker = if is_effectively_active {
                     colour::blue("*")
                 } else {
                     " ".to_string()
                 };
-                let branch_title = if branch.status == BranchStatus::Active {
+                let branch_title = if is_effectively_active {
                     colour::blue(&branch.title)
+                } else if branch.status == BranchStatus::Done {
+                    branch.title.clone()
                 } else {
                     colour::muted(&branch.title)
                 };
-                let branch_status = if branch.status != BranchStatus::Active {
-                    format!("  {}", colour::muted(&format!("({})", branch.status)))
-                } else {
-                    String::new()
+                let branch_status = match (thread.status.clone(), branch.status.clone()) {
+                    (ThreadStatus::Paused, BranchStatus::Active) => {
+                        format!("  {}", colour::muted("(thread paused)"))
+                    }
+                    (ThreadStatus::Done, BranchStatus::Active) => {
+                        format!("  {}", colour::muted("(thread done)"))
+                    }
+                    (_, status) if status != BranchStatus::Active => {
+                        format!("  {}", colour::muted(&format!("({status})")))
+                    }
+                    _ => String::new(),
                 };
                 println!("    {branch_marker} {branch_title}{branch_status}");
             }

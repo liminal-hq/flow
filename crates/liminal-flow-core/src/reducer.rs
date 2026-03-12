@@ -160,6 +160,20 @@ pub fn apply(state: &mut AppState, event: &AppEvent) -> Result<(), CoreError> {
             }
         }
 
+        AppEvent::BranchMarkedDone {
+            branch_id,
+            thread_id: _,
+            created_at,
+        } => {
+            if let Some(branch) = state.branches.get_mut(branch_id) {
+                branch.status = BranchStatus::Done;
+                branch.updated_at = *created_at;
+
+                let title = branch.title.clone();
+                state.last_reply = Some(format!("Done: {title}"));
+            }
+        }
+
         AppEvent::CaptureReceived { .. } => {
             // Rule 4: raw capture is always stored (persistence handled by caller)
             // No state mutation needed here.
@@ -467,6 +481,50 @@ mod tests {
             ThreadStatus::Done
         );
         assert_eq!(state.current_thread_id, None);
+        assert!(state.last_reply.as_ref().unwrap().contains("Done"));
+    }
+
+    #[test]
+    fn mark_branch_done() {
+        let mut state = AppState::default();
+        let ts = now();
+
+        apply(
+            &mut state,
+            &AppEvent::ThreadSetCurrent {
+                thread_id: FlowId::from("t1"),
+                title: "improving AIDX".into(),
+                raw_text: "improving AIDX".into(),
+                created_at: ts,
+            },
+        )
+        .unwrap();
+
+        apply(
+            &mut state,
+            &AppEvent::BranchStarted {
+                branch_id: FlowId::from("b1"),
+                thread_id: FlowId::from("t1"),
+                title: "windows support".into(),
+                created_at: ts,
+            },
+        )
+        .unwrap();
+
+        apply(
+            &mut state,
+            &AppEvent::BranchMarkedDone {
+                branch_id: FlowId::from("b1"),
+                thread_id: FlowId::from("t1"),
+                created_at: ts,
+            },
+        )
+        .unwrap();
+
+        assert_eq!(
+            state.branches.get(&FlowId::from("b1")).unwrap().status,
+            BranchStatus::Done
+        );
         assert!(state.last_reply.as_ref().unwrap().contains("Done"));
     }
 

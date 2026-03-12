@@ -34,7 +34,7 @@ pub const SLASH_COMMANDS: &[(&str, &str)] = &[
     ("/note <text>", "Attach a note (or just type plain text)"),
     ("/where", "Show current thread and branches"),
     ("/pause", "Pause the current thread"),
-    ("/done", "Mark the current thread done"),
+    ("/done", "Mark the active thread or branch done"),
 ];
 
 /// Keyboard shortcut hints shown when ? is typed on an empty line.
@@ -42,8 +42,15 @@ pub const SHORTCUT_HINTS: &[(&str, &str)] = &[
     ("/ for commands (Insert)", "Esc to Normal mode"),
     ("Enter submits/expands (Insert)", "i switches to Insert"),
     ("Up/Down move selection", "r resumes selected (Normal)"),
-    ("p parks selected branch (Normal)", "q quits (Normal)"),
-    ("Capture targets active item", "? opens full help"),
+    (
+        "p parks selected branch (Normal)",
+        "d marks selected done (Normal)",
+    ),
+    ("q quits (Normal)", "? opens full help"),
+    (
+        "Capture targets active item",
+        "r revives selected done item",
+    ),
 ];
 
 /// A thread together with its branches, for display in the thread list.
@@ -134,10 +141,16 @@ impl TuiState {
         let now = Utc::now().to_rfc3339();
         let _ = thread_repo::normalize_active(conn, &now);
 
-        // Load active and paused threads
-        let threads =
-            thread_repo::list_by_statuses(conn, &[ThreadStatus::Active, ThreadStatus::Paused])
-                .unwrap_or_default();
+        // Load working threads, including done tombstones until they are archived.
+        let threads = thread_repo::list_by_statuses(
+            conn,
+            &[
+                ThreadStatus::Active,
+                ThreadStatus::Paused,
+                ThreadStatus::Done,
+            ],
+        )
+        .unwrap_or_default();
 
         self.threads = threads
             .into_iter()
@@ -235,12 +248,14 @@ impl TuiState {
         ) {
             (SelectedItem::Thread(_), Some(entry), _) => Some(entry.thread.status.to_string()),
             (SelectedItem::Branch(_, _), Some(entry), Some(branch)) => {
-                if entry.thread.status == ThreadStatus::Paused
-                    && branch.status == liminal_flow_core::model::BranchStatus::Active
-                {
-                    Some("inactive (thread paused)".into())
-                } else {
-                    Some(branch.status.to_string())
+                match (entry.thread.status.clone(), branch.status.clone()) {
+                    (ThreadStatus::Paused, liminal_flow_core::model::BranchStatus::Active) => {
+                        Some("inactive (thread paused)".into())
+                    }
+                    (ThreadStatus::Done, liminal_flow_core::model::BranchStatus::Active) => {
+                        Some("inactive (thread done)".into())
+                    }
+                    _ => Some(branch.status.to_string()),
                 }
             }
             _ => None,
