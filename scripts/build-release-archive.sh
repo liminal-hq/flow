@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# Build release tarballs for the flo binary and generated man pages
+#
+# (c) Copyright 2026 Liminal HQ, Scott Morris
+# SPDX-License-Identifier: MIT
+
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -61,6 +66,7 @@ discover_man_dir() {
 	local release_dir
 	release_dir="$(cd "$(dirname "${binary_path}")" && pwd)"
 
+	# Cargo can leave multiple build-script outputs behind, so prefer the newest generated man dir.
 	find "${release_dir}/build" -type d -path '*/out/man' -printf '%T@ %p\n' \
 		| sort -nr \
 		| head -n 1 \
@@ -136,8 +142,10 @@ trap 'rm -rf "${TMP_DIR}"' EXIT
 ARCHIVE_ROOT="${TMP_DIR}/flo"
 mkdir -p "${ARCHIVE_ROOT}/bin" "${ARCHIVE_ROOT}/share/man/man1"
 
+# Tarballs unpack into a prefix-friendly layout so users can install into /usr/local or another prefix.
 install -m 0755 "${BINARY_PATH}" "${ARCHIVE_ROOT}/bin/flo"
 
+# Match the package layout by shipping compressed man pages in share/man/man1.
 while IFS= read -r man_page; do
 	gzip -n -c "${man_page}" > "${ARCHIVE_ROOT}/share/man/man1/$(basename "${man_page}").gz"
 done < <(find "${MAN_DIR}" -maxdepth 1 -type f -name '*.1' | sort)

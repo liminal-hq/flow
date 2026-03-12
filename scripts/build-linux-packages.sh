@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# Build Linux release packages for the flo binary and generated man pages
+#
+# (c) Copyright 2026 Liminal HQ, Scott Morris
+# SPDX-License-Identifier: MIT
+
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -70,6 +75,7 @@ discover_man_dir() {
 	local release_dir
 	release_dir="$(cd "$(dirname "${binary_path}")" && pwd)"
 
+	# Cargo can leave multiple build-script outputs behind, so prefer the newest generated man dir.
 	find "${release_dir}/build" -type d -path '*/out/man' -printf '%T@ %p\n' \
 		| sort -nr \
 		| head -n 1 \
@@ -154,6 +160,7 @@ trap 'rm -rf "${TMP_DIR}"' EXIT
 MAN_SOURCE_DIR="${TMP_DIR}/man"
 mkdir -p "${MAN_SOURCE_DIR}"
 
+# Package installs expect compressed man pages, so normalise them once up front for both formats.
 while IFS= read -r man_page; do
 	gzip -n -c "${man_page}" > "${MAN_SOURCE_DIR}/$(basename "${man_page}").gz"
 done < <(find "${MAN_DIR}" -maxdepth 1 -type f -name '*.1' | sort)
@@ -186,6 +193,7 @@ build_deb() {
 	install -m 0755 "${BINARY_PATH}" "${deb_root}/usr/bin/flo"
 	install -m 0644 "${MAN_SOURCE_DIR}"/*.1.gz "${deb_root}/usr/share/man/man1/"
 
+	# Keep the Debian metadata intentionally minimal for the first GNU-linked release.
 	cat > "${deb_root}/DEBIAN/control" <<CONTROL
 Package: ${PACKAGE_NAME}
 Version: ${VERSION_NO_V}
@@ -235,6 +243,7 @@ build_rpm() {
 	install -m 0755 "${BINARY_PATH}" "${rpm_root}/SOURCES/flo"
 	install -m 0644 "${MAN_SOURCE_DIR}"/*.1.gz "${rpm_root}/SOURCES/"
 
+	# Let rpmbuild handle dependency discovery while we provide the package identity and install layout.
 	cat > "${rpm_root}/SPECS/flo.spec" <<SPEC
 Name:           ${PACKAGE_NAME}
 Version:        ${VERSION_NO_V}
