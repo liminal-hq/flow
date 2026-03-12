@@ -73,7 +73,8 @@ Example manual install into `/usr/local`:
 tar -xzf flo-v0.0.1-linux-x64.tar.gz
 sudo install -Dm755 bin/flo /usr/local/bin/flo
 sudo install -Dm644 share/man/man1/flo.1.gz /usr/local/share/man/man1/flo.1.gz
-sudo install -Dm644 share/man/man1/flo-*.1.gz /usr/local/share/man/man1/
+sudo install -d /usr/local/share/man/man1
+sudo cp share/man/man1/flo-*.1.gz /usr/local/share/man/man1/
 ```
 
 ## What It Does

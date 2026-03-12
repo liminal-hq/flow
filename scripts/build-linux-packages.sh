@@ -70,7 +70,10 @@ discover_man_dir() {
 	local release_dir
 	release_dir="$(cd "$(dirname "${binary_path}")" && pwd)"
 
-	find "${release_dir}/build" -type d -path '*/out/man' | head -n 1
+	find "${release_dir}/build" -type d -path '*/out/man' -printf '%T@ %p\n' \
+		| sort -nr \
+		| head -n 1 \
+		| cut -d' ' -f2-
 }
 
 while [[ $# -gt 0 ]]; do
