@@ -40,6 +40,8 @@ Each Linux release publishes:
 - `.deb` and `.rpm` packages
 - `.sha256` checksum files for every artefact
 
+Release binaries and Linux packages are built on Ubuntu 22.04 runners so the GNU-linked `flo` binary stays compatible with glibc 2.35+ systems, including Ubuntu 22.04+, common WSL2 Ubuntu environments, and Debian 12+. Older GNU/Linux systems such as Debian 11 ship an older glibc and are not supported by these release artefacts.
+
 ### Linux package installs
 
 Install paths for Linux packages:
