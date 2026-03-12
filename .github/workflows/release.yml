@@ -17,6 +17,7 @@ on:
         type: boolean
 
 concurrency:
+  # Group reruns for the same tag together, even when a manual dispatch derives the tag from Cargo.toml.
   group: "release-${{ github.event_name }}-${{ github.event_name == 'workflow_dispatch' && (inputs.release_tag != '' && inputs.release_tag || github.ref_name) || github.ref_name }}"
   cancel-in-progress: true
 
@@ -41,6 +42,7 @@ jobs:
 
           if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
             TAG="${{ inputs.release_tag }}"
+            # Manual runs can omit the tag and fall back to the checked-in workspace version.
             if [[ -z "${TAG}" ]]; then
               VERSION="$(
                 sed -n 's/^version = "\([^"]*\)"/\1/p' Cargo.toml | head -n 1
@@ -90,6 +92,7 @@ jobs:
               | head -n 1 || true
           )"
 
+          # Reuse an existing release so manual reruns can replace assets without creating duplicates.
           if [[ -z "${RELEASE_MATCH}" ]]; then
             RELEASE_ID="$(
               gh api \
@@ -158,6 +161,7 @@ jobs:
       - name: Restore Cargo cache
         uses: Swatinem/rust-cache@v2
         with:
+          # Keep target-specific artefacts separate while still sharing registry and git cache state.
           key: release-${{ matrix.target }}
           shared-key: release-linux
 
@@ -188,6 +192,7 @@ jobs:
           BINARY_SOURCE="target/${TARGET}/release/flo"
           BINARY_OUTPUT="dist/flo-${TAG}-${SUFFIX}"
 
+          # Ship the raw binary alongside packaged artefacts for users who want a direct download.
           cp "${BINARY_SOURCE}" "${BINARY_OUTPUT}"
           sha256sum "${BINARY_OUTPUT}" > "${BINARY_OUTPUT}.sha256"
 
@@ -218,6 +223,7 @@ jobs:
         run: |
           set -euo pipefail
 
+          # --clobber keeps reruns idempotent when a draft release already has assets attached.
           gh release upload "${{ needs.prepare-release.outputs.tag_name }}" \
             dist/flo-${{ needs.prepare-release.outputs.tag_name }}-${{ matrix.artefact_suffix }}* \
             --clobber
