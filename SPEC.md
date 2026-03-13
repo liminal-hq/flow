@@ -140,6 +140,7 @@ In the TUI, plain text capture targets the active item and the active capture ta
 Selection-aware TUI slash commands target the currently selected thread or branch: `/resume`, `/pause`, `/park`, `/done`, `/archive`, and `/note <note>`.
 Active-context slash commands continue to use current active focus: `/now`, `/branch`, `/where`, and plain-text note capture.
 `/back` remains an active-focus-stack command: it returns from the current active branch context to the parent thread.
+`/pause` applies to live thread work only; done or archived items must be revived with `/resume` instead of being paused back into the working set.
 `/done` marks the selected branch done, or marks the selected thread and its non-archived branches done.
 Lifecycle slash commands can also carry trailing note text. For example, `/park need more data first` parks the selected branch and stores `need more data first` as a note on that branch.
 Unknown slash commands should surface an error instead of silently becoming notes.
