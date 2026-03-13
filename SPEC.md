@@ -6,6 +6,30 @@ Liminal Flow is a terminal-native working-memory sidecar. It tracks what you're 
 
 The CLI command is `flo`. Running `flo` with no arguments launches the TUI. Subcommands (`flo now`, `flo where`, etc.) operate headlessly for scripting and quick capture.
 
+## Table of Contents
+
+- [Overview](#overview)
+- [Core Concepts](#core-concepts)
+  - [Threads](#threads)
+  - [Branches](#branches)
+  - [Captures](#captures)
+  - [Scopes](#scopes)
+  - [Events](#events)
+- [CLI Commands](#cli-commands)
+  - [Title Normalisation](#title-normalisation)
+- [TUI](#tui)
+  - [Modes](#modes)
+  - [Thread and Branch Navigation](#thread-and-branch-navigation)
+  - [Command Palette and Hints](#command-palette-and-hints)
+  - [Slash Commands](#slash-commands)
+  - [Polling](#polling)
+- [Persistence](#persistence)
+- [Distribution and install paths](#distribution-and-install-paths)
+- [Five Core Rules](#five-core-rules)
+- [Configuration](#configuration)
+- [Repository Labelling](#repository-labelling)
+- [Licence](#licence)
+
 ## Core Concepts
 
 ### Threads
@@ -133,17 +157,30 @@ The thread list supports navigating both threads and their branches:
 
 The TUI accepts the same commands as the CLI, prefixed with `/`.
 
-`/now`, `/branch`, `/back`, `/park`, `/archive`, `/note`, `/where`, `/resume`, `/pause`, `/done`
+| Command | Target model | Behaviour |
+|---|---|---|
+| `/now <thread>` | Active-context | Set or replace the current thread |
+| `/branch <branch>` | Active-context | Create a branch beneath the current active thread |
+| `/where` | Active-context | Show the current active thread and its branches |
+| Plain text | Active-context | Attach a note to the current active capture target |
+| `/resume [note]` | Selected-item | Resume the selected thread or branch, with optional trailing note |
+| `/pause [note]` | Selected-item | Pause the selected live thread, with optional trailing note |
+| `/park [note]` | Selected-item | Park the selected branch, with optional trailing note |
+| `/done [note]` | Selected-item | Mark the selected item done, with optional trailing note |
+| `/archive [note]` | Selected-item | Archive the selected item, with optional trailing note |
+| `/note <note>` | Selected-item | Attach a note to the selected thread or branch without changing active focus |
+| `/back [note]` | Active-focus-stack | Return from the current active branch context to the parent thread, with optional trailing note |
 
-Plain text (without a `/` prefix) is treated as a note attached to the current active capture target.
-In the TUI, plain text capture targets the active item and the active capture target is shown in the capture pane title.
-Selection-aware TUI slash commands target the currently selected thread or branch: `/resume`, `/pause`, `/park`, `/done`, `/archive`, and `/note <note>`.
-Active-context slash commands continue to use current active focus: `/now`, `/branch`, `/where`, and plain-text note capture.
-`/back` remains an active-focus-stack command: it returns from the current active branch context to the parent thread.
-`/pause` applies to live thread work only; done or archived items must be revived with `/resume` instead of being paused back into the working set.
-`/done` marks the selected branch done, or marks the selected thread and its non-archived branches done.
-Lifecycle slash commands can also carry trailing note text. For example, `/park need more data first` parks the selected branch and stores `need more data first` as a note on that branch.
-Unknown slash commands should surface an error instead of silently becoming notes.
+**Behaviour notes**
+
+- Plain text (without a `/` prefix) is treated as a note attached to the current active capture target.
+- In the TUI, plain-text capture targets the active item and the active capture target is shown in the capture pane title.
+- Selection-aware slash commands use the currently selected thread or branch.
+- Active-context commands continue to use current active focus.
+- Active-focus-stack commands act on the current active branch or thread stack rather than the selected row.
+- `/pause` applies to live thread work only; done or archived items must be revived with `/resume` instead of being paused back into the working set.
+- `/done` marks the selected branch done, or marks the selected thread and its non-archived branches done.
+- Unknown slash commands should surface an error instead of silently becoming notes.
 
 ### Polling
 
