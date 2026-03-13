@@ -4,7 +4,7 @@
 // SPDX-License-Identifier: MIT
 
 use anyhow::Result;
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use liminal_flow_context::scope_collector;
 use liminal_flow_core::event::AppEvent;
 use liminal_flow_core::model::{
@@ -19,6 +19,15 @@ pub enum InputResult {
     Reply(String),
     Error(String),
     None,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CommandTarget {
+    Thread(FlowId),
+    Branch {
+        thread_id: FlowId,
+        branch_id: FlowId,
+    },
 }
 
 /// Parse the user input into an intent when it maps cleanly to a known command.
@@ -47,6 +56,34 @@ pub fn process_input(conn: &Connection, raw: &str) -> InputResult {
     }
 
     // Plain text → treat as a note
+    match execute_intent(conn, Intent::AddNote, trimmed) {
+        Ok(reply) => InputResult::Reply(reply),
+        Err(e) => InputResult::Error(e.to_string()),
+    }
+}
+
+/// Process input with access to the current TUI selection.
+pub fn process_input_with_target(
+    conn: &Connection,
+    raw: &str,
+    target: Option<&CommandTarget>,
+) -> InputResult {
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return InputResult::None;
+    }
+
+    if let Some((intent, arg)) = parse_slash_command(trimmed) {
+        return match execute_intent_with_target(conn, intent, &arg, target) {
+            Ok(reply) => InputResult::Reply(reply),
+            Err(e) => InputResult::Error(e.to_string()),
+        };
+    }
+
+    if trimmed.starts_with('/') {
+        return InputResult::Error(format!("Unknown command: {trimmed}"));
+    }
+
     match execute_intent(conn, Intent::AddNote, trimmed) {
         Ok(reply) => InputResult::Reply(reply),
         Err(e) => InputResult::Error(e.to_string()),
@@ -323,6 +360,40 @@ fn execute_intent(conn: &Connection, intent: Intent, text: &str) -> Result<Strin
     }
 }
 
+fn execute_intent_with_target(
+    conn: &Connection,
+    intent: Intent,
+    text: &str,
+    target: Option<&CommandTarget>,
+) -> Result<String> {
+    match intent {
+        Intent::AddNote => {
+            let Some(target) = target else {
+                anyhow::bail!("No selected item to attach a note to.");
+            };
+            attach_note_to_command_target(conn, target, text)?;
+            Ok("Note attached.".into())
+        }
+        Intent::Pause => {
+            let Some(target) = target else {
+                return execute_intent(conn, intent, text);
+            };
+            pause_command_target(conn, target, text)
+        }
+        Intent::Done => {
+            let Some(target) = target else {
+                return execute_intent(conn, intent, text);
+            };
+            done_command_target(conn, target, text)
+        }
+        Intent::ReturnToParent
+        | Intent::SetCurrentThread
+        | Intent::StartBranch
+        | Intent::QueryCurrent
+        | Intent::Ambiguous => execute_intent(conn, intent, text),
+    }
+}
+
 /// Attach a note capture to a specific target.
 pub fn attach_note_to_target(
     conn: &Connection,
@@ -354,6 +425,19 @@ pub fn attach_note_to_target(
     Ok(())
 }
 
+fn attach_note_to_command_target(
+    conn: &Connection,
+    target: &CommandTarget,
+    text: &str,
+) -> Result<()> {
+    match target {
+        CommandTarget::Thread(thread_id) => attach_note_to_target(conn, "thread", thread_id, text),
+        CommandTarget::Branch { branch_id, .. } => {
+            attach_note_to_target(conn, "branch", branch_id, text)
+        }
+    }
+}
+
 /// Mark a specific branch done by ID.
 pub fn mark_branch_done(
     conn: &Connection,
@@ -383,7 +467,14 @@ pub fn mark_branch_done(
 
 /// Mark a specific thread done by ID.
 pub fn mark_thread_done(conn: &Connection, thread_id: &FlowId) -> Result<String> {
-    let now = Utc::now();
+    mark_thread_done_at(conn, thread_id, Utc::now())
+}
+
+fn mark_thread_done_at(
+    conn: &Connection,
+    thread_id: &FlowId,
+    now: DateTime<Utc>,
+) -> Result<String> {
     let Some(thread) = thread_repo::find_by_id(conn, thread_id)? else {
         anyhow::bail!("Thread not found.");
     };
@@ -392,6 +483,7 @@ pub fn mark_thread_done(conn: &Connection, thread_id: &FlowId) -> Result<String>
         return Ok(format!("Already done: {}", thread.title));
     }
 
+    mark_child_branches_done(conn, thread_id, now)?;
     thread_repo::update_status(conn, thread_id, &ThreadStatus::Done, &now.to_rfc3339())?;
 
     let event = AppEvent::ThreadMarkedDone {
@@ -401,6 +493,27 @@ pub fn mark_thread_done(conn: &Connection, thread_id: &FlowId) -> Result<String>
     event_repo::insert(conn, &event, "tui")?;
 
     Ok(format!("Done: {}", thread.title))
+}
+
+fn mark_child_branches_done(
+    conn: &Connection,
+    thread_id: &FlowId,
+    now: DateTime<Utc>,
+) -> Result<()> {
+    let branches = branch_repo::find_by_thread(conn, thread_id)?;
+    for branch in branches.into_iter().filter(|branch| {
+        branch.status != BranchStatus::Archived && branch.status != BranchStatus::Done
+    }) {
+        branch_repo::update_status(conn, &branch.id, &BranchStatus::Done, &now.to_rfc3339())?;
+        let event = AppEvent::BranchMarkedDone {
+            branch_id: branch.id,
+            thread_id: thread_id.clone(),
+            created_at: now,
+        };
+        event_repo::insert(conn, &event, "tui")?;
+    }
+
+    Ok(())
 }
 
 /// Archive a specific branch by ID.
@@ -446,6 +559,147 @@ pub fn archive_thread(conn: &Connection, thread_id: &FlowId) -> Result<String> {
     event_repo::insert(conn, &event, "tui")?;
 
     Ok(format!("Archived: {}", thread.title))
+}
+
+fn pause_thread(conn: &Connection, thread_id: &FlowId, note_text: &str) -> Result<String> {
+    let now = Utc::now();
+    let Some(thread) = thread_repo::find_by_id(conn, thread_id)? else {
+        anyhow::bail!("Thread not found.");
+    };
+
+    if thread.status == ThreadStatus::Paused {
+        return Ok(format!("Already paused: {}", thread.title));
+    }
+
+    if matches!(thread.status, ThreadStatus::Done | ThreadStatus::Archived) {
+        anyhow::bail!("Cannot pause a {} thread.", thread.status);
+    }
+
+    if !note_text.trim().is_empty() {
+        attach_note_to_target(conn, "thread", thread_id, note_text)?;
+    }
+
+    thread_repo::update_status(conn, thread_id, &ThreadStatus::Paused, &now.to_rfc3339())?;
+
+    let event = AppEvent::ThreadPaused {
+        thread_id: thread_id.clone(),
+        created_at: now,
+    };
+    event_repo::insert(conn, &event, "tui")?;
+
+    Ok(format!("Paused thread: {}", thread.title))
+}
+
+pub fn perform_command_on_target(
+    conn: &Connection,
+    raw: &str,
+    target: Option<&CommandTarget>,
+) -> InputResult {
+    let trimmed = raw.trim();
+    if trimmed == "/resume" || trimmed.starts_with("/resume ") {
+        let Some(target) = target else {
+            return InputResult::Error("No selected item to resume.".into());
+        };
+        let note_text = trimmed
+            .strip_prefix("/resume")
+            .unwrap_or("")
+            .trim()
+            .to_string();
+        let result = match target {
+            CommandTarget::Thread(thread_id) => resume_thread(conn, thread_id),
+            CommandTarget::Branch {
+                thread_id,
+                branch_id,
+            } => resume_branch(conn, thread_id, branch_id),
+        };
+        if matches!(result, InputResult::Reply(_)) && !note_text.is_empty() {
+            if let Err(err) = attach_note_to_command_target(conn, target, &note_text) {
+                return InputResult::Error(err.to_string());
+            }
+        }
+        return result;
+    }
+
+    if trimmed == "/park" || trimmed.starts_with("/park ") {
+        let Some(target) = target else {
+            return InputResult::Error("No selected item to park.".into());
+        };
+        let note_text = trimmed
+            .strip_prefix("/park")
+            .unwrap_or("")
+            .trim()
+            .to_string();
+        let result = match target {
+            CommandTarget::Thread(_) => InputResult::Error("Select a branch to park.".into()),
+            CommandTarget::Branch {
+                thread_id,
+                branch_id,
+            } => park_branch(conn, thread_id, branch_id),
+        };
+        if matches!(result, InputResult::Reply(_)) && !note_text.is_empty() {
+            if let Err(err) = attach_note_to_command_target(conn, target, &note_text) {
+                return InputResult::Error(err.to_string());
+            }
+        }
+        return result;
+    }
+
+    if trimmed == "/archive" || trimmed.starts_with("/archive ") {
+        let Some(target) = target else {
+            return InputResult::Error("No selected item to archive.".into());
+        };
+        let note_text = trimmed
+            .strip_prefix("/archive")
+            .unwrap_or("")
+            .trim()
+            .to_string();
+        let result = match target {
+            CommandTarget::Thread(thread_id) => archive_thread(conn, thread_id),
+            CommandTarget::Branch {
+                thread_id,
+                branch_id,
+            } => archive_branch(conn, thread_id, branch_id),
+        };
+        let reply = match result {
+            Ok(reply) => reply,
+            Err(err) => return InputResult::Error(err.to_string()),
+        };
+        if !note_text.is_empty() {
+            if let Err(err) = attach_note_to_command_target(conn, target, &note_text) {
+                return InputResult::Error(err.to_string());
+            }
+        }
+        return InputResult::Reply(reply);
+    }
+
+    process_input_with_target(conn, raw, target)
+}
+
+fn pause_command_target(conn: &Connection, target: &CommandTarget, text: &str) -> Result<String> {
+    match target {
+        CommandTarget::Thread(thread_id) => pause_thread(conn, thread_id, text),
+        CommandTarget::Branch { thread_id, .. } => pause_thread(conn, thread_id, text),
+    }
+}
+
+fn done_command_target(conn: &Connection, target: &CommandTarget, text: &str) -> Result<String> {
+    match target {
+        CommandTarget::Thread(thread_id) => {
+            if !text.trim().is_empty() {
+                attach_note_to_target(conn, "thread", thread_id, text)?;
+            }
+            mark_thread_done(conn, thread_id)
+        }
+        CommandTarget::Branch {
+            thread_id,
+            branch_id,
+        } => {
+            if !text.trim().is_empty() {
+                attach_note_to_target(conn, "branch", branch_id, text)?;
+            }
+            mark_branch_done(conn, thread_id, branch_id)
+        }
+    }
 }
 
 /// Resume a specific branch by ID — parks other active branches on the same thread first.
@@ -727,6 +981,33 @@ mod tests {
     }
 
     #[test]
+    fn mark_thread_done_cascades_to_non_archived_branches() {
+        let conn = open_store_in_memory().unwrap();
+        let thread = make_thread("t1", "improving AIDX", ThreadStatus::Active);
+        let parked = make_branch("b1", "t1", "parked branch", BranchStatus::Parked);
+        let active = make_branch("b2", "t1", "active branch", BranchStatus::Parked);
+        let archived = make_branch("b3", "t1", "archived branch", BranchStatus::Archived);
+        thread_repo::upsert(&conn, &thread).unwrap();
+        branch_repo::upsert(&conn, &parked).unwrap();
+        branch_repo::upsert(&conn, &active).unwrap();
+        branch_repo::upsert(&conn, &archived).unwrap();
+
+        let reply = mark_thread_done(&conn, &thread.id).unwrap();
+        assert!(reply.contains("Done"));
+
+        let thread = thread_repo::find_by_id(&conn, &thread.id).unwrap().unwrap();
+        let parked = branch_repo::find_by_id(&conn, &parked.id).unwrap().unwrap();
+        let active = branch_repo::find_by_id(&conn, &active.id).unwrap().unwrap();
+        let archived = branch_repo::find_by_id(&conn, &archived.id)
+            .unwrap()
+            .unwrap();
+        assert_eq!(thread.status, ThreadStatus::Done);
+        assert_eq!(parked.status, BranchStatus::Done);
+        assert_eq!(active.status, BranchStatus::Done);
+        assert_eq!(archived.status, BranchStatus::Archived);
+    }
+
+    #[test]
     fn done_intent_targets_active_branch_before_thread() {
         let conn = open_store_in_memory().unwrap();
         let thread = make_thread("t1", "improving AIDX", ThreadStatus::Active);
@@ -765,6 +1046,107 @@ mod tests {
 
         let notes = capture_repo::find_by_target(&conn, "branch", &branch.id, 5).unwrap();
         assert!(notes.iter().any(|note| note.text == "shipped first pass"));
+    }
+
+    #[test]
+    fn slash_note_targets_selected_branch_without_changing_active_context() {
+        let conn = open_store_in_memory().unwrap();
+        let thread = make_thread("t1", "improving AIDX", ThreadStatus::Active);
+        let active_branch = make_branch("b1", "t1", "active branch", BranchStatus::Active);
+        let parked_branch = make_branch("b2", "t1", "parked branch", BranchStatus::Parked);
+        thread_repo::upsert(&conn, &thread).unwrap();
+        branch_repo::upsert(&conn, &active_branch).unwrap();
+        branch_repo::upsert(&conn, &parked_branch).unwrap();
+
+        let selected = CommandTarget::Branch {
+            thread_id: thread.id.clone(),
+            branch_id: parked_branch.id.clone(),
+        };
+
+        let result = process_input_with_target(&conn, "/note review this later", Some(&selected));
+        assert!(matches!(result, InputResult::Reply(_)));
+
+        let active_branch = branch_repo::find_by_id(&conn, &active_branch.id)
+            .unwrap()
+            .unwrap();
+        let parked_branch = branch_repo::find_by_id(&conn, &parked_branch.id)
+            .unwrap()
+            .unwrap();
+        let notes = capture_repo::find_by_target(&conn, "branch", &parked_branch.id, 5).unwrap();
+
+        assert_eq!(active_branch.status, BranchStatus::Active);
+        assert_eq!(parked_branch.status, BranchStatus::Parked);
+        assert!(notes.iter().any(|note| note.text == "review this later"));
+    }
+
+    #[test]
+    fn slash_done_targets_selected_branch_before_active_branch() {
+        let conn = open_store_in_memory().unwrap();
+        let thread = make_thread("t1", "improving AIDX", ThreadStatus::Active);
+        let active_branch = make_branch("b1", "t1", "active branch", BranchStatus::Active);
+        let selected_branch = make_branch("b2", "t1", "selected branch", BranchStatus::Parked);
+        thread_repo::upsert(&conn, &thread).unwrap();
+        branch_repo::upsert(&conn, &active_branch).unwrap();
+        branch_repo::upsert(&conn, &selected_branch).unwrap();
+
+        let selected = CommandTarget::Branch {
+            thread_id: thread.id.clone(),
+            branch_id: selected_branch.id.clone(),
+        };
+
+        let result = perform_command_on_target(&conn, "/done wrapped up", Some(&selected));
+        assert!(matches!(result, InputResult::Reply(_)));
+
+        let active_branch = branch_repo::find_by_id(&conn, &active_branch.id)
+            .unwrap()
+            .unwrap();
+        let selected_branch = branch_repo::find_by_id(&conn, &selected_branch.id)
+            .unwrap()
+            .unwrap();
+        let notes = capture_repo::find_by_target(&conn, "branch", &selected_branch.id, 5).unwrap();
+
+        assert_eq!(active_branch.status, BranchStatus::Active);
+        assert_eq!(selected_branch.status, BranchStatus::Done);
+        assert!(notes.iter().any(|note| note.text == "wrapped up"));
+    }
+
+    #[test]
+    fn slash_pause_targets_selected_branchs_parent_thread() {
+        let conn = open_store_in_memory().unwrap();
+        let thread = make_thread("t1", "improving AIDX", ThreadStatus::Active);
+        let branch = make_branch("b1", "t1", "selected branch", BranchStatus::Active);
+        thread_repo::upsert(&conn, &thread).unwrap();
+        branch_repo::upsert(&conn, &branch).unwrap();
+
+        let selected = CommandTarget::Branch {
+            thread_id: thread.id.clone(),
+            branch_id: branch.id.clone(),
+        };
+
+        let result = process_input_with_target(&conn, "/pause waiting on review", Some(&selected));
+        assert!(matches!(result, InputResult::Reply(_)));
+
+        let thread = thread_repo::find_by_id(&conn, &thread.id).unwrap().unwrap();
+        let notes = capture_repo::find_by_target(&conn, "thread", &thread.id, 5).unwrap();
+        assert_eq!(thread.status, ThreadStatus::Paused);
+        assert!(notes.iter().any(|note| note.text == "waiting on review"));
+    }
+
+    #[test]
+    fn slash_pause_does_not_reopen_done_thread() {
+        let conn = open_store_in_memory().unwrap();
+        let thread = make_thread("t1", "finished thread", ThreadStatus::Done);
+        thread_repo::upsert(&conn, &thread).unwrap();
+
+        let selected = CommandTarget::Thread(thread.id.clone());
+
+        let result = process_input_with_target(&conn, "/pause revisit later", Some(&selected));
+        assert!(matches!(result, InputResult::Error(_)));
+
+        let thread = thread_repo::find_by_id(&conn, &thread.id).unwrap().unwrap();
+        let notes = capture_repo::find_by_target(&conn, "thread", &thread.id, 5).unwrap();
+        assert_eq!(thread.status, ThreadStatus::Done);
+        assert!(notes.is_empty());
     }
 
     #[test]

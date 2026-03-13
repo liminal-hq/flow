@@ -16,12 +16,16 @@ const S: &str = "";
 
 const HELP_TEXT: &[(&str, &str)] = &[
     (S, "Slash Commands"),
-    ("/now /branch /back", "Set thread, branch, or return"),
-    ("/park", "Park the active branch"),
-    ("/archive", "Archive the active thread or branch"),
-    ("/note /where", "Add a note or show current state"),
+    ("/now /branch", "Set thread or start branch"),
+    ("/back", "Return from active branch to parent"),
+    ("/park", "Park the selected branch"),
+    ("/archive", "Archive the selected item"),
+    ("/note /where", "Note selected item or show current state"),
     ("/resume", "Resume the selected item"),
-    ("/pause /done", "Pause thread or finish active focus"),
+    (
+        "/pause /done",
+        "Pause selected thread or finish selected item",
+    ),
     (S, "Insert Mode"),
     ("/ (empty line)", "Open command palette"),
     ("? (empty line)", "Show shortcut hints"),

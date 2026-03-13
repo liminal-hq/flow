@@ -107,7 +107,7 @@ enum Command {
     /// Mark the active focus target done
     #[command(long_about = "Mark the active focus target as done.\n\n\
             If a branch is active, that branch is marked done.\n\
-            Otherwise the current thread is marked done.\n\n\
+            Otherwise the current thread is marked done along with its non-archived branches.\n\n\
             Done items remain visible until they are archived.")]
     Done,
 
