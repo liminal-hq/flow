@@ -119,7 +119,7 @@ The TUI provides a three-pane interface:
 | Mode | Description |
 |---|---|
 | Insert | Text input active. Enter submits. Esc switches to Normal. |
-| Normal | Keyboard navigation. `j`/`k`/Up/Down to move through threads and branches, `Enter` to expand or collapse the selected thread, `r` to resume the selected item and make it active, `p` to park a selected branch, `d` to mark the selected item done, `Shift+A` to archive the selected item, `i` to insert, `?` for help, `a` for about, `q` to quit. |
+| Normal | Keyboard navigation. `j`/`k`/Up/Down to move through threads and branches, `Enter` to expand or collapse the selected thread, `r` to resume the selected item and make it active, `p` to park a selected branch, `d` to mark the selected item done, `Shift+A` to archive the selected item, `Ctrl+Z` to suspend `flo`, `i` to insert, `?` for help, `a` for about, `q` to quit. |
 | Help | Help overlay. Esc or `?` to dismiss. |
 | About | About overlay with app info. Esc, `q`, or Enter to dismiss. |
 
@@ -151,6 +151,7 @@ The thread list supports navigating both threads and their branches:
 - Type `/` on an empty input line to open the **command palette** — a floating popup showing available slash commands. Navigate with Up/Down, select with Enter/Tab, dismiss with Esc.
 - Typing after `/` filters the command palette by both command name and description text.
 - Command-name matches outrank description-only matches, so `/par` prefers `/park` before `/back` even though `back` mentions `parent`.
+- Once a full slash command is recognised and you move into argument entry, the command palette should close so Enter submits the command instead of re-selecting it.
 - Type `?` on an empty input line to show **shortcut hints** — a compact reference bar. Any key dismisses it.
 
 ### Slash Commands
