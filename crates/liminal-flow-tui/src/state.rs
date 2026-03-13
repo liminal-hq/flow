@@ -30,14 +30,17 @@ pub enum SelectedItem {
 pub const SLASH_COMMANDS: &[(&str, &str)] = &[
     ("/now <text>", "Set or replace the current thread"),
     ("/branch <text>", "Start a branch beneath current thread"),
-    ("/back", "Return to the parent thread"),
-    ("/park", "Park the active branch"),
-    ("/archive", "Archive the active thread or branch"),
-    ("/note <text>", "Attach a note (or just type plain text)"),
+    (
+        "/back",
+        "Return from the active branch to the parent thread",
+    ),
+    ("/park", "Park the selected branch"),
+    ("/archive", "Archive the selected item"),
+    ("/note <note>", "Attach a note to the selected item"),
     ("/where", "Show current thread and branches"),
     ("/resume", "Resume the selected item"),
-    ("/pause", "Pause the current thread"),
-    ("/done", "Mark the active thread or branch done"),
+    ("/pause", "Pause the selected thread"),
+    ("/done", "Mark the selected item done"),
 ];
 
 /// Return slash commands filtered by the current palette query.
@@ -106,7 +109,7 @@ pub const SHORTCUT_HINTS: &[(&str, &str)] = &[
     ),
     ("A archives selected item (Normal)", "q quits (Normal)"),
     (
-        "Capture targets active item",
+        "Plain text targets active item",
         "r revives selected done item",
     ),
 ];
@@ -637,7 +640,7 @@ mod tests {
 
         let filtered = filtered_slash_commands("/note");
         assert_eq!(filtered.len(), 1);
-        assert_eq!(filtered[0].1, "/note <text>");
+        assert_eq!(filtered[0].1, "/note <note>");
 
         let filtered = filtered_slash_commands("/arch");
         assert_eq!(filtered.len(), 1);

@@ -116,7 +116,7 @@ Liminal Flow keeps track of your working context so you don't have to. When you 
 | `flo where` | Print current thread and branches |
 | `flo resume` | Resume the most recent paused, done, or parked work |
 | `flo pause` | Pause the current thread |
-| `flo done` | Mark the active thread or branch done |
+| `flo done` | Mark the active branch done, or finish the thread and its branches |
 | `flo archive` | Archive the active thread or branch |
 | `flo list` | List active, paused, and done threads |
 
@@ -153,9 +153,10 @@ The TUI starts in **Insert mode**:
 - Mouse-wheel scrolling follows the hovered pane: `Threads`, `Status`, and `Help` each scroll independently
 - Left-click in the thread list selects the clicked thread or branch
 - The **Status** pane follows the selected thread or branch for inspection
-- The **Capture** pane shows the active note target explicitly
+- The **Capture** pane shows the active plain-text note target explicitly
 - Selected-item notes in the **Status** pane show compact timestamps and separators for readability
-- Type `/resume` in Insert mode to activate the currently selected thread or branch without switching to Normal mode
+- Type `/resume`, `/pause`, `/park`, `/done`, `/archive`, or `/note <note>` in Insert mode to act on the currently selected item without switching to Normal mode
+- Type plain text without a slash to add a note to the current active capture target
 - Press `Esc` for **Normal mode** where `j`/`k` navigate, `Enter` expands or collapses the selected thread, `PageUp`/`PageDown` scroll the Status pane, `r` resumes a selected item to make it active again, `p` parks a selected branch, `d` marks the selected item done, `?` opens help, `a` shows about, and `q` quits
 - Press `Shift+A` in Normal mode to archive the selected item and remove it from the main working list
 - Done threads and branches stay visible as tombstones until they are archived, so you can still inspect and revive them with `r`

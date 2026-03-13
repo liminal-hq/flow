@@ -23,7 +23,7 @@ use tui_textarea::TextArea;
 use crate::input::{self, InputResult};
 use crate::poll;
 use crate::state::filtered_slash_commands;
-use crate::state::{Mode, TuiState};
+use crate::state::{Mode, SelectedItem, TuiState};
 use crate::ui::{
     about, command_palette, help, hints_bar, input_pane, layout, reply_pane, thread_list,
 };
@@ -44,10 +44,27 @@ fn should_follow_active_after_submit(input: &str) -> bool {
                 liminal_flow_core::model::Intent::SetCurrentThread
                     | liminal_flow_core::model::Intent::StartBranch
                     | liminal_flow_core::model::Intent::ReturnToParent
-                    | liminal_flow_core::model::Intent::AddNote
             )
         )
         || (!trimmed.is_empty() && !trimmed.starts_with('/'))
+}
+
+fn selected_command_target(state: &TuiState) -> Option<input::CommandTarget> {
+    match &state.selected {
+        SelectedItem::Thread(i) => state
+            .threads
+            .get(*i)
+            .map(|entry| input::CommandTarget::Thread(entry.thread.id.clone())),
+        SelectedItem::Branch(i, j) => state.threads.get(*i).and_then(|entry| {
+            entry
+                .branches
+                .get(*j)
+                .map(|branch| input::CommandTarget::Branch {
+                    thread_id: entry.thread.id.clone(),
+                    branch_id: branch.id.clone(),
+                })
+        }),
+    }
 }
 
 /// Run the TUI application. Takes ownership of the database connection.
@@ -602,195 +619,20 @@ fn run_loop(
                                         // Process the input
                                         let follow_active =
                                             should_follow_active_after_submit(&text);
-                                        if text.trim() == "/resume"
-                                            || text.trim().starts_with("/resume ")
-                                        {
-                                            let note_text = text
-                                                .trim()
-                                                .strip_prefix("/resume")
-                                                .unwrap_or("")
-                                                .trim()
-                                                .to_string();
-                                            let note_target = match &state.selected {
-                                                crate::state::SelectedItem::Thread(i) => {
-                                                    state.threads.get(*i).map(|entry| {
-                                                        ("thread", entry.thread.id.clone())
-                                                    })
-                                                }
-                                                crate::state::SelectedItem::Branch(i, j) => {
-                                                    state.threads.get(*i).and_then(|entry| {
-                                                        entry.branches.get(*j).map(|branch| {
-                                                            ("branch", branch.id.clone())
-                                                        })
-                                                    })
-                                                }
-                                            };
-                                            let result = match &state.selected {
-                                                crate::state::SelectedItem::Thread(i) => {
-                                                    state.threads.get(*i).map(|entry| {
-                                                        input::resume_thread(conn, &entry.thread.id)
-                                                    })
-                                                }
-                                                crate::state::SelectedItem::Branch(i, j) => {
-                                                    state.threads.get(*i).and_then(|entry| {
-                                                        entry.branches.get(*j).map(|branch| {
-                                                            input::resume_branch(
-                                                                conn,
-                                                                &entry.thread.id,
-                                                                &branch.id,
-                                                            )
-                                                        })
-                                                    })
-                                                }
-                                            };
-                                            if let Some(result) = result {
-                                                match result {
-                                                    InputResult::Reply(msg) => {
-                                                        state.last_reply = Some(msg);
-                                                        state.error_message = None;
-                                                    }
-                                                    InputResult::Error(msg) => {
-                                                        state.error_message = Some(msg);
-                                                    }
-                                                    InputResult::None => {}
-                                                }
+                                        let command_target = selected_command_target(&state);
+                                        match input::perform_command_on_target(
+                                            conn,
+                                            &text,
+                                            command_target.as_ref(),
+                                        ) {
+                                            InputResult::Reply(msg) => {
+                                                state.last_reply = Some(msg);
+                                                state.error_message = None;
                                             }
-                                            if state.error_message.is_none()
-                                                && !note_text.is_empty()
-                                            {
-                                                if let Some((target_type, target_id)) = note_target
-                                                {
-                                                    if let Err(err) = input::attach_note_to_target(
-                                                        conn,
-                                                        target_type,
-                                                        &target_id,
-                                                        &note_text,
-                                                    ) {
-                                                        state.error_message = Some(err.to_string());
-                                                    }
-                                                }
+                                            InputResult::Error(msg) => {
+                                                state.error_message = Some(msg);
                                             }
-                                        } else if text.trim() == "/park"
-                                            || text.trim().starts_with("/park ")
-                                        {
-                                            let note_text = text
-                                                .trim()
-                                                .strip_prefix("/park")
-                                                .unwrap_or("")
-                                                .trim()
-                                                .to_string();
-                                            let result = state.active_thread().and_then(|entry| {
-                                                state.active_branch().map(|branch| {
-                                                    (
-                                                        input::park_branch(
-                                                            conn,
-                                                            &entry.thread.id,
-                                                            &branch.id,
-                                                        ),
-                                                        branch.id.clone(),
-                                                    )
-                                                })
-                                            });
-                                            if let Some((result, branch_id)) = result {
-                                                match result {
-                                                    InputResult::Reply(msg) => {
-                                                        state.last_reply = Some(msg);
-                                                        state.error_message = None;
-                                                    }
-                                                    InputResult::Error(msg) => {
-                                                        state.error_message = Some(msg);
-                                                    }
-                                                    InputResult::None => {}
-                                                }
-                                                if state.error_message.is_none()
-                                                    && !note_text.is_empty()
-                                                {
-                                                    if let Err(err) = input::attach_note_to_target(
-                                                        conn, "branch", &branch_id, &note_text,
-                                                    ) {
-                                                        state.error_message = Some(err.to_string());
-                                                    }
-                                                }
-                                            } else {
-                                                state.error_message =
-                                                    Some("No active branch to park.".into());
-                                            }
-                                        } else if text.trim() == "/archive"
-                                            || text.trim().starts_with("/archive ")
-                                        {
-                                            let note_text = text
-                                                .trim()
-                                                .strip_prefix("/archive")
-                                                .unwrap_or("")
-                                                .trim()
-                                                .to_string();
-                                            let result = if let Some(active_branch) =
-                                                state.active_branch()
-                                            {
-                                                state.active_thread().map(|entry| {
-                                                    (
-                                                        input::archive_branch(
-                                                            conn,
-                                                            &entry.thread.id,
-                                                            &active_branch.id,
-                                                        ),
-                                                        Some(("branch", active_branch.id.clone())),
-                                                    )
-                                                })
-                                            } else {
-                                                state.active_thread().map(|entry| {
-                                                    (
-                                                        input::archive_thread(
-                                                            conn,
-                                                            &entry.thread.id,
-                                                        ),
-                                                        Some(("thread", entry.thread.id.clone())),
-                                                    )
-                                                })
-                                            };
-                                            if let Some((result, target)) = result {
-                                                match result {
-                                                    Ok(msg) => {
-                                                        state.last_reply = Some(msg);
-                                                        state.error_message = None;
-                                                    }
-                                                    Err(err) => {
-                                                        state.error_message = Some(err.to_string());
-                                                    }
-                                                }
-                                                if state.error_message.is_none()
-                                                    && !note_text.is_empty()
-                                                {
-                                                    if let Some((target_type, target_id)) = target {
-                                                        if let Err(err) =
-                                                            input::attach_note_to_target(
-                                                                conn,
-                                                                target_type,
-                                                                &target_id,
-                                                                &note_text,
-                                                            )
-                                                        {
-                                                            state.error_message =
-                                                                Some(err.to_string());
-                                                        }
-                                                    }
-                                                }
-                                            } else {
-                                                state.error_message = Some(
-                                                    "No active thread or branch to archive.".into(),
-                                                );
-                                            }
-                                        } else {
-                                            match input::process_input(conn, &text) {
-                                                InputResult::Reply(msg) => {
-                                                    state.last_reply = Some(msg);
-                                                    state.error_message = None;
-                                                }
-                                                InputResult::Error(msg) => {
-                                                    state.error_message = Some(msg);
-                                                }
-                                                InputResult::None => {}
-                                            }
+                                            InputResult::None => {}
                                         }
 
                                         // Refresh state from DB after mutation

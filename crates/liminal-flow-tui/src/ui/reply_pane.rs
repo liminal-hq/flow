@@ -3,6 +3,7 @@
 // (c) Copyright 2026 Liminal HQ, Scott Morris
 // SPDX-License-Identifier: MIT
 
+use chrono::Local;
 use ratatui::layout::Rect;
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, BorderType, Borders, Paragraph, Wrap};
@@ -60,7 +61,10 @@ pub fn render(frame: &mut Frame, area: Rect, state: &TuiState) {
             lines.push(Line::from(vec![
                 Span::styled("  ", theme::text()),
                 Span::styled(
-                    note.created_at.format("%Y-%m-%d %H:%M").to_string(),
+                    note.created_at
+                        .with_timezone(&Local)
+                        .format("%Y-%m-%d %H:%M")
+                        .to_string(),
                     theme::muted(),
                 ),
             ]));
