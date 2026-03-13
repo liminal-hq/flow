@@ -7,6 +7,7 @@ use std::io;
 use std::time::Duration;
 
 use anyhow::Result;
+use crossterm::cursor::Show;
 use crossterm::event::{
     self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers, MouseButton,
     MouseEventKind,
@@ -22,13 +23,30 @@ use tui_textarea::TextArea;
 
 use crate::input::{self, InputResult};
 use crate::poll;
-use crate::state::filtered_slash_commands;
+use crate::state::{filtered_slash_commands, should_keep_command_palette_open};
 use crate::state::{Mode, SelectedItem, TuiState};
 use crate::ui::{
     about, command_palette, help, hints_bar, input_pane, layout, reply_pane, thread_list,
 };
 
 const TICK_RATE: Duration = Duration::from_millis(250);
+
+fn enter_tui_terminal() -> Result<()> {
+    enable_raw_mode()?;
+    execute!(io::stdout(), EnterAlternateScreen, EnableMouseCapture)?;
+    Ok(())
+}
+
+fn restore_tui_terminal() -> Result<()> {
+    disable_raw_mode()?;
+    execute!(
+        io::stdout(),
+        LeaveAlternateScreen,
+        DisableMouseCapture,
+        Show
+    )?;
+    Ok(())
+}
 
 fn should_follow_active_after_submit(input: &str) -> bool {
     let trimmed = input.trim();
@@ -70,29 +88,21 @@ fn selected_command_target(state: &TuiState) -> Option<input::CommandTarget> {
 /// Run the TUI application. Takes ownership of the database connection.
 pub fn run(conn: Connection) -> Result<()> {
     // Set up terminal
-    enable_raw_mode()?;
-    let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
-    let backend = CrosstermBackend::new(stdout);
+    enter_tui_terminal()?;
+    let backend = CrosstermBackend::new(io::stdout());
     let mut terminal = Terminal::new(backend)?;
 
     // Install panic hook to restore terminal on crash
     let original_hook = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |panic_info| {
-        let _ = disable_raw_mode();
-        let _ = execute!(io::stdout(), LeaveAlternateScreen, DisableMouseCapture);
+        let _ = restore_tui_terminal();
         original_hook(panic_info);
     }));
 
     let result = run_loop(&mut terminal, &conn);
 
     // Restore terminal
-    disable_raw_mode()?;
-    execute!(
-        terminal.backend_mut(),
-        LeaveAlternateScreen,
-        DisableMouseCapture
-    )?;
+    restore_tui_terminal()?;
     terminal.show_cursor()?;
 
     result
@@ -263,6 +273,23 @@ fn run_loop(
                         && key.code == KeyCode::Char('c')
                     {
                         return Ok(());
+                    }
+
+                    if key.modifiers.contains(KeyModifiers::CONTROL)
+                        && key.code == KeyCode::Char('z')
+                    {
+                        restore_tui_terminal()?;
+                        // SAFETY: `raise` sends SIGTSTP to the current process so the shell can
+                        // suspend and later resume the TUI via `fg`.
+                        unsafe {
+                            libc::raise(libc::SIGTSTP);
+                        }
+                        enter_tui_terminal()?;
+                        terminal.clear()?;
+                        state.refresh_from_db(conn);
+                        sync_thread_viewport(terminal, &mut state)?;
+                        state.poll_watermark = poll::current_watermark(conn);
+                        continue;
                     }
 
                     match state.mode {
@@ -533,21 +560,19 @@ fn run_loop(
                                     KeyCode::Backspace => {
                                         textarea.input(Event::Key(key));
                                         let query = textarea.lines().join("\n");
-                                        if query.trim().is_empty()
-                                            || !query.trim_start().starts_with('/')
-                                        {
-                                            state.show_command_palette = false;
-                                        } else {
+                                        if should_keep_command_palette_open(&query) {
                                             clamp_palette_selection(&mut state, &query);
+                                        } else {
+                                            state.show_command_palette = false;
                                         }
                                     }
                                     KeyCode::Char(_) => {
                                         textarea.input(Event::Key(key));
                                         let query = textarea.lines().join("\n");
-                                        if !query.trim_start().starts_with('/') {
-                                            state.show_command_palette = false;
-                                        } else {
+                                        if should_keep_command_palette_open(&query) {
                                             clamp_palette_selection(&mut state, &query);
+                                        } else {
+                                            state.show_command_palette = false;
                                         }
                                     }
                                     _ => {}

@@ -35,6 +35,7 @@ crossterm = "0.28"
 tui-textarea = "0.7"
 directories = "6"
 toml = "0.8"
+libc = "0.2"
 
 clap_mangen = "0.2"
 

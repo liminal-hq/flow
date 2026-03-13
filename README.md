@@ -148,6 +148,7 @@ The TUI starts in **Insert mode**:
 - Lifecycle slash commands can carry trailing note text, for example `/park need more data first` or `/done shipped first pass`
 - Unknown slash commands now error instead of silently being stored as notes
 - Type `/` on an empty line to open the **command palette** — navigate with arrow keys, select with Enter
+- When you finish typing a full slash command and begin its argument text, the command palette closes so Enter submits the command normally
 - Type `?` on an empty line to see **shortcut hints**
 - **Up/Down** arrows navigate the thread list; the thread list auto-scrolls to keep selection visible; **Enter** on empty input expands/collapses branches
 - Mouse-wheel scrolling follows the hovered pane: `Threads`, `Status`, and `Help` each scroll independently
@@ -157,7 +158,7 @@ The TUI starts in **Insert mode**:
 - Selected-item notes in the **Status** pane show compact timestamps and separators for readability
 - Type `/resume`, `/pause`, `/park`, `/done`, `/archive`, or `/note <note>` in Insert mode to act on the currently selected item without switching to Normal mode
 - Type plain text without a slash to add a note to the current active capture target
-- Press `Esc` for **Normal mode** where `j`/`k` navigate, `Enter` expands or collapses the selected thread, `PageUp`/`PageDown` scroll the Status pane, `r` resumes a selected item to make it active again, `p` parks a selected branch, `d` marks the selected item done, `?` opens help, `a` shows about, and `q` quits
+- Press `Esc` for **Normal mode** where `j`/`k` navigate, `Enter` expands or collapses the selected thread, `PageUp`/`PageDown` scroll the Status pane, `r` resumes a selected item to make it active again, `p` parks a selected branch, `d` marks the selected item done, `Ctrl+Z` suspends `flo`, `?` opens help, `a` shows about, and `q` quits
 - Press `Shift+A` in Normal mode to archive the selected item and remove it from the main working list
 - Done threads and branches stay visible as tombstones until they are archived, so you can still inspect and revive them with `r`
 - In the **Help** overlay, `j`/`k`/Up/Down and `PageUp`/`PageDown` scroll the help content on smaller terminals

@@ -78,6 +78,14 @@ pub fn parse_slash_command(input: &str) -> Option<(Intent, String)> {
         return Some((Intent::QueryCurrent, String::new()));
     }
 
+    if trimmed == "/resume" {
+        return Some((Intent::Resume, String::new()));
+    }
+
+    if let Some(rest) = trimmed.strip_prefix("/resume ") {
+        return Some((Intent::Resume, rest.trim().to_string()));
+    }
+
     if trimmed == "/pause" {
         return Some((Intent::Pause, String::new()));
     }
@@ -86,12 +94,28 @@ pub fn parse_slash_command(input: &str) -> Option<(Intent, String)> {
         return Some((Intent::Pause, rest.trim().to_string()));
     }
 
+    if trimmed == "/park" {
+        return Some((Intent::Park, String::new()));
+    }
+
+    if let Some(rest) = trimmed.strip_prefix("/park ") {
+        return Some((Intent::Park, rest.trim().to_string()));
+    }
+
     if trimmed == "/done" {
         return Some((Intent::Done, String::new()));
     }
 
     if let Some(rest) = trimmed.strip_prefix("/done ") {
         return Some((Intent::Done, rest.trim().to_string()));
+    }
+
+    if trimmed == "/archive" {
+        return Some((Intent::Archive, String::new()));
+    }
+
+    if let Some(rest) = trimmed.strip_prefix("/archive ") {
+        return Some((Intent::Archive, rest.trim().to_string()));
     }
 
     // Heuristic: questions end with ?
@@ -203,9 +227,27 @@ mod tests {
     }
 
     #[test]
+    fn parse_resume_command() {
+        let result = parse_slash_command("/resume");
+        assert_eq!(result, Some((Intent::Resume, String::new())));
+    }
+
+    #[test]
+    fn parse_park_command() {
+        let result = parse_slash_command("/park");
+        assert_eq!(result, Some((Intent::Park, String::new())));
+    }
+
+    #[test]
     fn parse_done_command() {
         let result = parse_slash_command("/done");
         assert_eq!(result, Some((Intent::Done, String::new())));
+    }
+
+    #[test]
+    fn parse_archive_command() {
+        let result = parse_slash_command("/archive");
+        assert_eq!(result, Some((Intent::Archive, String::new())));
     }
 
     #[test]
@@ -224,9 +266,30 @@ mod tests {
     }
 
     #[test]
+    fn parse_resume_command_with_note() {
+        let result = parse_slash_command("/resume revisit this tomorrow");
+        assert_eq!(
+            result,
+            Some((Intent::Resume, "revisit this tomorrow".into()))
+        );
+    }
+
+    #[test]
+    fn parse_park_command_with_note() {
+        let result = parse_slash_command("/park waiting on feedback");
+        assert_eq!(result, Some((Intent::Park, "waiting on feedback".into())));
+    }
+
+    #[test]
     fn parse_done_command_with_note() {
         let result = parse_slash_command("/done shipped first pass");
         assert_eq!(result, Some((Intent::Done, "shipped first pass".into())));
+    }
+
+    #[test]
+    fn parse_archive_command_with_note() {
+        let result = parse_slash_command("/archive no longer needed");
+        assert_eq!(result, Some((Intent::Archive, "no longer needed".into())));
     }
 
     #[test]

@@ -55,8 +55,11 @@ pub enum Intent {
     ReturnToParent,
     AddNote,
     QueryCurrent,
+    Resume,
     Pause,
+    Park,
     Done,
+    Archive,
     Ambiguous,
 }
 
@@ -68,8 +71,11 @@ impl Intent {
             Self::ReturnToParent => "return_to_parent",
             Self::AddNote => "add_note",
             Self::QueryCurrent => "query_current",
+            Self::Resume => "resume",
             Self::Pause => "pause",
+            Self::Park => "park",
             Self::Done => "done",
+            Self::Archive => "archive",
             Self::Ambiguous => "ambiguous",
         }
     }
@@ -85,8 +91,11 @@ impl std::str::FromStr for Intent {
             "return_to_parent" => Ok(Self::ReturnToParent),
             "add_note" => Ok(Self::AddNote),
             "query_current" => Ok(Self::QueryCurrent),
+            "resume" => Ok(Self::Resume),
             "pause" => Ok(Self::Pause),
+            "park" => Ok(Self::Park),
             "done" => Ok(Self::Done),
+            "archive" => Ok(Self::Archive),
             "ambiguous" => Ok(Self::Ambiguous),
             _ => Err(format!("unknown intent: {s}")),
         }
