@@ -48,14 +48,38 @@ That makes a GitHub Releases-first approach the cleanest fit for `v0.0.1`.
 The release flow should mirror SMDU closely:
 
 1. Merge the release-ready PR into `main`.
-2. Confirm release notes and docs reflect the merged behaviour.
-3. Create a tag such as `v0.0.1`.
-4. Let GitHub Actions build Linux artefacts for both supported architectures.
-5. Create or update the GitHub Release for that tag.
-6. Attach binaries, packages, tarballs, and checksum files.
-7. Publish generated release notes, then do a quick install smoke test from the uploaded assets.
+2. Run `scripts/prepare-release-version.sh --version <next-version>` in a clean working tree to create a release-bump branch and update release-facing version references before tagging.
+3. Confirm release notes and docs reflect the merged behaviour.
+4. Create a tag such as `v0.0.1`.
+5. Let GitHub Actions build Linux artefacts for both supported architectures.
+6. Create or update the GitHub Release for that tag.
+7. Attach binaries, packages, tarballs, and checksum files.
+8. Publish generated release notes, then do a quick install smoke test from the uploaded assets.
 
 Manual dispatch should also be available so a tag can be rebuilt or a draft release can be prepared before publication. When the manual `release_tag` input is left blank, the workflow should derive `v<workspace version>` from `Cargo.toml` and then validate the resolved tag before continuing.
+
+## Version prep
+
+Before tagging a release, use:
+
+```bash
+scripts/prepare-release-version.sh --version 0.0.3
+```
+
+By default, this creates and switches to a branch named `chore/release-v0.0.3` before updating files. You can override that with:
+
+```bash
+scripts/prepare-release-version.sh --version 0.0.3 --branch chore/my-custom-release-branch
+```
+
+The script updates release-facing version references in:
+
+- `Cargo.toml`
+- `Cargo.lock`
+- `README.md`
+- `docs/release/distribution-strategy.md`
+
+It expects a clean working tree and is designed to prepare a branch that will be reviewed and merged before the final tag is created on `main`.
 
 ## GitHub Actions shape
 
