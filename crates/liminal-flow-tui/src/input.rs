@@ -567,12 +567,16 @@ fn pause_thread(conn: &Connection, thread_id: &FlowId, note_text: &str) -> Resul
         anyhow::bail!("Thread not found.");
     };
 
-    if !note_text.trim().is_empty() {
-        attach_note_to_target(conn, "thread", thread_id, note_text)?;
-    }
-
     if thread.status == ThreadStatus::Paused {
         return Ok(format!("Already paused: {}", thread.title));
+    }
+
+    if matches!(thread.status, ThreadStatus::Done | ThreadStatus::Archived) {
+        anyhow::bail!("Cannot pause a {} thread.", thread.status);
+    }
+
+    if !note_text.trim().is_empty() {
+        attach_note_to_target(conn, "thread", thread_id, note_text)?;
     }
 
     thread_repo::update_status(conn, thread_id, &ThreadStatus::Paused, &now.to_rfc3339())?;
@@ -1126,6 +1130,23 @@ mod tests {
         let notes = capture_repo::find_by_target(&conn, "thread", &thread.id, 5).unwrap();
         assert_eq!(thread.status, ThreadStatus::Paused);
         assert!(notes.iter().any(|note| note.text == "waiting on review"));
+    }
+
+    #[test]
+    fn slash_pause_does_not_reopen_done_thread() {
+        let conn = open_store_in_memory().unwrap();
+        let thread = make_thread("t1", "finished thread", ThreadStatus::Done);
+        thread_repo::upsert(&conn, &thread).unwrap();
+
+        let selected = CommandTarget::Thread(thread.id.clone());
+
+        let result = process_input_with_target(&conn, "/pause revisit later", Some(&selected));
+        assert!(matches!(result, InputResult::Error(_)));
+
+        let thread = thread_repo::find_by_id(&conn, &thread.id).unwrap().unwrap();
+        let notes = capture_repo::find_by_target(&conn, "thread", &thread.id, 5).unwrap();
+        assert_eq!(thread.status, ThreadStatus::Done);
+        assert!(notes.is_empty());
     }
 
     #[test]
