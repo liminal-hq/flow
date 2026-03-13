@@ -5,6 +5,7 @@
 - [Implementation Plan](implementation/liminal_flow_implementation_plan.md) — Detailed technical plan for the v1 implementation
 - [Concept Document](implementation/doing_sidecar_v_1_concept.md) — Original design concept for the working-memory sidecar
 - [Distribution Strategy](release/distribution-strategy.md) — Linux-first release and packaging plan modelled on the SMDU flow
+- [2026-03-13 Command Targeting and Completion Design](ux/2026-03-13-command-targeting-and-completion-design.md) — Dated design snapshot for command targeting, note rendering, and thread completion updates
 
 ## Quick Reference
 
