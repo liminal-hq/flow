@@ -48,7 +48,7 @@ That makes a GitHub Releases-first approach the cleanest fit for `v0.0.1`.
 The release flow should mirror SMDU closely:
 
 1. Merge the release-ready PR into `main`.
-2. Run `scripts/prepare-release-version.sh --version <next-version>` in a clean working tree to update release-facing version references before tagging.
+2. Run `scripts/prepare-release-version.sh --version <next-version>` in a clean working tree to create a release-bump branch and update release-facing version references before tagging.
 3. Confirm release notes and docs reflect the merged behaviour.
 4. Create a tag such as `v0.0.1`.
 5. Let GitHub Actions build Linux artefacts for both supported architectures.
@@ -66,6 +66,12 @@ Before tagging a release, use:
 scripts/prepare-release-version.sh --version 0.0.3
 ```
 
+By default, this creates and switches to a branch named `chore/release-v0.0.3` before updating files. You can override that with:
+
+```bash
+scripts/prepare-release-version.sh --version 0.0.3 --branch chore/my-custom-release-branch
+```
+
 The script updates release-facing version references in:
 
 - `Cargo.toml`
@@ -73,7 +79,7 @@ The script updates release-facing version references in:
 - `README.md`
 - `docs/release/distribution-strategy.md`
 
-It expects a clean working tree and is designed to be run on a branch that will be reviewed and merged before the final tag is created on `main`.
+It expects a clean working tree and is designed to prepare a branch that will be reviewed and merged before the final tag is created on `main`.
 
 ## GitHub Actions shape
 
