@@ -7,6 +7,7 @@ use std::io;
 use std::time::Duration;
 
 use anyhow::Result;
+use crossterm::cursor::Show;
 use crossterm::event::{
     self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyModifiers, MouseButton,
     MouseEventKind,
@@ -22,13 +23,32 @@ use tui_textarea::TextArea;
 
 use crate::input::{self, InputResult};
 use crate::poll;
-use crate::state::{command_palette_query, filtered_slash_commands};
-use crate::state::{Mode, SelectedItem, TuiState, SLASH_COMMANDS};
+use crate::state::{
+    command_palette_query, filtered_slash_commands, should_keep_command_palette_open,
+};
+use crate::state::{Mode, SelectedItem, TuiState};
 use crate::ui::{
     about, command_palette, help, hints_bar, input_pane, layout, reply_pane, thread_list,
 };
 
 const TICK_RATE: Duration = Duration::from_millis(250);
+
+fn enter_tui_terminal() -> Result<()> {
+    enable_raw_mode()?;
+    execute!(io::stdout(), EnterAlternateScreen, EnableMouseCapture)?;
+    Ok(())
+}
+
+fn restore_tui_terminal() -> Result<()> {
+    disable_raw_mode()?;
+    execute!(
+        io::stdout(),
+        LeaveAlternateScreen,
+        DisableMouseCapture,
+        Show
+    )?;
+    Ok(())
+}
 
 fn should_follow_active_after_submit(input: &str) -> bool {
     let trimmed = input.trim();
@@ -54,18 +74,7 @@ fn should_show_command_palette(query: &str) -> bool {
     if !trimmed_start.starts_with('/') {
         return false;
     }
-
-    let command_token = trimmed_start
-        .split_whitespace()
-        .next()
-        .unwrap_or(trimmed_start);
-    let known_command = SLASH_COMMANDS.iter().any(|(cmd, _)| {
-        cmd.split_whitespace()
-            .next()
-            .is_some_and(|known| known == command_token)
-    });
-
-    !known_command
+    should_keep_command_palette_open(query)
 }
 
 fn refresh_command_palette_state(state: &mut TuiState, query: &str) {
@@ -103,30 +112,6 @@ fn is_suspend_key(key: crossterm::event::KeyEvent) -> bool {
     key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('z')
 }
 
-fn suspend_terminal(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> Result<()> {
-    disable_raw_mode()?;
-    execute!(
-        terminal.backend_mut(),
-        LeaveAlternateScreen,
-        DisableMouseCapture
-    )?;
-    terminal.show_cursor()?;
-
-    // Hand control back to the shell so Ctrl+Z behaves like a normal terminal app.
-    unsafe {
-        libc::raise(libc::SIGTSTP);
-    }
-
-    enable_raw_mode()?;
-    execute!(
-        terminal.backend_mut(),
-        EnterAlternateScreen,
-        EnableMouseCapture
-    )?;
-    terminal.clear()?;
-    Ok(())
-}
-
 fn selected_command_target(state: &TuiState) -> Option<input::CommandTarget> {
     match &state.selected {
         SelectedItem::Thread(i) => state
@@ -148,29 +133,21 @@ fn selected_command_target(state: &TuiState) -> Option<input::CommandTarget> {
 /// Run the TUI application. Takes ownership of the database connection.
 pub fn run(conn: Connection) -> Result<()> {
     // Set up terminal
-    enable_raw_mode()?;
-    let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
-    let backend = CrosstermBackend::new(stdout);
+    enter_tui_terminal()?;
+    let backend = CrosstermBackend::new(io::stdout());
     let mut terminal = Terminal::new(backend)?;
 
     // Install panic hook to restore terminal on crash
     let original_hook = std::panic::take_hook();
     std::panic::set_hook(Box::new(move |panic_info| {
-        let _ = disable_raw_mode();
-        let _ = execute!(io::stdout(), LeaveAlternateScreen, DisableMouseCapture);
+        let _ = restore_tui_terminal();
         original_hook(panic_info);
     }));
 
     let result = run_loop(&mut terminal, &conn);
 
     // Restore terminal
-    disable_raw_mode()?;
-    execute!(
-        terminal.backend_mut(),
-        LeaveAlternateScreen,
-        DisableMouseCapture
-    )?;
+    restore_tui_terminal()?;
     terminal.show_cursor()?;
 
     result
@@ -344,8 +321,17 @@ fn run_loop(
                     }
 
                     if is_suspend_key(key) {
-                        suspend_terminal(terminal)?;
+                        restore_tui_terminal()?;
+                        // SAFETY: `raise` sends SIGTSTP to the current process so the shell can
+                        // suspend and later resume the TUI via `fg`.
+                        unsafe {
+                            libc::raise(libc::SIGTSTP);
+                        }
+                        enter_tui_terminal()?;
+                        terminal.clear()?;
+                        state.refresh_from_db(conn);
                         sync_thread_viewport(terminal, &mut state)?;
+                        state.poll_watermark = poll::current_watermark(conn);
                         continue;
                     }
 
@@ -617,7 +603,7 @@ fn run_loop(
                                     KeyCode::Backspace => {
                                         textarea.input(Event::Key(key));
                                         let query = textarea.lines().join("\n");
-                                        if should_show_command_palette(&query) {
+                                        if should_keep_command_palette_open(&query) {
                                             clamp_palette_selection(&mut state, &query);
                                         } else {
                                             state.show_command_palette = false;
@@ -626,7 +612,7 @@ fn run_loop(
                                     KeyCode::Char(_) => {
                                         textarea.input(Event::Key(key));
                                         let query = textarea.lines().join("\n");
-                                        if should_show_command_palette(&query) {
+                                        if should_keep_command_palette_open(&query) {
                                             clamp_palette_selection(&mut state, &query);
                                         } else {
                                             state.show_command_palette = false;
@@ -773,25 +759,31 @@ mod tests {
     use super::*;
 
     #[test]
-    fn command_palette_stays_open_for_partial_commands() {
+    fn command_palette_stays_open_for_partial_and_argument_commands() {
         assert!(should_show_command_palette("/n"));
         assert!(should_show_command_palette("/par"));
         assert!(should_show_command_palette("/note-taking"));
+        // Commands that require an argument keep the palette open until a space is typed
+        assert!(should_show_command_palette("/now"));
+        assert!(should_show_command_palette("/branch"));
+        assert!(should_show_command_palette("/note"));
     }
 
     #[test]
-    fn command_palette_closes_once_command_token_is_complete() {
-        assert!(!should_show_command_palette("/now"));
+    fn command_palette_closes_once_command_is_complete_or_has_arguments() {
         assert!(!should_show_command_palette("/now improve suspend flow"));
         assert!(!should_show_command_palette("/done"));
         assert!(!should_show_command_palette("/done shipped"));
         assert!(!should_show_command_palette("/note "));
+        assert!(!should_show_command_palette("/where"));
+        assert!(!should_show_command_palette("/resume"));
     }
 
     #[test]
     fn command_palette_reopens_for_partial_command_after_backspace() {
         assert!(should_show_command_palette("/no"));
-        assert!(!should_show_command_palette("/now"));
+        assert!(should_show_command_palette("/now"));
+        assert!(!should_show_command_palette("/done"));
     }
 
     #[test]
