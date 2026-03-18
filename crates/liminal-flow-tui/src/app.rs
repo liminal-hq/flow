@@ -49,7 +49,7 @@ fn should_follow_active_after_submit(input: &str) -> bool {
         || (!trimmed.is_empty() && !trimmed.starts_with('/'))
 }
 
-fn should_keep_command_palette_open(query: &str) -> bool {
+fn should_show_command_palette(query: &str) -> bool {
     let trimmed_start = query.trim_start();
     if !trimmed_start.starts_with('/') {
         return false;
@@ -66,6 +66,13 @@ fn should_keep_command_palette_open(query: &str) -> bool {
     });
 
     !known_command
+}
+
+fn refresh_command_palette_state(state: &mut TuiState, query: &str) {
+    state.show_command_palette = should_show_command_palette(query);
+    if state.show_command_palette {
+        state.command_palette_index = 0;
+    }
 }
 
 fn is_suspend_key(key: crossterm::event::KeyEvent) -> bool {
@@ -586,19 +593,19 @@ fn run_loop(
                                     KeyCode::Backspace => {
                                         textarea.input(Event::Key(key));
                                         let query = textarea.lines().join("\n");
-                                        if !should_keep_command_palette_open(&query) {
-                                            state.show_command_palette = false;
-                                        } else {
+                                        if should_show_command_palette(&query) {
                                             clamp_palette_selection(&mut state, &query);
+                                        } else {
+                                            state.show_command_palette = false;
                                         }
                                     }
                                     KeyCode::Char(_) => {
                                         textarea.input(Event::Key(key));
                                         let query = textarea.lines().join("\n");
-                                        if !should_keep_command_palette_open(&query) {
-                                            state.show_command_palette = false;
-                                        } else {
+                                        if should_show_command_palette(&query) {
                                             clamp_palette_selection(&mut state, &query);
+                                        } else {
+                                            state.show_command_palette = false;
                                         }
                                     }
                                     _ => {}
@@ -696,14 +703,24 @@ fn run_loop(
                                     }
                                     KeyCode::Char('/') if is_empty => {
                                         // Show command palette
-                                        state.show_command_palette = true;
-                                        state.command_palette_index = 0;
                                         textarea.input(Event::Key(key));
+                                        let query = textarea.lines().join("\n");
+                                        refresh_command_palette_state(&mut state, &query);
                                     }
                                     KeyCode::Char('?') if is_empty => {
                                         // Show shortcut hints
                                         state.show_hints = true;
                                         textarea.input(Event::Key(key));
+                                    }
+                                    KeyCode::Backspace => {
+                                        textarea.input(Event::Key(key));
+                                        let query = textarea.lines().join("\n");
+                                        refresh_command_palette_state(&mut state, &query);
+                                    }
+                                    KeyCode::Char(_) => {
+                                        textarea.input(Event::Key(key));
+                                        let query = textarea.lines().join("\n");
+                                        refresh_command_palette_state(&mut state, &query);
                                     }
                                     _ => {
                                         // Forward to textarea
@@ -733,20 +750,24 @@ mod tests {
 
     #[test]
     fn command_palette_stays_open_for_partial_commands() {
-        assert!(should_keep_command_palette_open("/n"));
-        assert!(should_keep_command_palette_open("/par"));
-        assert!(should_keep_command_palette_open("/note-taking"));
+        assert!(should_show_command_palette("/n"));
+        assert!(should_show_command_palette("/par"));
+        assert!(should_show_command_palette("/note-taking"));
     }
 
     #[test]
     fn command_palette_closes_once_command_token_is_complete() {
-        assert!(!should_keep_command_palette_open("/now"));
-        assert!(!should_keep_command_palette_open(
-            "/now improve suspend flow"
-        ));
-        assert!(!should_keep_command_palette_open("/done"));
-        assert!(!should_keep_command_palette_open("/done shipped"));
-        assert!(!should_keep_command_palette_open("/note "));
+        assert!(!should_show_command_palette("/now"));
+        assert!(!should_show_command_palette("/now improve suspend flow"));
+        assert!(!should_show_command_palette("/done"));
+        assert!(!should_show_command_palette("/done shipped"));
+        assert!(!should_show_command_palette("/note "));
+    }
+
+    #[test]
+    fn command_palette_reopens_for_partial_command_after_backspace() {
+        assert!(should_show_command_palette("/no"));
+        assert!(!should_show_command_palette("/now"));
     }
 
     #[test]
