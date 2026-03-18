@@ -75,6 +75,30 @@ fn refresh_command_palette_state(state: &mut TuiState, query: &str) {
     }
 }
 
+fn complete_command_palette_selection(query: &str, cmd: &str) -> String {
+    let trimmed_start = query.trim_start();
+    let leading_whitespace_len = query.len() - trimmed_start.len();
+    let cmd_name = cmd.split_whitespace().next().unwrap_or(cmd);
+    let suffix = trimmed_start
+        .find(char::is_whitespace)
+        .map(|index| &trimmed_start[index..])
+        .unwrap_or("");
+
+    let mut completed = String::with_capacity(
+        leading_whitespace_len + cmd_name.len() + suffix.len() + usize::from(suffix.is_empty()),
+    );
+    completed.push_str(&query[..leading_whitespace_len]);
+    completed.push_str(cmd_name);
+
+    if suffix.is_empty() {
+        completed.push(' ');
+    } else {
+        completed.push_str(suffix);
+    }
+
+    completed
+}
+
 fn is_suspend_key(key: crossterm::event::KeyEvent) -> bool {
     key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('z')
 }
@@ -580,13 +604,13 @@ fn run_loop(
                                         if let Some((_, cmd, _)) =
                                             filtered.get(state.command_palette_index)
                                         {
-                                            let cmd_name =
-                                                cmd.split_whitespace().next().unwrap_or(cmd);
+                                            let completed =
+                                                complete_command_palette_selection(&query, cmd);
                                             textarea = TextArea::default();
                                             textarea.set_cursor_line_style(
                                                 ratatui::style::Style::default(),
                                             );
-                                            textarea.insert_str(format!("{cmd_name} "));
+                                            textarea.insert_str(completed);
                                             state.show_command_palette = false;
                                         }
                                     }
@@ -768,6 +792,22 @@ mod tests {
     fn command_palette_reopens_for_partial_command_after_backspace() {
         assert!(should_show_command_palette("/no"));
         assert!(!should_show_command_palette("/now"));
+    }
+
+    #[test]
+    fn command_palette_completion_preserves_suffix_text() {
+        assert_eq!(
+            complete_command_palette_selection("/now cat", "/now <text>"),
+            "/now cat"
+        );
+        assert_eq!(
+            complete_command_palette_selection("   /no cat", "/now <text>"),
+            "   /now cat"
+        );
+        assert_eq!(
+            complete_command_palette_selection("/no", "/now <text>"),
+            "/now "
+        );
     }
 
     #[test]
