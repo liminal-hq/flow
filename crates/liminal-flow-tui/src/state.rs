@@ -26,26 +26,108 @@ pub enum SelectedItem {
     Branch(usize, usize), // (thread_index, branch_index)
 }
 
+pub struct SlashCommand {
+    pub syntax: &'static str,
+    pub description: &'static str,
+    pub requires_argument: bool,
+}
+
+impl SlashCommand {
+    pub fn name(&self) -> &'static str {
+        self.syntax.split_whitespace().next().unwrap_or(self.syntax)
+    }
+}
+
 /// Slash commands available in the command palette.
-pub const SLASH_COMMANDS: &[(&str, &str)] = &[
-    ("/now <text>", "Set or replace the current thread"),
-    ("/branch <text>", "Start a branch beneath current thread"),
-    (
-        "/back",
-        "Return from the active branch to the parent thread",
-    ),
-    ("/park", "Park the selected branch"),
-    ("/archive", "Archive the selected item"),
-    ("/note <note>", "Attach a note to the selected item"),
-    ("/where", "Show current thread and branches"),
-    ("/resume", "Resume the selected item"),
-    ("/pause", "Pause the selected thread"),
-    ("/done", "Mark the selected item done"),
+pub const SLASH_COMMANDS: &[SlashCommand] = &[
+    SlashCommand {
+        syntax: "/now <text>",
+        description: "Set or replace the current thread",
+        requires_argument: true,
+    },
+    SlashCommand {
+        syntax: "/branch <text>",
+        description: "Start a branch beneath current thread",
+        requires_argument: true,
+    },
+    SlashCommand {
+        syntax: "/back",
+        description: "Return from the active branch to the parent thread",
+        requires_argument: false,
+    },
+    SlashCommand {
+        syntax: "/park",
+        description: "Park the selected branch",
+        requires_argument: false,
+    },
+    SlashCommand {
+        syntax: "/archive",
+        description: "Archive the selected item",
+        requires_argument: false,
+    },
+    SlashCommand {
+        syntax: "/note <note>",
+        description: "Attach a note to the selected item",
+        requires_argument: true,
+    },
+    SlashCommand {
+        syntax: "/where",
+        description: "Show current thread and branches",
+        requires_argument: false,
+    },
+    SlashCommand {
+        syntax: "/resume",
+        description: "Resume the selected item",
+        requires_argument: false,
+    },
+    SlashCommand {
+        syntax: "/pause",
+        description: "Pause the selected thread",
+        requires_argument: false,
+    },
+    SlashCommand {
+        syntax: "/done",
+        description: "Mark the selected item done",
+        requires_argument: false,
+    },
 ];
 
 /// Return the active slash-command token from palette input.
-pub fn command_palette_query(query: &str) -> &str {
+fn command_palette_query(query: &str) -> &str {
     query.split_whitespace().next().unwrap_or("")
+}
+
+fn slash_command_by_name(name: &str) -> Option<&'static SlashCommand> {
+    // Use exact (case-sensitive) matching to stay consistent with the core
+    // parser, which only recognises lowercase command names.
+    SLASH_COMMANDS
+        .iter()
+        .find(|command| command.name().trim_start_matches('/') == name)
+}
+
+pub fn should_keep_command_palette_open(query: &str) -> bool {
+    let normalized = query.trim_start();
+    let Some(rest) = normalized.strip_prefix('/') else {
+        return false;
+    };
+
+    if rest.trim().is_empty() {
+        return true;
+    }
+
+    let command_name = rest.split_whitespace().next().unwrap_or("");
+    let has_trailing_text = rest[command_name.len()..]
+        .chars()
+        .next()
+        .is_some_and(char::is_whitespace);
+
+    match slash_command_by_name(command_name) {
+        Some(_) if has_trailing_text => false,
+        Some(command) => command.requires_argument,
+        // Unknown prefix: keep palette open so the user can correct/select a
+        // command, even if there is trailing text (the argument they already typed).
+        None => true,
+    }
 }
 
 /// Return slash commands filtered by the current palette query.
@@ -60,22 +142,17 @@ pub fn filtered_slash_commands(query: &str) -> Vec<(usize, &'static str, &'stati
     let mut matches = SLASH_COMMANDS
         .iter()
         .enumerate()
-        .filter(|(_, (cmd, desc))| {
+        .filter(|(_, command)| {
             if needle.is_empty() {
                 return true;
             }
 
-            let cmd_name = cmd
-                .split_whitespace()
-                .next()
-                .unwrap_or(cmd)
-                .trim_start_matches('/')
-                .to_ascii_lowercase();
-            let desc_text = desc.to_ascii_lowercase();
+            let cmd_name = command.name().trim_start_matches('/').to_ascii_lowercase();
+            let desc_text = command.description.to_ascii_lowercase();
 
             cmd_name.contains(&needle) || desc_text.contains(&needle)
         })
-        .map(|(index, (cmd, desc))| (index, *cmd, *desc))
+        .map(|(index, command)| (index, command.syntax, command.description))
         .collect::<Vec<_>>();
 
     matches.sort_by_key(|(_index, cmd, desc)| {
@@ -672,5 +749,43 @@ mod tests {
         assert!(!filtered.is_empty());
         assert!(filtered.iter().any(|(_, cmd, _)| *cmd == "/now <text>"));
         assert!(filtered.iter().any(|(_, cmd, _)| *cmd == "/note <note>"));
+    }
+
+    #[test]
+    fn palette_stays_open_for_partial_and_argument_required_commands() {
+        assert!(should_keep_command_palette_open("/"));
+        assert!(should_keep_command_palette_open("/no"));
+        assert!(should_keep_command_palette_open("/now"));
+        assert!(should_keep_command_palette_open("/branch"));
+        assert!(should_keep_command_palette_open("/note"));
+    }
+
+    #[test]
+    fn palette_closes_for_complete_commands_and_argument_entry() {
+        assert!(!should_keep_command_palette_open("/where"));
+        assert!(!should_keep_command_palette_open("/resume"));
+        assert!(!should_keep_command_palette_open("/archive"));
+        assert!(!should_keep_command_palette_open("/now test thread"));
+        assert!(!should_keep_command_palette_open(
+            "/pause blocked on review"
+        ));
+    }
+
+    #[test]
+    fn palette_stays_open_for_unknown_command_with_trailing_text() {
+        // Unknown prefix with trailing text: the user is likely editing the
+        // command name to pick a different one (e.g. /branch → /bran → /now),
+        // so keep the palette open for correction.
+        assert!(should_keep_command_palette_open("/bran meow"));
+        assert!(should_keep_command_palette_open("/foo bar"));
+    }
+
+    #[test]
+    fn palette_stays_open_for_mixed_case_commands() {
+        // Mixed-case commands are not recognised by the parser, so the palette
+        // should stay open to let the user correct/complete them.
+        assert!(should_keep_command_palette_open("/WHERE"));
+        assert!(should_keep_command_palette_open("/Resume"));
+        assert!(should_keep_command_palette_open("/DONE"));
     }
 }

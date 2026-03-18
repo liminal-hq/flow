@@ -21,6 +21,15 @@ pub enum InputResult {
     None,
 }
 
+impl From<anyhow::Result<String>> for InputResult {
+    fn from(result: anyhow::Result<String>) -> Self {
+        match result {
+            Ok(msg) => Self::Reply(msg),
+            Err(err) => Self::Error(err.to_string()),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CommandTarget {
     Thread(FlowId),
@@ -305,6 +314,10 @@ fn execute_intent(conn: &Connection, intent: Intent, text: &str) -> Result<Strin
             Ok(reply)
         }
 
+        Intent::Resume => {
+            anyhow::bail!("Use /resume on a selected thread or branch.");
+        }
+
         Intent::Pause => {
             let Some(thread) = thread_repo::find_active(conn)? else {
                 anyhow::bail!("No active thread to pause.");
@@ -323,6 +336,10 @@ fn execute_intent(conn: &Connection, intent: Intent, text: &str) -> Result<Strin
             event_repo::insert(conn, &event, "tui")?;
 
             Ok(format!("Paused thread: {}", thread.title))
+        }
+
+        Intent::Park => {
+            anyhow::bail!("Use /park on a selected branch.");
         }
 
         Intent::Ambiguous => {
@@ -357,6 +374,10 @@ fn execute_intent(conn: &Connection, intent: Intent, text: &str) -> Result<Strin
 
             Ok(format!("Done: {}", thread.title))
         }
+
+        Intent::Archive => {
+            anyhow::bail!("Use /archive on a selected thread or branch.");
+        }
     }
 }
 
@@ -380,11 +401,29 @@ fn execute_intent_with_target(
             };
             pause_command_target(conn, target, text)
         }
+        Intent::Resume => {
+            let Some(target) = target else {
+                return execute_intent(conn, intent, text);
+            };
+            resume_command_target(conn, target, text)
+        }
+        Intent::Park => {
+            let Some(target) = target else {
+                return execute_intent(conn, intent, text);
+            };
+            park_command_target(conn, target, text)
+        }
         Intent::Done => {
             let Some(target) = target else {
                 return execute_intent(conn, intent, text);
             };
             done_command_target(conn, target, text)
+        }
+        Intent::Archive => {
+            let Some(target) = target else {
+                return execute_intent(conn, intent, text);
+            };
+            archive_command_target(conn, target, text)
         }
         Intent::ReturnToParent
         | Intent::SetCurrentThread
@@ -682,6 +721,50 @@ fn pause_command_target(conn: &Connection, target: &CommandTarget, text: &str) -
     }
 }
 
+fn resume_command_target(conn: &Connection, target: &CommandTarget, text: &str) -> Result<String> {
+    let reply = match target {
+        CommandTarget::Thread(thread_id) => match resume_thread(conn, thread_id) {
+            InputResult::Reply(reply) => reply,
+            InputResult::Error(err) => anyhow::bail!(err),
+            InputResult::None => String::new(),
+        },
+        CommandTarget::Branch {
+            thread_id,
+            branch_id,
+        } => match resume_branch(conn, thread_id, branch_id) {
+            InputResult::Reply(reply) => reply,
+            InputResult::Error(err) => anyhow::bail!(err),
+            InputResult::None => String::new(),
+        },
+    };
+
+    if !text.trim().is_empty() {
+        attach_note_to_command_target(conn, target, text)?;
+    }
+
+    Ok(reply)
+}
+
+fn park_command_target(conn: &Connection, target: &CommandTarget, text: &str) -> Result<String> {
+    let reply = match target {
+        CommandTarget::Thread(_) => anyhow::bail!("Select a branch to park."),
+        CommandTarget::Branch {
+            thread_id,
+            branch_id,
+        } => match park_branch(conn, thread_id, branch_id) {
+            InputResult::Reply(reply) => reply,
+            InputResult::Error(err) => anyhow::bail!(err),
+            InputResult::None => String::new(),
+        },
+    };
+
+    if !text.trim().is_empty() {
+        attach_note_to_command_target(conn, target, text)?;
+    }
+
+    Ok(reply)
+}
+
 fn done_command_target(conn: &Connection, target: &CommandTarget, text: &str) -> Result<String> {
     match target {
         CommandTarget::Thread(thread_id) => {
@@ -700,6 +783,22 @@ fn done_command_target(conn: &Connection, target: &CommandTarget, text: &str) ->
             mark_branch_done(conn, thread_id, branch_id)
         }
     }
+}
+
+fn archive_command_target(conn: &Connection, target: &CommandTarget, text: &str) -> Result<String> {
+    let reply = match target {
+        CommandTarget::Thread(thread_id) => archive_thread(conn, thread_id)?,
+        CommandTarget::Branch {
+            thread_id,
+            branch_id,
+        } => archive_branch(conn, thread_id, branch_id)?,
+    };
+
+    if !text.trim().is_empty() {
+        attach_note_to_command_target(conn, target, text)?;
+    }
+
+    Ok(reply)
 }
 
 /// Resume a specific branch by ID — parks other active branches on the same thread first.
