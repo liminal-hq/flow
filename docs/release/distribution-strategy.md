@@ -101,7 +101,7 @@ Recommended matrix for the first pass:
 
 | runner | target triple | target label | architecture |
 |---|---|---|---|
-| `ubuntu-22.04` | `x86_64-unknown-linux-gnu` | `linux-x64` | `amd64` |
+| `ubuntu-22.04` | `x86_64-unknown-linux-gnu` | `linux-amd64` | `amd64` |
 | `ubuntu-22.04-arm` | `aarch64-unknown-linux-gnu` | `linux-arm64` | `arm64` |
 
 The workflow should pin fixed GitHub-hosted runner images rather than using `-latest` aliases so the release environment remains predictable over time.
@@ -124,13 +124,13 @@ Recommended workflow details:
 
 Release asset naming should stay predictable and match the SMDU style:
 
-- `flo-<tag>-linux-x64`
+- `flo-<tag>-linux-amd64`
 - `flo-<tag>-linux-arm64`
-- `flo-<tag>-linux-x64.tar.gz`
+- `flo-<tag>-linux-amd64.tar.gz`
 - `flo-<tag>-linux-arm64.tar.gz`
-- `flo-<tag>-linux-x64.deb`
+- `flo-<tag>-linux-amd64.deb`
 - `flo-<tag>-linux-arm64.deb`
-- `flo-<tag>-linux-x64.rpm`
+- `flo-<tag>-linux-amd64.rpm`
 - `flo-<tag>-linux-arm64.rpm`
 - corresponding `.sha256` files for every artefact above
 
