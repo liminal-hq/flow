@@ -29,7 +29,7 @@ Usage: scripts/build-linux-packages.sh [options]
 
 Options:
   --version <version>         Package version or tag (for example, v0.0.1)
-  --arch <x64|arm64>          Target architecture
+  --arch <amd64|arm64>        Target architecture
   --binary <path>             Built binary path
   --man-dir <path>            Directory containing generated man pages
   --output-prefix <prefix>    Output file prefix (without extension)
@@ -60,8 +60,8 @@ write_sha256_file() {
 # Collapse common architecture aliases onto the two release architectures we support.
 normalise_arch() {
 	case "$1" in
-		x64 | amd64 | x86_64)
-			echo "x64"
+		amd64 | x86_64)
+			echo "amd64"
 			;;
 		arm64 | aarch64)
 			echo "arm64"
@@ -178,7 +178,7 @@ DEB_ARCH=""
 RPM_ARCH=""
 RPM_TARGET=""
 case "${ARCH}" in
-	x64)
+	amd64)
 		DEB_ARCH="amd64"
 		RPM_ARCH="x86_64"
 		RPM_TARGET="x86_64-linux"
