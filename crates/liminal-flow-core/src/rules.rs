@@ -39,83 +39,48 @@ pub fn normalise_title(raw: &str) -> String {
     trimmed.to_string()
 }
 
+/// Slash command definitions for the parser.
+///
+/// Each entry maps a command name to its intent and whether a non-empty argument
+/// is required (e.g. `/now` needs text, `/done` does not).
+const COMMAND_TABLE: &[(&str, Intent, bool)] = &[
+    ("/now", Intent::SetCurrentThread, true),
+    ("/branch", Intent::StartBranch, true),
+    ("/back", Intent::ReturnToParent, false),
+    ("/note", Intent::AddNote, true),
+    ("/where", Intent::QueryCurrent, false),
+    ("/resume", Intent::Resume, false),
+    ("/pause", Intent::Pause, false),
+    ("/park", Intent::Park, false),
+    ("/done", Intent::Done, false),
+    ("/archive", Intent::Archive, false),
+];
+
 /// Detect the intent of a slash command from TUI input.
 ///
 /// Returns `None` if the input doesn't match a known slash command.
 pub fn parse_slash_command(input: &str) -> Option<(Intent, String)> {
     let trimmed = input.trim();
 
-    if let Some(rest) = trimmed.strip_prefix("/now ") {
-        let text = rest.trim().to_string();
-        if !text.is_empty() {
-            return Some((Intent::SetCurrentThread, text));
+    for &(name, intent, requires_arg) in COMMAND_TABLE {
+        // Exact match: `/done`
+        if trimmed == name {
+            return if requires_arg {
+                None
+            } else {
+                Some((intent, String::new()))
+            };
         }
-    }
 
-    if let Some(rest) = trimmed.strip_prefix("/branch ") {
-        let text = rest.trim().to_string();
-        if !text.is_empty() {
-            return Some((Intent::StartBranch, text));
+        // Command with argument: `/done shipped`
+        let prefix = format!("{name} ");
+        if let Some(rest) = trimmed.strip_prefix(&prefix) {
+            let arg = rest.trim().to_string();
+            if requires_arg && arg.is_empty() {
+                return None;
+            }
+            return Some((intent, arg));
         }
-    }
-
-    if trimmed == "/back" {
-        return Some((Intent::ReturnToParent, String::new()));
-    }
-
-    if let Some(rest) = trimmed.strip_prefix("/back ") {
-        return Some((Intent::ReturnToParent, rest.trim().to_string()));
-    }
-
-    if let Some(rest) = trimmed.strip_prefix("/note ") {
-        let text = rest.trim().to_string();
-        if !text.is_empty() {
-            return Some((Intent::AddNote, text));
-        }
-    }
-
-    if trimmed == "/where" {
-        return Some((Intent::QueryCurrent, String::new()));
-    }
-
-    if trimmed == "/resume" {
-        return Some((Intent::Resume, String::new()));
-    }
-
-    if let Some(rest) = trimmed.strip_prefix("/resume ") {
-        return Some((Intent::Resume, rest.trim().to_string()));
-    }
-
-    if trimmed == "/pause" {
-        return Some((Intent::Pause, String::new()));
-    }
-
-    if let Some(rest) = trimmed.strip_prefix("/pause ") {
-        return Some((Intent::Pause, rest.trim().to_string()));
-    }
-
-    if trimmed == "/park" {
-        return Some((Intent::Park, String::new()));
-    }
-
-    if let Some(rest) = trimmed.strip_prefix("/park ") {
-        return Some((Intent::Park, rest.trim().to_string()));
-    }
-
-    if trimmed == "/done" {
-        return Some((Intent::Done, String::new()));
-    }
-
-    if let Some(rest) = trimmed.strip_prefix("/done ") {
-        return Some((Intent::Done, rest.trim().to_string()));
-    }
-
-    if trimmed == "/archive" {
-        return Some((Intent::Archive, String::new()));
-    }
-
-    if let Some(rest) = trimmed.strip_prefix("/archive ") {
-        return Some((Intent::Archive, rest.trim().to_string()));
     }
 
     // Heuristic: questions end with ?
