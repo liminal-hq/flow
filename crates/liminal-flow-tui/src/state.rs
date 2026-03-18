@@ -122,15 +122,11 @@ pub fn should_keep_command_palette_open(query: &str) -> bool {
         .next()
         .is_some_and(char::is_whitespace);
 
-    if has_trailing_text {
-        // Once there's text after the command token, close the palette — the user
-        // is either typing an argument for a known command or has moved past the
-        // command-selection phase for an unknown prefix.
-        return false;
-    }
-
     match slash_command_by_name(command_name) {
+        Some(_) if has_trailing_text => false,
         Some(command) => command.requires_argument,
+        // Unknown prefix: keep palette open so the user can correct/select a
+        // command, even if there is trailing text (the argument they already typed).
         None => true,
     }
 }
@@ -777,10 +773,11 @@ mod tests {
     }
 
     #[test]
-    fn palette_closes_for_unknown_command_with_trailing_text() {
-        // Once the user types text after an unrecognised command token,
-        // the palette should close — they've moved past command selection.
-        assert!(!should_keep_command_palette_open("/bran meow"));
-        assert!(!should_keep_command_palette_open("/foo bar"));
+    fn palette_stays_open_for_unknown_command_with_trailing_text() {
+        // Unknown prefix with trailing text: the user is likely editing the
+        // command name to pick a different one (e.g. /branch → /bran → /now),
+        // so keep the palette open for correction.
+        assert!(should_keep_command_palette_open("/bran meow"));
+        assert!(should_keep_command_palette_open("/foo bar"));
     }
 }

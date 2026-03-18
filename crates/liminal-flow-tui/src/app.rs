@@ -673,14 +673,14 @@ fn run_loop(
                                         state.show_hints = true;
                                         textarea.input(Event::Key(key));
                                     }
-                                    KeyCode::Char(_) | KeyCode::Backspace => {
+                                    _ => {
+                                        // Forward to textarea, then refresh palette
+                                        // state — text-modifying keys (Char, Backspace,
+                                        // Delete) and cursor-movement keys (Left, Right)
+                                        // can both affect whether the palette should open.
                                         textarea.input(Event::Key(key));
                                         let query = textarea.lines().join("\n");
                                         refresh_command_palette_state(&mut state, &query);
-                                    }
-                                    _ => {
-                                        // Forward to textarea
-                                        textarea.input(Event::Key(key));
                                     }
                                 }
                             }
