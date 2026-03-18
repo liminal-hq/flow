@@ -68,6 +68,34 @@ fn should_keep_command_palette_open(query: &str) -> bool {
     !known_command
 }
 
+fn is_suspend_key(key: crossterm::event::KeyEvent) -> bool {
+    key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('z')
+}
+
+fn suspend_terminal(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> Result<()> {
+    disable_raw_mode()?;
+    execute!(
+        terminal.backend_mut(),
+        LeaveAlternateScreen,
+        DisableMouseCapture
+    )?;
+    terminal.show_cursor()?;
+
+    // Hand control back to the shell so Ctrl+Z behaves like a normal terminal app.
+    unsafe {
+        libc::raise(libc::SIGTSTP);
+    }
+
+    enable_raw_mode()?;
+    execute!(
+        terminal.backend_mut(),
+        EnterAlternateScreen,
+        EnableMouseCapture
+    )?;
+    terminal.clear()?;
+    Ok(())
+}
+
 fn selected_command_target(state: &TuiState) -> Option<input::CommandTarget> {
     match &state.selected {
         SelectedItem::Thread(i) => state
@@ -282,6 +310,12 @@ fn run_loop(
                         && key.code == KeyCode::Char('c')
                     {
                         return Ok(());
+                    }
+
+                    if is_suspend_key(key) {
+                        suspend_terminal(terminal)?;
+                        sync_thread_viewport(terminal, &mut state)?;
+                        continue;
                     }
 
                     match state.mode {
@@ -713,5 +747,27 @@ mod tests {
         assert!(!should_keep_command_palette_open("/done"));
         assert!(!should_keep_command_palette_open("/done shipped"));
         assert!(!should_keep_command_palette_open("/note "));
+    }
+
+    #[test]
+    fn ctrl_z_is_treated_as_suspend() {
+        assert!(is_suspend_key(crossterm::event::KeyEvent {
+            code: KeyCode::Char('z'),
+            modifiers: KeyModifiers::CONTROL,
+            kind: crossterm::event::KeyEventKind::Press,
+            state: crossterm::event::KeyEventState::NONE,
+        }));
+        assert!(!is_suspend_key(crossterm::event::KeyEvent {
+            code: KeyCode::Char('z'),
+            modifiers: KeyModifiers::NONE,
+            kind: crossterm::event::KeyEventKind::Press,
+            state: crossterm::event::KeyEventState::NONE,
+        }));
+        assert!(!is_suspend_key(crossterm::event::KeyEvent {
+            code: KeyCode::Char('c'),
+            modifiers: KeyModifiers::CONTROL,
+            kind: crossterm::event::KeyEventKind::Press,
+            state: crossterm::event::KeyEventState::NONE,
+        }));
     }
 }
