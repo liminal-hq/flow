@@ -93,7 +93,7 @@ pub const SLASH_COMMANDS: &[SlashCommand] = &[
 ];
 
 /// Return the active slash-command token from palette input.
-pub fn command_palette_query(query: &str) -> &str {
+fn command_palette_query(query: &str) -> &str {
     query.split_whitespace().next().unwrap_or("")
 }
 
@@ -122,8 +122,14 @@ pub fn should_keep_command_palette_open(query: &str) -> bool {
         .next()
         .is_some_and(char::is_whitespace);
 
+    if has_trailing_text {
+        // Once there's text after the command token, close the palette — the user
+        // is either typing an argument for a known command or has moved past the
+        // command-selection phase for an unknown prefix.
+        return false;
+    }
+
     match slash_command_by_name(command_name) {
-        Some(_) if has_trailing_text => false,
         Some(command) => command.requires_argument,
         None => true,
     }
@@ -768,5 +774,13 @@ mod tests {
         assert!(!should_keep_command_palette_open(
             "/pause blocked on review"
         ));
+    }
+
+    #[test]
+    fn palette_closes_for_unknown_command_with_trailing_text() {
+        // Once the user types text after an unrecognised command token,
+        // the palette should close — they've moved past command selection.
+        assert!(!should_keep_command_palette_open("/bran meow"));
+        assert!(!should_keep_command_palette_open("/foo bar"));
     }
 }

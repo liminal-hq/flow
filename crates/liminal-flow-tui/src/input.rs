@@ -21,6 +21,15 @@ pub enum InputResult {
     None,
 }
 
+impl From<anyhow::Result<String>> for InputResult {
+    fn from(result: anyhow::Result<String>) -> Self {
+        match result {
+            Ok(msg) => Self::Reply(msg),
+            Err(err) => Self::Error(err.to_string()),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CommandTarget {
     Thread(FlowId),

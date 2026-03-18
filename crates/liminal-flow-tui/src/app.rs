@@ -23,9 +23,7 @@ use tui_textarea::TextArea;
 
 use crate::input::{self, InputResult};
 use crate::poll;
-use crate::state::{
-    command_palette_query, filtered_slash_commands, should_keep_command_palette_open,
-};
+use crate::state::{filtered_slash_commands, should_keep_command_palette_open};
 use crate::state::{Mode, SelectedItem, TuiState};
 use crate::ui::{
     about, command_palette, help, hints_bar, input_pane, layout, reply_pane, thread_list,
@@ -51,34 +49,37 @@ fn restore_tui_terminal() -> Result<()> {
 }
 
 fn should_follow_active_after_submit(input: &str) -> bool {
+    use liminal_flow_core::model::Intent;
     let trimmed = input.trim();
-    trimmed == "/resume"
-        || trimmed.starts_with("/resume ")
-        || trimmed == "/park"
-        || trimmed.starts_with("/park ")
-        || trimmed == "/archive"
-        || trimmed.starts_with("/archive ")
-        || matches!(
-            input::parsed_intent(input),
-            Some(
-                liminal_flow_core::model::Intent::SetCurrentThread
-                    | liminal_flow_core::model::Intent::StartBranch
-                    | liminal_flow_core::model::Intent::ReturnToParent
-            )
+    matches!(
+        input::parsed_intent(input),
+        Some(
+            Intent::Resume
+                | Intent::Park
+                | Intent::Archive
+                | Intent::SetCurrentThread
+                | Intent::StartBranch
+                | Intent::ReturnToParent
         )
-        || (!trimmed.is_empty() && !trimmed.starts_with('/'))
+    ) || (!trimmed.is_empty() && !trimmed.starts_with('/'))
 }
 
-fn should_show_command_palette(query: &str) -> bool {
-    let trimmed_start = command_palette_query(query);
-    if !trimmed_start.starts_with('/') {
-        return false;
+/// Apply an `InputResult` to TUI state (set reply or error message).
+fn apply_input_result(state: &mut TuiState, result: InputResult) {
+    match result {
+        InputResult::Reply(msg) => {
+            state.last_reply = Some(msg);
+            state.error_message = None;
+        }
+        InputResult::Error(msg) => {
+            state.error_message = Some(msg);
+        }
+        InputResult::None => {}
     }
-    should_keep_command_palette_open(query)
 }
 
 fn refresh_command_palette_state(state: &mut TuiState, query: &str) {
-    state.show_command_palette = should_show_command_palette(query);
+    state.show_command_palette = should_keep_command_palette_open(query);
     if state.show_command_palette {
         state.command_palette_index = 0;
     }
@@ -384,11 +385,11 @@ fn run_loop(
                             KeyCode::Char('r') => {
                                 // Resume/activate the selected thread or branch
                                 let result = match &state.selected {
-                                    crate::state::SelectedItem::Thread(i) => state
+                                    SelectedItem::Thread(i) => state
                                         .threads
                                         .get(*i)
                                         .map(|entry| input::resume_thread(conn, &entry.thread.id)),
-                                    crate::state::SelectedItem::Branch(i, j) => {
+                                    SelectedItem::Branch(i, j) => {
                                         state.threads.get(*i).and_then(|entry| {
                                             entry.branches.get(*j).map(|branch| {
                                                 input::resume_branch(
@@ -401,16 +402,7 @@ fn run_loop(
                                     }
                                 };
                                 if let Some(result) = result {
-                                    match result {
-                                        InputResult::Reply(msg) => {
-                                            state.last_reply = Some(msg);
-                                            state.error_message = None;
-                                        }
-                                        InputResult::Error(msg) => {
-                                            state.error_message = Some(msg);
-                                        }
-                                        InputResult::None => {}
-                                    }
+                                    apply_input_result(&mut state, result);
                                     state.refresh_from_db(conn);
                                     state.select_active_item();
                                     sync_thread_viewport(terminal, &mut state)?;
@@ -418,9 +410,10 @@ fn run_loop(
                                 }
                             }
                             KeyCode::Char('p') => {
+                                // Park the selected branch
                                 let result = match &state.selected {
-                                    crate::state::SelectedItem::Thread(_) => None,
-                                    crate::state::SelectedItem::Branch(i, j) => {
+                                    SelectedItem::Thread(_) => None,
+                                    SelectedItem::Branch(i, j) => {
                                         state.threads.get(*i).and_then(|entry| {
                                             entry.branches.get(*j).map(|branch| {
                                                 input::park_branch(
@@ -433,22 +426,13 @@ fn run_loop(
                                     }
                                 };
                                 if let Some(result) = result {
-                                    match result {
-                                        InputResult::Reply(msg) => {
-                                            state.last_reply = Some(msg);
-                                            state.error_message = None;
-                                            if let crate::state::SelectedItem::Branch(i, _) =
-                                                state.selected
-                                            {
-                                                state.selected =
-                                                    crate::state::SelectedItem::Thread(i);
-                                            }
+                                    // Move selection to parent thread before refresh
+                                    if matches!(result, InputResult::Reply(_)) {
+                                        if let SelectedItem::Branch(i, _) = state.selected {
+                                            state.selected = SelectedItem::Thread(i);
                                         }
-                                        InputResult::Error(msg) => {
-                                            state.error_message = Some(msg);
-                                        }
-                                        InputResult::None => {}
                                     }
+                                    apply_input_result(&mut state, result);
                                     state.refresh_from_db(conn);
                                     state.select_active_item();
                                     sync_thread_viewport(terminal, &mut state)?;
@@ -456,13 +440,12 @@ fn run_loop(
                                 }
                             }
                             KeyCode::Char('d') => {
-                                let result = match &state.selected {
-                                    crate::state::SelectedItem::Thread(i) => {
-                                        state.threads.get(*i).map(|entry| {
-                                            input::mark_thread_done(conn, &entry.thread.id)
-                                        })
-                                    }
-                                    crate::state::SelectedItem::Branch(i, j) => {
+                                // Mark the selected item done
+                                let result: Option<InputResult> = match &state.selected {
+                                    SelectedItem::Thread(i) => state.threads.get(*i).map(|entry| {
+                                        input::mark_thread_done(conn, &entry.thread.id).into()
+                                    }),
+                                    SelectedItem::Branch(i, j) => {
                                         state.threads.get(*i).and_then(|entry| {
                                             entry.branches.get(*j).map(|branch| {
                                                 input::mark_branch_done(
@@ -470,32 +453,25 @@ fn run_loop(
                                                     &entry.thread.id,
                                                     &branch.id,
                                                 )
+                                                .into()
                                             })
                                         })
                                     }
                                 };
                                 if let Some(result) = result {
-                                    match result {
-                                        Ok(msg) => {
-                                            state.last_reply = Some(msg);
-                                            state.error_message = None;
-                                        }
-                                        Err(err) => {
-                                            state.error_message = Some(err.to_string());
-                                        }
-                                    }
+                                    apply_input_result(&mut state, result);
                                     state.refresh_from_db(conn);
                                     sync_thread_viewport(terminal, &mut state)?;
                                     state.poll_watermark = poll::current_watermark(conn);
                                 }
                             }
                             KeyCode::Char('A') => {
-                                let result = match &state.selected {
-                                    crate::state::SelectedItem::Thread(i) => state
-                                        .threads
-                                        .get(*i)
-                                        .map(|entry| input::archive_thread(conn, &entry.thread.id)),
-                                    crate::state::SelectedItem::Branch(i, j) => {
+                                // Archive the selected item
+                                let result: Option<InputResult> = match &state.selected {
+                                    SelectedItem::Thread(i) => state.threads.get(*i).map(|entry| {
+                                        input::archive_thread(conn, &entry.thread.id).into()
+                                    }),
+                                    SelectedItem::Branch(i, j) => {
                                         state.threads.get(*i).and_then(|entry| {
                                             entry.branches.get(*j).map(|branch| {
                                                 input::archive_branch(
@@ -503,20 +479,13 @@ fn run_loop(
                                                     &entry.thread.id,
                                                     &branch.id,
                                                 )
+                                                .into()
                                             })
                                         })
                                     }
                                 };
                                 if let Some(result) = result {
-                                    match result {
-                                        Ok(msg) => {
-                                            state.last_reply = Some(msg);
-                                            state.error_message = None;
-                                        }
-                                        Err(err) => {
-                                            state.error_message = Some(err.to_string());
-                                        }
-                                    }
+                                    apply_input_result(&mut state, result);
                                     state.refresh_from_db(conn);
                                     sync_thread_viewport(terminal, &mut state)?;
                                     state.poll_watermark = poll::current_watermark(conn);
@@ -600,7 +569,9 @@ fn run_loop(
                                             state.show_command_palette = false;
                                         }
                                     }
-                                    KeyCode::Backspace => {
+                                    KeyCode::Backspace
+                                    | KeyCode::Delete
+                                    | KeyCode::Char(_) => {
                                         textarea.input(Event::Key(key));
                                         let query = textarea.lines().join("\n");
                                         if should_keep_command_palette_open(&query) {
@@ -609,14 +580,8 @@ fn run_loop(
                                             state.show_command_palette = false;
                                         }
                                     }
-                                    KeyCode::Char(_) => {
+                                    KeyCode::Left | KeyCode::Right | KeyCode::Home | KeyCode::End => {
                                         textarea.input(Event::Key(key));
-                                        let query = textarea.lines().join("\n");
-                                        if should_keep_command_palette_open(&query) {
-                                            clamp_palette_selection(&mut state, &query);
-                                        } else {
-                                            state.show_command_palette = false;
-                                        }
                                     }
                                     _ => {}
                                 }
@@ -688,20 +653,12 @@ fn run_loop(
                                         let follow_active =
                                             should_follow_active_after_submit(&text);
                                         let command_target = selected_command_target(&state);
-                                        match input::perform_command_on_target(
+                                        let result = input::perform_command_on_target(
                                             conn,
                                             &text,
                                             command_target.as_ref(),
-                                        ) {
-                                            InputResult::Reply(msg) => {
-                                                state.last_reply = Some(msg);
-                                                state.error_message = None;
-                                            }
-                                            InputResult::Error(msg) => {
-                                                state.error_message = Some(msg);
-                                            }
-                                            InputResult::None => {}
-                                        }
+                                        );
+                                        apply_input_result(&mut state, result);
 
                                         // Refresh state from DB after mutation
                                         state.refresh_from_db(conn);
@@ -711,23 +668,12 @@ fn run_loop(
                                         sync_thread_viewport(terminal, &mut state)?;
                                         state.poll_watermark = poll::current_watermark(conn);
                                     }
-                                    KeyCode::Char('/') if is_empty => {
-                                        // Show command palette
-                                        textarea.input(Event::Key(key));
-                                        let query = textarea.lines().join("\n");
-                                        refresh_command_palette_state(&mut state, &query);
-                                    }
                                     KeyCode::Char('?') if is_empty => {
                                         // Show shortcut hints
                                         state.show_hints = true;
                                         textarea.input(Event::Key(key));
                                     }
-                                    KeyCode::Backspace => {
-                                        textarea.input(Event::Key(key));
-                                        let query = textarea.lines().join("\n");
-                                        refresh_command_palette_state(&mut state, &query);
-                                    }
-                                    KeyCode::Char(_) => {
+                                    KeyCode::Char(_) | KeyCode::Backspace => {
                                         textarea.input(Event::Key(key));
                                         let query = textarea.lines().join("\n");
                                         refresh_command_palette_state(&mut state, &query);
@@ -759,31 +705,16 @@ mod tests {
     use super::*;
 
     #[test]
-    fn command_palette_stays_open_for_partial_and_argument_commands() {
-        assert!(should_show_command_palette("/n"));
-        assert!(should_show_command_palette("/par"));
-        assert!(should_show_command_palette("/note-taking"));
-        // Commands that require an argument keep the palette open until a space is typed
-        assert!(should_show_command_palette("/now"));
-        assert!(should_show_command_palette("/branch"));
-        assert!(should_show_command_palette("/note"));
+    fn palette_open_cases_not_covered_in_state_tests() {
+        // Partial unknown commands keep palette open
+        assert!(should_keep_command_palette_open("/n"));
+        assert!(should_keep_command_palette_open("/note-taking"));
     }
 
     #[test]
-    fn command_palette_closes_once_command_is_complete_or_has_arguments() {
-        assert!(!should_show_command_palette("/now improve suspend flow"));
-        assert!(!should_show_command_palette("/done"));
-        assert!(!should_show_command_palette("/done shipped"));
-        assert!(!should_show_command_palette("/note "));
-        assert!(!should_show_command_palette("/where"));
-        assert!(!should_show_command_palette("/resume"));
-    }
-
-    #[test]
-    fn command_palette_reopens_for_partial_command_after_backspace() {
-        assert!(should_show_command_palette("/no"));
-        assert!(should_show_command_palette("/now"));
-        assert!(!should_show_command_palette("/done"));
+    fn palette_close_cases_not_covered_in_state_tests() {
+        assert!(!should_keep_command_palette_open("/done shipped"));
+        assert!(!should_keep_command_palette_open("/note "));
     }
 
     #[test]
