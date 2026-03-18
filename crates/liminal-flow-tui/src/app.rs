@@ -569,9 +569,7 @@ fn run_loop(
                                             state.show_command_palette = false;
                                         }
                                     }
-                                    KeyCode::Backspace
-                                    | KeyCode::Delete
-                                    | KeyCode::Char(_) => {
+                                    KeyCode::Backspace | KeyCode::Delete | KeyCode::Char(_) => {
                                         textarea.input(Event::Key(key));
                                         let query = textarea.lines().join("\n");
                                         if should_keep_command_palette_open(&query) {
@@ -580,7 +578,10 @@ fn run_loop(
                                             state.show_command_palette = false;
                                         }
                                     }
-                                    KeyCode::Left | KeyCode::Right | KeyCode::Home | KeyCode::End => {
+                                    KeyCode::Left
+                                    | KeyCode::Right
+                                    | KeyCode::Home
+                                    | KeyCode::End => {
                                         textarea.input(Event::Key(key));
                                     }
                                     _ => {}
