@@ -23,7 +23,7 @@ use tui_textarea::TextArea;
 use crate::input::{self, InputResult};
 use crate::poll;
 use crate::state::filtered_slash_commands;
-use crate::state::{Mode, SelectedItem, TuiState};
+use crate::state::{Mode, SelectedItem, TuiState, SLASH_COMMANDS};
 use crate::ui::{
     about, command_palette, help, hints_bar, input_pane, layout, reply_pane, thread_list,
 };
@@ -47,6 +47,25 @@ fn should_follow_active_after_submit(input: &str) -> bool {
             )
         )
         || (!trimmed.is_empty() && !trimmed.starts_with('/'))
+}
+
+fn should_keep_command_palette_open(query: &str) -> bool {
+    let trimmed_start = query.trim_start();
+    if !trimmed_start.starts_with('/') {
+        return false;
+    }
+
+    let command_token = trimmed_start
+        .split_whitespace()
+        .next()
+        .unwrap_or(trimmed_start);
+    let known_command = SLASH_COMMANDS.iter().any(|(cmd, _)| {
+        cmd.split_whitespace()
+            .next()
+            .is_some_and(|known| known == command_token)
+    });
+
+    !known_command
 }
 
 fn selected_command_target(state: &TuiState) -> Option<input::CommandTarget> {
@@ -533,9 +552,7 @@ fn run_loop(
                                     KeyCode::Backspace => {
                                         textarea.input(Event::Key(key));
                                         let query = textarea.lines().join("\n");
-                                        if query.trim().is_empty()
-                                            || !query.trim_start().starts_with('/')
-                                        {
+                                        if !should_keep_command_palette_open(&query) {
                                             state.show_command_palette = false;
                                         } else {
                                             clamp_palette_selection(&mut state, &query);
@@ -544,7 +561,7 @@ fn run_loop(
                                     KeyCode::Char(_) => {
                                         textarea.input(Event::Key(key));
                                         let query = textarea.lines().join("\n");
-                                        if !query.trim_start().starts_with('/') {
+                                        if !should_keep_command_palette_open(&query) {
                                             state.show_command_palette = false;
                                         } else {
                                             clamp_palette_selection(&mut state, &query);
@@ -673,5 +690,28 @@ fn run_loop(
             sync_thread_viewport(terminal, &mut state)?;
             state.poll_watermark = poll::current_watermark(conn);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn command_palette_stays_open_for_partial_commands() {
+        assert!(should_keep_command_palette_open("/n"));
+        assert!(should_keep_command_palette_open("/par"));
+        assert!(should_keep_command_palette_open("/note-taking"));
+    }
+
+    #[test]
+    fn command_palette_closes_once_command_token_is_complete() {
+        assert!(!should_keep_command_palette_open("/now"));
+        assert!(!should_keep_command_palette_open(
+            "/now improve suspend flow"
+        ));
+        assert!(!should_keep_command_palette_open("/done"));
+        assert!(!should_keep_command_palette_open("/done shipped"));
+        assert!(!should_keep_command_palette_open("/note "));
     }
 }
