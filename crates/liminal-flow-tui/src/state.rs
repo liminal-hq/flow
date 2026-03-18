@@ -98,12 +98,11 @@ fn command_palette_query(query: &str) -> &str {
 }
 
 fn slash_command_by_name(name: &str) -> Option<&'static SlashCommand> {
-    SLASH_COMMANDS.iter().find(|command| {
-        command
-            .name()
-            .trim_start_matches('/')
-            .eq_ignore_ascii_case(name)
-    })
+    // Use exact (case-sensitive) matching to stay consistent with the core
+    // parser, which only recognises lowercase command names.
+    SLASH_COMMANDS
+        .iter()
+        .find(|command| command.name().trim_start_matches('/') == name)
 }
 
 pub fn should_keep_command_palette_open(query: &str) -> bool {
@@ -779,5 +778,14 @@ mod tests {
         // so keep the palette open for correction.
         assert!(should_keep_command_palette_open("/bran meow"));
         assert!(should_keep_command_palette_open("/foo bar"));
+    }
+
+    #[test]
+    fn palette_stays_open_for_mixed_case_commands() {
+        // Mixed-case commands are not recognised by the parser, so the palette
+        // should stay open to let the user correct/complete them.
+        assert!(should_keep_command_palette_open("/WHERE"));
+        assert!(should_keep_command_palette_open("/Resume"));
+        assert!(should_keep_command_palette_open("/DONE"));
     }
 }

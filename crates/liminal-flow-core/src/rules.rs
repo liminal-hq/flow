@@ -41,19 +41,24 @@ pub fn normalise_title(raw: &str) -> String {
 
 /// Slash command definitions for the parser.
 ///
-/// Each entry maps a command name to its intent and whether a non-empty argument
-/// is required (e.g. `/now` needs text, `/done` does not).
-const COMMAND_TABLE: &[(&str, Intent, bool)] = &[
-    ("/now", Intent::SetCurrentThread, true),
-    ("/branch", Intent::StartBranch, true),
-    ("/back", Intent::ReturnToParent, false),
-    ("/note", Intent::AddNote, true),
-    ("/where", Intent::QueryCurrent, false),
-    ("/resume", Intent::Resume, false),
-    ("/pause", Intent::Pause, false),
-    ("/park", Intent::Park, false),
-    ("/done", Intent::Done, false),
-    ("/archive", Intent::Archive, false),
+/// Each entry maps a command name to its intent, whether a non-empty argument
+/// is required, and whether trailing text is accepted at all.
+///
+/// - `requires_arg = true`: a non-empty argument is mandatory (e.g. `/now`)
+/// - `accepts_trailing = true`: optional trailing text is kept (e.g. `/done shipped`)
+/// - `accepts_trailing = false`: exact match only (e.g. `/where`)
+const COMMAND_TABLE: &[(&str, Intent, bool, bool)] = &[
+    //  command      intent                     requires  accepts_trailing
+    ("/now", Intent::SetCurrentThread, true, true),
+    ("/branch", Intent::StartBranch, true, true),
+    ("/back", Intent::ReturnToParent, false, true),
+    ("/note", Intent::AddNote, true, true),
+    ("/where", Intent::QueryCurrent, false, false),
+    ("/resume", Intent::Resume, false, true),
+    ("/pause", Intent::Pause, false, true),
+    ("/park", Intent::Park, false, true),
+    ("/done", Intent::Done, false, true),
+    ("/archive", Intent::Archive, false, true),
 ];
 
 /// Detect the intent of a slash command from TUI input.
@@ -62,7 +67,7 @@ const COMMAND_TABLE: &[(&str, Intent, bool)] = &[
 pub fn parse_slash_command(input: &str) -> Option<(Intent, String)> {
     let trimmed = input.trim();
 
-    for &(name, intent, requires_arg) in COMMAND_TABLE {
+    for &(name, intent, requires_arg, accepts_trailing) in COMMAND_TABLE {
         // Exact match: `/done`
         if trimmed == name {
             return if requires_arg {
@@ -72,14 +77,16 @@ pub fn parse_slash_command(input: &str) -> Option<(Intent, String)> {
             };
         }
 
-        // Command with argument: `/done shipped`
-        let prefix = format!("{name} ");
-        if let Some(rest) = trimmed.strip_prefix(&prefix) {
-            let arg = rest.trim().to_string();
-            if requires_arg && arg.is_empty() {
-                return None;
+        // Command with argument or optional note: `/now improving AIDX`, `/done shipped`
+        if accepts_trailing {
+            let prefix = format!("{name} ");
+            if let Some(rest) = trimmed.strip_prefix(&prefix) {
+                let arg = rest.trim().to_string();
+                if requires_arg && arg.is_empty() {
+                    return None;
+                }
+                return Some((intent, arg));
             }
-            return Some((intent, arg));
         }
     }
 
@@ -276,6 +283,14 @@ mod tests {
             parse_slash_command("back to AIDX"),
             Some((Intent::ReturnToParent, String::new()))
         );
+    }
+
+    #[test]
+    fn parse_where_rejects_trailing_text() {
+        // `/where` is exact-match only — trailing text should not be silently dropped
+        assert_eq!(parse_slash_command("/where anything"), None);
+        // Note: `/where status?` still matches the `?` question heuristic,
+        // which is correct — it becomes a QueryCurrent with the full text.
     }
 
     #[test]
