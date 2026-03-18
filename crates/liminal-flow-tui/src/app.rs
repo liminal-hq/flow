@@ -22,7 +22,7 @@ use tui_textarea::TextArea;
 
 use crate::input::{self, InputResult};
 use crate::poll;
-use crate::state::filtered_slash_commands;
+use crate::state::{command_palette_query, filtered_slash_commands};
 use crate::state::{Mode, SelectedItem, TuiState, SLASH_COMMANDS};
 use crate::ui::{
     about, command_palette, help, hints_bar, input_pane, layout, reply_pane, thread_list,
@@ -50,7 +50,7 @@ fn should_follow_active_after_submit(input: &str) -> bool {
 }
 
 fn should_show_command_palette(query: &str) -> bool {
-    let trimmed_start = query.trim_start();
+    let trimmed_start = command_palette_query(query);
     if !trimmed_start.starts_with('/') {
         return false;
     }
