@@ -22,8 +22,8 @@ use tui_textarea::TextArea;
 
 use crate::input::{self, InputResult};
 use crate::poll;
-use crate::state::filtered_slash_commands;
-use crate::state::{Mode, SelectedItem, TuiState};
+use crate::state::{command_palette_query, filtered_slash_commands};
+use crate::state::{Mode, SelectedItem, TuiState, SLASH_COMMANDS};
 use crate::ui::{
     about, command_palette, help, hints_bar, input_pane, layout, reply_pane, thread_list,
 };
@@ -47,6 +47,84 @@ fn should_follow_active_after_submit(input: &str) -> bool {
             )
         )
         || (!trimmed.is_empty() && !trimmed.starts_with('/'))
+}
+
+fn should_show_command_palette(query: &str) -> bool {
+    let trimmed_start = command_palette_query(query);
+    if !trimmed_start.starts_with('/') {
+        return false;
+    }
+
+    let command_token = trimmed_start
+        .split_whitespace()
+        .next()
+        .unwrap_or(trimmed_start);
+    let known_command = SLASH_COMMANDS.iter().any(|(cmd, _)| {
+        cmd.split_whitespace()
+            .next()
+            .is_some_and(|known| known == command_token)
+    });
+
+    !known_command
+}
+
+fn refresh_command_palette_state(state: &mut TuiState, query: &str) {
+    state.show_command_palette = should_show_command_palette(query);
+    if state.show_command_palette {
+        state.command_palette_index = 0;
+    }
+}
+
+fn complete_command_palette_selection(query: &str, cmd: &str) -> String {
+    let trimmed_start = query.trim_start();
+    let leading_whitespace_len = query.len() - trimmed_start.len();
+    let cmd_name = cmd.split_whitespace().next().unwrap_or(cmd);
+    let suffix = trimmed_start
+        .find(char::is_whitespace)
+        .map(|index| &trimmed_start[index..])
+        .unwrap_or("");
+
+    let mut completed = String::with_capacity(
+        leading_whitespace_len + cmd_name.len() + suffix.len() + usize::from(suffix.is_empty()),
+    );
+    completed.push_str(&query[..leading_whitespace_len]);
+    completed.push_str(cmd_name);
+
+    if suffix.is_empty() {
+        completed.push(' ');
+    } else {
+        completed.push_str(suffix);
+    }
+
+    completed
+}
+
+fn is_suspend_key(key: crossterm::event::KeyEvent) -> bool {
+    key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('z')
+}
+
+fn suspend_terminal(terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> Result<()> {
+    disable_raw_mode()?;
+    execute!(
+        terminal.backend_mut(),
+        LeaveAlternateScreen,
+        DisableMouseCapture
+    )?;
+    terminal.show_cursor()?;
+
+    // Hand control back to the shell so Ctrl+Z behaves like a normal terminal app.
+    unsafe {
+        libc::raise(libc::SIGTSTP);
+    }
+
+    enable_raw_mode()?;
+    execute!(
+        terminal.backend_mut(),
+        EnterAlternateScreen,
+        EnableMouseCapture
+    )?;
+    terminal.clear()?;
+    Ok(())
 }
 
 fn selected_command_target(state: &TuiState) -> Option<input::CommandTarget> {
@@ -263,6 +341,12 @@ fn run_loop(
                         && key.code == KeyCode::Char('c')
                     {
                         return Ok(());
+                    }
+
+                    if is_suspend_key(key) {
+                        suspend_terminal(terminal)?;
+                        sync_thread_viewport(terminal, &mut state)?;
+                        continue;
                     }
 
                     match state.mode {
@@ -520,34 +604,32 @@ fn run_loop(
                                         if let Some((_, cmd, _)) =
                                             filtered.get(state.command_palette_index)
                                         {
-                                            let cmd_name =
-                                                cmd.split_whitespace().next().unwrap_or(cmd);
+                                            let completed =
+                                                complete_command_palette_selection(&query, cmd);
                                             textarea = TextArea::default();
                                             textarea.set_cursor_line_style(
                                                 ratatui::style::Style::default(),
                                             );
-                                            textarea.insert_str(format!("{cmd_name} "));
+                                            textarea.insert_str(completed);
                                             state.show_command_palette = false;
                                         }
                                     }
                                     KeyCode::Backspace => {
                                         textarea.input(Event::Key(key));
                                         let query = textarea.lines().join("\n");
-                                        if query.trim().is_empty()
-                                            || !query.trim_start().starts_with('/')
-                                        {
-                                            state.show_command_palette = false;
-                                        } else {
+                                        if should_show_command_palette(&query) {
                                             clamp_palette_selection(&mut state, &query);
+                                        } else {
+                                            state.show_command_palette = false;
                                         }
                                     }
                                     KeyCode::Char(_) => {
                                         textarea.input(Event::Key(key));
                                         let query = textarea.lines().join("\n");
-                                        if !query.trim_start().starts_with('/') {
-                                            state.show_command_palette = false;
-                                        } else {
+                                        if should_show_command_palette(&query) {
                                             clamp_palette_selection(&mut state, &query);
+                                        } else {
+                                            state.show_command_palette = false;
                                         }
                                     }
                                     _ => {}
@@ -645,14 +727,24 @@ fn run_loop(
                                     }
                                     KeyCode::Char('/') if is_empty => {
                                         // Show command palette
-                                        state.show_command_palette = true;
-                                        state.command_palette_index = 0;
                                         textarea.input(Event::Key(key));
+                                        let query = textarea.lines().join("\n");
+                                        refresh_command_palette_state(&mut state, &query);
                                     }
                                     KeyCode::Char('?') if is_empty => {
                                         // Show shortcut hints
                                         state.show_hints = true;
                                         textarea.input(Event::Key(key));
+                                    }
+                                    KeyCode::Backspace => {
+                                        textarea.input(Event::Key(key));
+                                        let query = textarea.lines().join("\n");
+                                        refresh_command_palette_state(&mut state, &query);
+                                    }
+                                    KeyCode::Char(_) => {
+                                        textarea.input(Event::Key(key));
+                                        let query = textarea.lines().join("\n");
+                                        refresh_command_palette_state(&mut state, &query);
                                     }
                                     _ => {
                                         // Forward to textarea
@@ -673,5 +765,70 @@ fn run_loop(
             sync_thread_viewport(terminal, &mut state)?;
             state.poll_watermark = poll::current_watermark(conn);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn command_palette_stays_open_for_partial_commands() {
+        assert!(should_show_command_palette("/n"));
+        assert!(should_show_command_palette("/par"));
+        assert!(should_show_command_palette("/note-taking"));
+    }
+
+    #[test]
+    fn command_palette_closes_once_command_token_is_complete() {
+        assert!(!should_show_command_palette("/now"));
+        assert!(!should_show_command_palette("/now improve suspend flow"));
+        assert!(!should_show_command_palette("/done"));
+        assert!(!should_show_command_palette("/done shipped"));
+        assert!(!should_show_command_palette("/note "));
+    }
+
+    #[test]
+    fn command_palette_reopens_for_partial_command_after_backspace() {
+        assert!(should_show_command_palette("/no"));
+        assert!(!should_show_command_palette("/now"));
+    }
+
+    #[test]
+    fn command_palette_completion_preserves_suffix_text() {
+        assert_eq!(
+            complete_command_palette_selection("/now cat", "/now <text>"),
+            "/now cat"
+        );
+        assert_eq!(
+            complete_command_palette_selection("   /no cat", "/now <text>"),
+            "   /now cat"
+        );
+        assert_eq!(
+            complete_command_palette_selection("/no", "/now <text>"),
+            "/now "
+        );
+    }
+
+    #[test]
+    fn ctrl_z_is_treated_as_suspend() {
+        assert!(is_suspend_key(crossterm::event::KeyEvent {
+            code: KeyCode::Char('z'),
+            modifiers: KeyModifiers::CONTROL,
+            kind: crossterm::event::KeyEventKind::Press,
+            state: crossterm::event::KeyEventState::NONE,
+        }));
+        assert!(!is_suspend_key(crossterm::event::KeyEvent {
+            code: KeyCode::Char('z'),
+            modifiers: KeyModifiers::NONE,
+            kind: crossterm::event::KeyEventKind::Press,
+            state: crossterm::event::KeyEventState::NONE,
+        }));
+        assert!(!is_suspend_key(crossterm::event::KeyEvent {
+            code: KeyCode::Char('c'),
+            modifiers: KeyModifiers::CONTROL,
+            kind: crossterm::event::KeyEventKind::Press,
+            state: crossterm::event::KeyEventState::NONE,
+        }));
     }
 }

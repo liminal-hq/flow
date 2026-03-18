@@ -43,9 +43,14 @@ pub const SLASH_COMMANDS: &[(&str, &str)] = &[
     ("/done", "Mark the selected item done"),
 ];
 
+/// Return the active slash-command token from palette input.
+pub fn command_palette_query(query: &str) -> &str {
+    query.split_whitespace().next().unwrap_or("")
+}
+
 /// Return slash commands filtered by the current palette query.
 pub fn filtered_slash_commands(query: &str) -> Vec<(usize, &'static str, &'static str)> {
-    let normalized = query.trim();
+    let normalized = command_palette_query(query).trim();
     let needle = normalized
         .strip_prefix('/')
         .unwrap_or(normalized)
@@ -652,5 +657,20 @@ mod tests {
         let filtered = filtered_slash_commands("/par");
         assert_eq!(filtered[0].1, "/park");
         assert_eq!(filtered[1].1, "/back");
+    }
+
+    #[test]
+    fn command_palette_query_ignores_trailing_text() {
+        assert_eq!(command_palette_query("/no cat"), "/no");
+        assert_eq!(command_palette_query("/now improve"), "/now");
+        assert_eq!(command_palette_query("   /done shipped"), "/done");
+    }
+
+    #[test]
+    fn slash_command_filter_ignores_trailing_text_after_token() {
+        let filtered = filtered_slash_commands("/no cat");
+        assert!(!filtered.is_empty());
+        assert!(filtered.iter().any(|(_, cmd, _)| *cmd == "/now <text>"));
+        assert!(filtered.iter().any(|(_, cmd, _)| *cmd == "/note <note>"));
     }
 }
