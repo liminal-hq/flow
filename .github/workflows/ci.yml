@@ -116,14 +116,6 @@ jobs:
           check_name: Flow Tests
           files: target/nextest/ci/junit.xml
 
-      - name: Publish test report
-        if: always()
-        uses: dorny/test-reporter@v2
-        with:
-          name: Flow Tests (detailed)
-          path: target/nextest/ci/junit.xml
-          reporter: java-junit
-
       - name: Write summary
         if: always()
         run: |
