@@ -151,6 +151,7 @@ The TUI starts in **Insert mode**:
 - When you finish typing a full slash command and begin its argument text, the command palette closes so Enter submits the command normally
 - Type `?` on an empty line to see **shortcut hints**
 - **Up/Down** arrows navigate the thread list; the thread list auto-scrolls to keep selection visible; **Enter** on empty input expands/collapses branches
+- The **Capture** pane grows as you add new lines, so multi-line drafts stay visible without taking extra space up front
 - Press `Ctrl+J` in the **Capture** pane to insert a new line without submitting
 - Mouse-wheel scrolling follows the hovered pane: `Threads`, `Status`, and `Help` each scroll independently
 - Left-click in the thread list selects the clicked thread or branch

@@ -112,7 +112,7 @@ The TUI provides a three-pane interface:
 
 - **Left pane (30%):** Thread list with branches indented beneath
 - **Right pane (70%):** Detail view for the selected thread or branch, with scope context and recent notes
-- **Bottom (3 lines):** Chat-style input with tui-textarea
+- **Bottom (3-5 lines):** Chat-style input with tui-textarea that starts compact and grows as explicit new lines are added
 
 ### Modes
 
