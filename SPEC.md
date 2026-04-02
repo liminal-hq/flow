@@ -118,7 +118,7 @@ The TUI provides a three-pane interface:
 
 | Mode | Description |
 |---|---|
-| Insert | Text input active. Enter submits. Esc switches to Normal. |
+| Insert | Text input active. Enter submits, `Ctrl+J` inserts a new line, and Esc switches to Normal. |
 | Normal | Keyboard navigation. `j`/`k`/Up/Down to move through threads and branches, `Enter` to expand or collapse the selected thread, `r` to resume the selected item and make it active, `p` to park a selected branch, `d` to mark the selected item done, `Shift+A` to archive the selected item, `Ctrl+Z` to suspend `flo`, `i` to insert, `?` for help, `a` for about, `q` to quit. |
 | Help | Help overlay. Esc or `?` to dismiss. |
 | About | About overlay with app info. Esc, `q`, or Enter to dismiss. |
@@ -130,6 +130,7 @@ The thread list supports navigating both threads and their branches:
 - **Up/Down** (Insert or Normal mode) moves between all visible items — threads and branches within expanded threads
 - The thread list auto-scrolls to keep the selected row visible when the list exceeds the available height
 - **Enter** (on empty input in Insert, or in Normal mode) toggles expand/collapse for the selected thread's branches
+- **Ctrl+J** inserts a new line in the Capture pane without submitting the current input
 - Mouse-wheel scrolling follows the hovered pane, so `Threads`, `Status`, and `Help` scroll independently
 - Left-click in the thread list selects the clicked thread or branch
 - The **Status** pane follows the selected item for inspection

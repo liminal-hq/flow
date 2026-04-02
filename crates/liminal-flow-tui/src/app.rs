@@ -113,6 +113,10 @@ fn is_suspend_key(key: crossterm::event::KeyEvent) -> bool {
     key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('z')
 }
 
+fn is_insert_newline_key(key: crossterm::event::KeyEvent) -> bool {
+    key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('j')
+}
+
 fn selected_command_target(state: &TuiState) -> Option<input::CommandTarget> {
     match &state.selected {
         SelectedItem::Thread(i) => state
@@ -612,76 +616,83 @@ fn run_loop(
                                 }
                             } else {
                                 // Normal Insert mode handling
-                                match key.code {
-                                    KeyCode::Esc => {
-                                        state.mode = Mode::Normal;
-                                        state.show_command_palette = false;
-                                        state.show_hints = false;
-                                    }
-                                    KeyCode::Up => {
-                                        // Arrow keys navigate the thread list
-                                        state.select_prev();
-                                        state.refresh_selected_details(conn);
-                                        sync_thread_viewport(terminal, &mut state)?;
-                                    }
-                                    KeyCode::Down => {
-                                        // Arrow keys navigate the thread list
-                                        state.select_next();
-                                        state.refresh_selected_details(conn);
-                                        sync_thread_viewport(terminal, &mut state)?;
-                                    }
-                                    KeyCode::Enter => {
-                                        // If input is empty, toggle thread expansion
-                                        let is_empty =
-                                            textarea.lines().iter().all(|l| l.is_empty());
-                                        if is_empty {
-                                            state.toggle_expanded();
+                                if is_insert_newline_key(key) {
+                                    textarea.insert_newline();
+                                    let query = textarea.lines().join("\n");
+                                    refresh_command_palette_state(&mut state, &query);
+                                } else {
+                                    match key.code {
+                                        KeyCode::Esc => {
+                                            state.mode = Mode::Normal;
+                                            state.show_command_palette = false;
+                                            state.show_hints = false;
+                                        }
+                                        KeyCode::Up => {
+                                            // Arrow keys navigate the thread list
+                                            state.select_prev();
                                             state.refresh_selected_details(conn);
                                             sync_thread_viewport(terminal, &mut state)?;
-                                            continue;
                                         }
-
-                                        // Submit the input
-                                        let lines: Vec<String> = textarea.lines().to_vec();
-                                        let text = lines.join("\n");
-
-                                        // Clear the textarea
-                                        textarea = TextArea::default();
-                                        textarea
-                                        .set_cursor_line_style(ratatui::style::Style::default());
-
-                                        // Process the input
-                                        let follow_active =
-                                            should_follow_active_after_submit(&text);
-                                        let command_target = selected_command_target(&state);
-                                        let result = input::perform_command_on_target(
-                                            conn,
-                                            &text,
-                                            command_target.as_ref(),
-                                        );
-                                        apply_input_result(&mut state, result);
-
-                                        // Refresh state from DB after mutation
-                                        state.refresh_from_db(conn);
-                                        if follow_active {
-                                            state.select_active_item();
+                                        KeyCode::Down => {
+                                            // Arrow keys navigate the thread list
+                                            state.select_next();
+                                            state.refresh_selected_details(conn);
+                                            sync_thread_viewport(terminal, &mut state)?;
                                         }
-                                        sync_thread_viewport(terminal, &mut state)?;
-                                        state.poll_watermark = poll::current_watermark(conn);
-                                    }
-                                    KeyCode::Char('?') if is_empty => {
-                                        // Show shortcut hints
-                                        state.show_hints = true;
-                                        textarea.input(Event::Key(key));
-                                    }
-                                    _ => {
-                                        // Forward to textarea, then refresh palette
-                                        // state — text-modifying keys (Char, Backspace,
-                                        // Delete) and cursor-movement keys (Left, Right)
-                                        // can both affect whether the palette should open.
-                                        textarea.input(Event::Key(key));
-                                        let query = textarea.lines().join("\n");
-                                        refresh_command_palette_state(&mut state, &query);
+                                        KeyCode::Enter => {
+                                            // If input is empty, toggle thread expansion
+                                            let is_empty =
+                                                textarea.lines().iter().all(|l| l.is_empty());
+                                            if is_empty {
+                                                state.toggle_expanded();
+                                                state.refresh_selected_details(conn);
+                                                sync_thread_viewport(terminal, &mut state)?;
+                                                continue;
+                                            }
+
+                                            // Submit the input
+                                            let lines: Vec<String> = textarea.lines().to_vec();
+                                            let text = lines.join("\n");
+
+                                            // Clear the textarea
+                                            textarea = TextArea::default();
+                                            textarea.set_cursor_line_style(
+                                                ratatui::style::Style::default(),
+                                            );
+
+                                            // Process the input
+                                            let follow_active =
+                                                should_follow_active_after_submit(&text);
+                                            let command_target = selected_command_target(&state);
+                                            let result = input::perform_command_on_target(
+                                                conn,
+                                                &text,
+                                                command_target.as_ref(),
+                                            );
+                                            apply_input_result(&mut state, result);
+
+                                            // Refresh state from DB after mutation
+                                            state.refresh_from_db(conn);
+                                            if follow_active {
+                                                state.select_active_item();
+                                            }
+                                            sync_thread_viewport(terminal, &mut state)?;
+                                            state.poll_watermark = poll::current_watermark(conn);
+                                        }
+                                        KeyCode::Char('?') if is_empty => {
+                                            // Show shortcut hints
+                                            state.show_hints = true;
+                                            textarea.input(Event::Key(key));
+                                        }
+                                        _ => {
+                                            // Forward to textarea, then refresh palette
+                                            // state — text-modifying keys (Char, Backspace,
+                                            // Delete) and cursor-movement keys (Left, Right)
+                                            // can both affect whether the palette should open.
+                                            textarea.input(Event::Key(key));
+                                            let query = textarea.lines().join("\n");
+                                            refresh_command_palette_state(&mut state, &query);
+                                        }
                                     }
                                 }
                             }
@@ -750,6 +761,28 @@ mod tests {
         }));
         assert!(!is_suspend_key(crossterm::event::KeyEvent {
             code: KeyCode::Char('c'),
+            modifiers: KeyModifiers::CONTROL,
+            kind: crossterm::event::KeyEventKind::Press,
+            state: crossterm::event::KeyEventState::NONE,
+        }));
+    }
+
+    #[test]
+    fn ctrl_j_is_treated_as_insert_newline() {
+        assert!(is_insert_newline_key(crossterm::event::KeyEvent {
+            code: KeyCode::Char('j'),
+            modifiers: KeyModifiers::CONTROL,
+            kind: crossterm::event::KeyEventKind::Press,
+            state: crossterm::event::KeyEventState::NONE,
+        }));
+        assert!(!is_insert_newline_key(crossterm::event::KeyEvent {
+            code: KeyCode::Char('j'),
+            modifiers: KeyModifiers::NONE,
+            kind: crossterm::event::KeyEventKind::Press,
+            state: crossterm::event::KeyEventState::NONE,
+        }));
+        assert!(!is_insert_newline_key(crossterm::event::KeyEvent {
+            code: KeyCode::Enter,
             modifiers: KeyModifiers::CONTROL,
             kind: crossterm::event::KeyEventKind::Press,
             state: crossterm::event::KeyEventState::NONE,
