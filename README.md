@@ -153,6 +153,7 @@ The TUI starts in **Insert mode**:
 - **Up/Down** arrows navigate the thread list; the thread list auto-scrolls to keep selection visible; **Enter** on empty input expands/collapses branches
 - The **Capture** pane grows as you add new lines, so multi-line drafts stay visible without taking extra space up front
 - Press `Ctrl+J` in the **Capture** pane to insert a new line without submitting
+- Press `Ctrl+Up` and `Ctrl+Down` in the **Capture** pane to browse plain-text note history from the current session and return to the in-flight draft at the bottom of the stack
 - Mouse-wheel scrolling follows the hovered pane: `Threads`, `Status`, and `Help` each scroll independently
 - Left-click in the thread list selects the clicked thread or branch
 - The **Status** pane follows the selected thread or branch for inspection

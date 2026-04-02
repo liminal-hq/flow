@@ -186,7 +186,7 @@ pub fn filtered_slash_commands(query: &str) -> Vec<(usize, &'static str, &'stati
 pub const SHORTCUT_HINTS: &[(&str, &str)] = &[
     ("/ for commands (Insert)", "Esc to Normal mode"),
     ("Enter submits/expands (Insert)", "Ctrl+J adds newline"),
-    ("Up/Down move selection", "r resumes selected (Normal)"),
+    ("Ctrl+Up/Down browse notes", "Up/Down move selection"),
     (
         "p parks selected branch (Normal)",
         "d marks selected done (Normal)",
