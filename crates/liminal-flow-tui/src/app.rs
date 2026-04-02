@@ -162,6 +162,10 @@ fn run_loop(
     terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
     conn: &Connection,
 ) -> Result<()> {
+    fn current_input_pane_height(textarea: &TextArea) -> u16 {
+        layout::input_pane_height(textarea.lines().len())
+    }
+
     fn terminal_area(
         terminal: &Terminal<CrosstermBackend<io::Stdout>>,
     ) -> Result<ratatui::layout::Rect> {
@@ -169,16 +173,23 @@ fn run_loop(
         Ok(ratatui::layout::Rect::new(0, 0, size.width, size.height))
     }
 
-    fn thread_viewport_height(terminal: &Terminal<CrosstermBackend<io::Stdout>>) -> Result<usize> {
-        let app_layout = layout::compute(terminal_area(terminal)?);
+    fn thread_viewport_height(
+        terminal: &Terminal<CrosstermBackend<io::Stdout>>,
+        textarea: &TextArea,
+    ) -> Result<usize> {
+        let app_layout = layout::compute(
+            terminal_area(terminal)?,
+            current_input_pane_height(textarea),
+        );
         Ok(app_layout.thread_list.height.saturating_sub(2) as usize)
     }
 
     fn sync_thread_viewport(
         terminal: &Terminal<CrosstermBackend<io::Stdout>>,
         state: &mut TuiState,
+        textarea: &TextArea,
     ) -> Result<()> {
-        let viewport_height = thread_viewport_height(terminal)?;
+        let viewport_height = thread_viewport_height(terminal, textarea)?;
         state.ensure_thread_selection_visible(viewport_height);
         state.clamp_thread_list_scroll(viewport_height);
         Ok(())
@@ -190,13 +201,13 @@ fn run_loop(
 
     // Initial load
     state.refresh_from_db(conn);
-    sync_thread_viewport(terminal, &mut state)?;
+    sync_thread_viewport(terminal, &mut state, &textarea)?;
     state.poll_watermark = poll::current_watermark(conn);
 
     loop {
         // Draw
         terminal.draw(|frame| {
-            let app_layout = layout::compute(frame.area());
+            let app_layout = layout::compute(frame.area(), current_input_pane_height(&textarea));
 
             layout::render_header(frame, app_layout.header);
             thread_list::render(frame, app_layout.thread_list, &state);
@@ -234,7 +245,8 @@ fn run_loop(
             match event::read()? {
                 Event::Mouse(mouse) => {
                     let terminal_area = terminal_area(terminal)?;
-                    let app_layout = layout::compute(terminal_area);
+                    let app_layout =
+                        layout::compute(terminal_area, current_input_pane_height(&textarea));
 
                     if state.mode == Mode::Help {
                         let popup_area = help::popup_area(terminal_area);
@@ -310,7 +322,7 @@ fn run_loop(
                                 if let Some(selected) = visible_rows.get(row_index) {
                                     state.selected = selected.clone();
                                     state.refresh_selected_details(conn);
-                                    sync_thread_viewport(terminal, &mut state)?;
+                                    sync_thread_viewport(terminal, &mut state, &textarea)?;
                                 }
                             }
                         }
@@ -335,7 +347,7 @@ fn run_loop(
                         enter_tui_terminal()?;
                         terminal.clear()?;
                         state.refresh_from_db(conn);
-                        sync_thread_viewport(terminal, &mut state)?;
+                        sync_thread_viewport(terminal, &mut state, &textarea)?;
                         state.poll_watermark = poll::current_watermark(conn);
                         continue;
                     }
@@ -384,7 +396,7 @@ fn run_loop(
                             KeyCode::Enter => {
                                 state.toggle_expanded();
                                 state.refresh_selected_details(conn);
-                                sync_thread_viewport(terminal, &mut state)?;
+                                sync_thread_viewport(terminal, &mut state, &textarea)?;
                             }
                             KeyCode::Char('r') => {
                                 // Resume/activate the selected thread or branch
@@ -409,7 +421,7 @@ fn run_loop(
                                     apply_input_result(&mut state, result);
                                     state.refresh_from_db(conn);
                                     state.select_active_item();
-                                    sync_thread_viewport(terminal, &mut state)?;
+                                    sync_thread_viewport(terminal, &mut state, &textarea)?;
                                     state.poll_watermark = poll::current_watermark(conn);
                                 }
                             }
@@ -439,7 +451,7 @@ fn run_loop(
                                     apply_input_result(&mut state, result);
                                     state.refresh_from_db(conn);
                                     state.select_active_item();
-                                    sync_thread_viewport(terminal, &mut state)?;
+                                    sync_thread_viewport(terminal, &mut state, &textarea)?;
                                     state.poll_watermark = poll::current_watermark(conn);
                                 }
                             }
@@ -465,7 +477,7 @@ fn run_loop(
                                 if let Some(result) = result {
                                     apply_input_result(&mut state, result);
                                     state.refresh_from_db(conn);
-                                    sync_thread_viewport(terminal, &mut state)?;
+                                    sync_thread_viewport(terminal, &mut state, &textarea)?;
                                     state.poll_watermark = poll::current_watermark(conn);
                                 }
                             }
@@ -491,19 +503,19 @@ fn run_loop(
                                 if let Some(result) = result {
                                     apply_input_result(&mut state, result);
                                     state.refresh_from_db(conn);
-                                    sync_thread_viewport(terminal, &mut state)?;
+                                    sync_thread_viewport(terminal, &mut state, &textarea)?;
                                     state.poll_watermark = poll::current_watermark(conn);
                                 }
                             }
                             KeyCode::Char('j') | KeyCode::Down => {
                                 state.select_next();
                                 state.refresh_selected_details(conn);
-                                sync_thread_viewport(terminal, &mut state)?;
+                                sync_thread_viewport(terminal, &mut state, &textarea)?;
                             }
                             KeyCode::Char('k') | KeyCode::Up => {
                                 state.select_prev();
                                 state.refresh_selected_details(conn);
-                                sync_thread_viewport(terminal, &mut state)?;
+                                sync_thread_viewport(terminal, &mut state, &textarea)?;
                             }
                             KeyCode::PageUp => {
                                 state.status_scroll = state.status_scroll.saturating_sub(5);
@@ -631,13 +643,13 @@ fn run_loop(
                                             // Arrow keys navigate the thread list
                                             state.select_prev();
                                             state.refresh_selected_details(conn);
-                                            sync_thread_viewport(terminal, &mut state)?;
+                                            sync_thread_viewport(terminal, &mut state, &textarea)?;
                                         }
                                         KeyCode::Down => {
                                             // Arrow keys navigate the thread list
                                             state.select_next();
                                             state.refresh_selected_details(conn);
-                                            sync_thread_viewport(terminal, &mut state)?;
+                                            sync_thread_viewport(terminal, &mut state, &textarea)?;
                                         }
                                         KeyCode::Enter => {
                                             // If input is empty, toggle thread expansion
@@ -646,7 +658,9 @@ fn run_loop(
                                             if is_empty {
                                                 state.toggle_expanded();
                                                 state.refresh_selected_details(conn);
-                                                sync_thread_viewport(terminal, &mut state)?;
+                                                sync_thread_viewport(
+                                                    terminal, &mut state, &textarea,
+                                                )?;
                                                 continue;
                                             }
 
@@ -676,7 +690,7 @@ fn run_loop(
                                             if follow_active {
                                                 state.select_active_item();
                                             }
-                                            sync_thread_viewport(terminal, &mut state)?;
+                                            sync_thread_viewport(terminal, &mut state, &textarea)?;
                                             state.poll_watermark = poll::current_watermark(conn);
                                         }
                                         KeyCode::Char('?') if is_empty => {
@@ -706,7 +720,7 @@ fn run_loop(
         // Check for external DB changes (from CLI in another terminal)
         if poll::has_changes(conn, &state.poll_watermark) {
             state.refresh_from_db(conn);
-            sync_thread_viewport(terminal, &mut state)?;
+            sync_thread_viewport(terminal, &mut state, &textarea)?;
             state.poll_watermark = poll::current_watermark(conn);
         }
     }

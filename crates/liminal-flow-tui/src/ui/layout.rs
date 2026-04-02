@@ -10,6 +10,9 @@ use ratatui::Frame;
 
 use crate::ui::theme;
 
+const MIN_INPUT_PANE_HEIGHT: u16 = 3;
+const MAX_INPUT_PANE_HEIGHT: u16 = 5;
+
 /// The three regions of the TUI layout.
 pub struct AppLayout {
     pub header: Rect,
@@ -30,14 +33,21 @@ pub struct AppLayout {
 /// │ > Input                                               │
 /// └───────────────────────────────────────────────────────┘
 /// ```
-pub fn compute(area: Rect) -> AppLayout {
-    // Vertical: header (1) + body (flex) + input (3)
+pub fn input_pane_height(line_count: usize) -> u16 {
+    let content_height = u16::try_from(line_count)
+        .unwrap_or(u16::MAX)
+        .saturating_add(2);
+    content_height.clamp(MIN_INPUT_PANE_HEIGHT, MAX_INPUT_PANE_HEIGHT)
+}
+
+pub fn compute(area: Rect, input_pane_height: u16) -> AppLayout {
+    // Vertical: header (1) + body (flex) + input (dynamic)
     let vertical = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(1), // header
-            Constraint::Min(5),    // body
-            Constraint::Length(3), // input
+            Constraint::Length(1),                 // header
+            Constraint::Min(5),                    // body
+            Constraint::Length(input_pane_height), // input
         ])
         .split(area);
 
@@ -105,4 +115,31 @@ pub fn contains_point(rect: Rect, column: u16, row: u16) -> bool {
         && column < rect.x.saturating_add(rect.width)
         && row >= rect.y
         && row < rect.y.saturating_add(rect.height)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn input_pane_height_stays_compact_for_single_line_input() {
+        assert_eq!(input_pane_height(1), MIN_INPUT_PANE_HEIGHT);
+    }
+
+    #[test]
+    fn input_pane_height_grows_for_multiline_input() {
+        assert_eq!(input_pane_height(2), 4);
+        assert_eq!(input_pane_height(3), MAX_INPUT_PANE_HEIGHT);
+    }
+
+    #[test]
+    fn input_pane_height_stops_growing_after_cap() {
+        assert_eq!(input_pane_height(10), MAX_INPUT_PANE_HEIGHT);
+    }
+
+    #[test]
+    fn compute_uses_requested_input_pane_height() {
+        let layout = compute(Rect::new(0, 0, 120, 40), 4);
+        assert_eq!(layout.input_pane.height, 4);
+    }
 }
