@@ -1,6 +1,6 @@
 # Flow distribution strategy
 
-This document sketches the first public release plan for Liminal Flow on `main`. It captures the current agreed release shape for `v0.0.4` and should evolve as the release automation and packaging work lands.
+This document sketches the first public release plan for Liminal Flow on `main`. It captures the current agreed release shape for `v0.0.5` and should evolve as the release automation and packaging work lands.
 
 ## Goals
 
@@ -41,7 +41,7 @@ Flow already behaves like a product binary rather than a crate intended for libr
 - the CLI crate already generates man pages during build
 - the README and SPEC already describe Flow as a local-first terminal tool
 
-That makes a GitHub Releases-first approach the cleanest fit for `v0.0.4`.
+That makes a GitHub Releases-first approach the cleanest fit for `v0.0.5`.
 
 ## Proposed release flow
 
@@ -50,7 +50,7 @@ The release flow should mirror SMDU closely:
 1. Merge the release-ready PR into `main`.
 2. Run `scripts/prepare-release-version.sh --version <next-version>` in a clean working tree to create a release-bump branch and update release-facing version references before tagging.
 3. Confirm release notes and docs reflect the merged behaviour.
-4. Create a tag such as `v0.0.4`.
+4. Create a tag such as `v0.0.5`.
 5. Let GitHub Actions build Linux artefacts for both supported architectures.
 6. Create or update the GitHub Release for that tag.
 7. Attach binaries, packages, tarballs, and checksum files.
@@ -63,13 +63,13 @@ Manual dispatch should also be available so a tag can be rebuilt or a draft rele
 Before tagging a release, use:
 
 ```bash
-scripts/prepare-release-version.sh --version 0.0.4
+scripts/prepare-release-version.sh --version 0.0.5
 ```
 
-By default, this creates and switches to a branch named `chore/release-v0.0.4` before updating files. You can override that with:
+By default, this creates and switches to a branch named `chore/release-v0.0.5` before updating files. You can override that with:
 
 ```bash
-scripts/prepare-release-version.sh --version 0.0.4 --branch chore/my-custom-release-branch
+scripts/prepare-release-version.sh --version 0.0.5 --branch chore/my-custom-release-branch
 ```
 
 The script updates release-facing version references in:
@@ -164,7 +164,7 @@ The first release should keep Linux package metadata conservative and easy to re
 
 - package name: `flo`
 - display name: `Liminal Flow`
-- version: match the Git tag without the leading `v`, for example `0.0.4`
+- version: match the Git tag without the leading `v`, for example `0.0.5`
 - licence: `MIT`
 - vendor: `Liminal HQ`
 - maintainer: `Liminal HQ <contact@liminalhq.ca>`
@@ -185,7 +185,7 @@ Suggested Debian control fields for review:
 
 ```debcontrol
 Package: flo
-Version: 0.0.4
+Version: 0.0.5
 Section: utils
 Priority: optional
 Architecture: amd64
@@ -201,7 +201,7 @@ Suggested RPM spec metadata for review:
 
 ```spec
 Name:           flo
-Version:        0.0.4
+Version:        0.0.5
 Release:        1%{?dist}
 Summary:        Terminal-native working-memory sidecar for developers
 License:        MIT
@@ -217,7 +217,7 @@ branching into sub-tasks, and preserving context across CLI and TUI workflows.
 
 Initial dependency stance:
 
-- prefer GNU-linked builds for `v0.0.4`
+- prefer GNU-linked builds for `v0.0.5`
 - keep runtime dependency declarations minimal and conventional
 - Debian packages should declare `Depends: libc6` at minimum for GNU-linked binaries
 - release binaries should be built on Ubuntu 22.04 runners so the effective glibc baseline remains compatible with Ubuntu 22.04
@@ -271,7 +271,7 @@ Sample workspace metadata update:
 
 ```toml
 [workspace.package]
-version = "0.0.4"
+version = "0.0.5"
 edition = "2021"
 license = "MIT"
 authors = ["Liminal HQ", "Scott Morris"]
@@ -289,7 +289,7 @@ name = "liminal-flow-core"
 publish = false
 ```
 
-## Suggested `v0.0.4` checklist
+## Suggested `v0.0.5` checklist
 
 - [ ] Add `.github/workflows/release.yml`
 - [ ] Add `.github/release.yml` for changelog category mapping
@@ -306,7 +306,7 @@ publish = false
   - `cargo clippy --workspace -- -D warnings`
   - `cargo test`
   - `cargo build --release`
-- [ ] Create a draft `v0.0.4` release and smoke-test the uploaded artefacts on both Linux architectures
+- [ ] Create a draft `v0.0.5` release and smoke-test the uploaded artefacts on both Linux architectures
 
 ## Why not an install script
 
@@ -318,7 +318,7 @@ A separate install script could:
 - unpack the binary and man pages
 - copy files into a prefix such as `/usr/local`
 
-That could be convenient, but it also adds maintenance overhead, more surface area to test, and another trust path for users. For `v0.0.4`, package artefacts and documented manual archive extraction are the simpler and more reliable release story.
+That could be convenient, but it also adds maintenance overhead, more surface area to test, and another trust path for users. For `v0.0.5`, package artefacts and documented manual archive extraction are the simpler and more reliable release story.
 
 ## Immediate next step
 

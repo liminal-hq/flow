@@ -65,10 +65,10 @@ Example package installs:
 
 ```bash
 # Debian/Ubuntu
-sudo dpkg -i flo-v0.0.4-linux-amd64.deb
+sudo dpkg -i flo-v0.0.5-linux-amd64.deb
 
 # Fedora/RHEL/openSUSE
-sudo rpm -i flo-v0.0.4-linux-amd64.rpm
+sudo rpm -i flo-v0.0.5-linux-amd64.rpm
 ```
 
 ### Manual archive installs
@@ -84,7 +84,7 @@ share/man/man1/flo-*.1.gz
 Example manual install into `/usr/local`:
 
 ```bash
-tar -xzf flo-v0.0.4-linux-amd64.tar.gz
+tar -xzf flo-v0.0.5-linux-amd64.tar.gz
 sudo install -Dm755 bin/flo /usr/local/bin/flo
 sudo install -Dm644 share/man/man1/flo.1.gz /usr/local/share/man/man1/flo.1.gz
 sudo install -d /usr/local/share/man/man1
