@@ -30,6 +30,7 @@ const HELP_TEXT: &[(&str, &str)] = &[
     ("/ (empty line)", "Open command palette"),
     ("? (empty line)", "Show shortcut hints"),
     ("Up / Down", "Navigate threads & branches"),
+    ("Ctrl+Up / Ctrl+Down", "Browse session note history"),
     ("Enter (empty)", "Expand/collapse branches"),
     ("Ctrl+J", "Insert newline"),
     ("Mouse wheel", "Scroll Threads or Status"),

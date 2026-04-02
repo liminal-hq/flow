@@ -14,6 +14,65 @@ use ratatui::Frame;
 use crate::state::{filtered_slash_commands, TuiState};
 use crate::ui::theme;
 
+fn truncate_for_width(text: &str, width: usize) -> String {
+    let chars: Vec<char> = text.chars().collect();
+    if chars.len() <= width {
+        return text.to_string();
+    }
+
+    if width <= 1 {
+        return "…".repeat(width);
+    }
+
+    let visible: String = chars.into_iter().take(width - 1).collect();
+    format!("{visible}…")
+}
+
+fn command_palette_row(
+    cmd: &str,
+    desc: &str,
+    is_selected: bool,
+    popup_width: u16,
+) -> Line<'static> {
+    let inner_width = usize::from(popup_width.saturating_sub(2));
+    let marker = if is_selected { " > " } else { "   " };
+    let marker_width = marker.chars().count();
+    let gap_width = 1;
+    let min_cmd_width = 12;
+    let max_cmd_width = 20;
+    let available_after_marker = inner_width.saturating_sub(marker_width);
+    let cmd_width = available_after_marker
+        .saturating_sub(gap_width)
+        .min(max_cmd_width)
+        .max(min_cmd_width)
+        .min(available_after_marker);
+    let desc_width = available_after_marker
+        .saturating_sub(cmd_width)
+        .saturating_sub(gap_width);
+
+    let cmd_text = truncate_for_width(cmd, cmd_width);
+    let cmd_padded = format!("{cmd_text:<cmd_width$}");
+    let desc_text = truncate_for_width(desc, desc_width);
+
+    let cmd_style = if is_selected {
+        theme::selected()
+    } else {
+        theme::accent()
+    };
+    let desc_style = if is_selected {
+        theme::text()
+    } else {
+        theme::muted()
+    };
+
+    Line::from(vec![
+        Span::styled(marker.to_string(), cmd_style),
+        Span::styled(cmd_padded, cmd_style),
+        Span::styled(" ".to_string(), desc_style),
+        Span::styled(desc_text, desc_style),
+    ])
+}
+
 /// Render the command palette floating above the input pane.
 ///
 /// The palette anchors to the bottom of the body area (just above the input),
@@ -48,23 +107,12 @@ pub fn render(frame: &mut Frame, input_area: Rect, state: &TuiState, query: &str
             .enumerate()
             .map(|(i, (_command_index, cmd, desc))| {
                 let is_selected = i == state.command_palette_index;
-                let cmd_style = if is_selected {
-                    theme::selected()
-                } else {
-                    theme::accent()
-                };
-                let desc_style = if is_selected {
-                    theme::text()
-                } else {
-                    theme::muted()
-                };
-                let marker = if is_selected { " > " } else { "   " };
-
-                ListItem::new(Line::from(vec![
-                    Span::styled(marker, cmd_style),
-                    Span::styled(format!("{cmd:<20}"), cmd_style),
-                    Span::styled(*desc, desc_style),
-                ]))
+                ListItem::new(command_palette_row(
+                    cmd,
+                    desc,
+                    is_selected,
+                    popup_area.width,
+                ))
             })
             .collect()
     };
@@ -77,4 +125,31 @@ pub fn render(frame: &mut Frame, input_area: Rect, state: &TuiState, query: &str
 
     let list = List::new(items).block(block);
     frame.render_widget(list, popup_area);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn command_palette_row_stays_within_inner_width() {
+        let line = command_palette_row(
+            "/branch <text>",
+            "Start a branch beneath current thread",
+            true,
+            40,
+        );
+        let rendered_width: usize = line
+            .spans
+            .iter()
+            .map(|span| span.content.chars().count())
+            .sum();
+        assert!(rendered_width <= 38);
+    }
+
+    #[test]
+    fn truncate_for_width_adds_ellipsis_when_needed() {
+        assert_eq!(truncate_for_width("branch", 4), "bra…");
+        assert_eq!(truncate_for_width("ok", 4), "ok");
+    }
 }

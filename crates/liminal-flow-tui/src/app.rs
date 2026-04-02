@@ -19,7 +19,7 @@ use crossterm::terminal::{
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
 use rusqlite::Connection;
-use tui_textarea::TextArea;
+use tui_textarea::{CursorMove, TextArea};
 
 use crate::input::{self, InputResult};
 use crate::poll;
@@ -115,6 +115,43 @@ fn is_suspend_key(key: crossterm::event::KeyEvent) -> bool {
 
 fn is_insert_newline_key(key: crossterm::event::KeyEvent) -> bool {
     key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('j')
+}
+
+fn is_capture_history_previous_key(key: crossterm::event::KeyEvent) -> bool {
+    key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Up
+}
+
+fn is_capture_history_next_key(key: crossterm::event::KeyEvent) -> bool {
+    key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Down
+}
+
+fn is_note_history_entry(input: &str) -> bool {
+    let trimmed = input.trim();
+    !trimmed.is_empty() && !trimmed.starts_with('/')
+}
+
+fn textarea_value(textarea: &TextArea) -> String {
+    textarea.lines().join("\n")
+}
+
+fn reset_textarea(textarea: &mut TextArea) {
+    *textarea = TextArea::default();
+    textarea.set_cursor_line_style(ratatui::style::Style::default());
+}
+
+fn replace_textarea_value(textarea: &mut TextArea, value: &str) {
+    reset_textarea(textarea);
+    if !value.is_empty() {
+        textarea.insert_str(value);
+    }
+}
+
+fn textarea_cursor_is_on_first_line(textarea: &TextArea) -> bool {
+    textarea.cursor().0 == 0
+}
+
+fn textarea_cursor_is_on_last_line(textarea: &TextArea) -> bool {
+    textarea.cursor().0 + 1 >= textarea.lines().len()
 }
 
 fn selected_command_target(state: &TuiState) -> Option<input::CommandTarget> {
@@ -546,9 +583,7 @@ fn run_loop(
                                     KeyCode::Esc => {
                                         state.show_command_palette = false;
                                         // Clear the `/` from the textarea
-                                        textarea = TextArea::default();
-                                        textarea
-                                        .set_cursor_line_style(ratatui::style::Style::default());
+                                        reset_textarea(&mut textarea);
                                     }
                                     KeyCode::Up => {
                                         let query = textarea.lines().join("\n");
@@ -577,11 +612,7 @@ fn run_loop(
                                         {
                                             let completed =
                                                 complete_command_palette_selection(&query, cmd);
-                                            textarea = TextArea::default();
-                                            textarea.set_cursor_line_style(
-                                                ratatui::style::Style::default(),
-                                            );
-                                            textarea.insert_str(completed);
+                                            replace_textarea_value(&mut textarea, &completed);
                                             state.show_command_palette = false;
                                         }
                                     }
@@ -607,34 +638,50 @@ fn run_loop(
                                 match key.code {
                                     KeyCode::Esc => {
                                         state.show_hints = false;
-                                        textarea = TextArea::default();
-                                        textarea
-                                        .set_cursor_line_style(ratatui::style::Style::default());
+                                        reset_textarea(&mut textarea);
                                     }
                                     KeyCode::Backspace => {
                                         state.show_hints = false;
-                                        textarea = TextArea::default();
-                                        textarea
-                                        .set_cursor_line_style(ratatui::style::Style::default());
+                                        reset_textarea(&mut textarea);
                                     }
                                     _ => {
                                         state.show_hints = false;
                                         // Clear the `?` and forward the new key
-                                        textarea = TextArea::default();
-                                        textarea
-                                        .set_cursor_line_style(ratatui::style::Style::default());
+                                        reset_textarea(&mut textarea);
                                         textarea.input(Event::Key(key));
                                     }
                                 }
                             } else {
                                 // Normal Insert mode handling
-                                if is_insert_newline_key(key) {
+                                if is_capture_history_previous_key(key) {
+                                    if textarea_cursor_is_on_first_line(&textarea) {
+                                        if let Some(previous) = state
+                                            .previous_capture_history(&textarea_value(&textarea))
+                                        {
+                                            replace_textarea_value(&mut textarea, &previous);
+                                            refresh_command_palette_state(&mut state, &previous);
+                                        }
+                                    } else {
+                                        textarea.move_cursor(CursorMove::Up);
+                                    }
+                                } else if is_capture_history_next_key(key) {
+                                    if textarea_cursor_is_on_last_line(&textarea) {
+                                        if let Some(next) = state.next_capture_history() {
+                                            replace_textarea_value(&mut textarea, &next);
+                                            refresh_command_palette_state(&mut state, &next);
+                                        }
+                                    } else {
+                                        textarea.move_cursor(CursorMove::Down);
+                                    }
+                                } else if is_insert_newline_key(key) {
+                                    state.clear_capture_history_navigation();
                                     textarea.insert_newline();
-                                    let query = textarea.lines().join("\n");
+                                    let query = textarea_value(&textarea);
                                     refresh_command_palette_state(&mut state, &query);
                                 } else {
                                     match key.code {
                                         KeyCode::Esc => {
+                                            state.clear_capture_history_navigation();
                                             state.mode = Mode::Normal;
                                             state.show_command_palette = false;
                                             state.show_hints = false;
@@ -667,12 +714,11 @@ fn run_loop(
                                             // Submit the input
                                             let lines: Vec<String> = textarea.lines().to_vec();
                                             let text = lines.join("\n");
+                                            let should_record_note = is_note_history_entry(&text);
 
                                             // Clear the textarea
-                                            textarea = TextArea::default();
-                                            textarea.set_cursor_line_style(
-                                                ratatui::style::Style::default(),
-                                            );
+                                            reset_textarea(&mut textarea);
+                                            state.clear_capture_history_navigation();
 
                                             // Process the input
                                             let follow_active =
@@ -683,7 +729,13 @@ fn run_loop(
                                                 &text,
                                                 command_target.as_ref(),
                                             );
+                                            let record_note =
+                                                matches!(result, InputResult::Reply(_))
+                                                    && should_record_note;
                                             apply_input_result(&mut state, result);
+                                            if record_note {
+                                                state.push_capture_history(&text);
+                                            }
 
                                             // Refresh state from DB after mutation
                                             state.refresh_from_db(conn);
@@ -694,17 +746,27 @@ fn run_loop(
                                             state.poll_watermark = poll::current_watermark(conn);
                                         }
                                         KeyCode::Char('?') if is_empty => {
+                                            state.clear_capture_history_navigation();
                                             // Show shortcut hints
                                             state.show_hints = true;
                                             textarea.input(Event::Key(key));
                                         }
                                         _ => {
+                                            if matches!(
+                                                key.code,
+                                                KeyCode::Backspace
+                                                    | KeyCode::Delete
+                                                    | KeyCode::Char(_)
+                                                    | KeyCode::Tab
+                                            ) {
+                                                state.clear_capture_history_navigation();
+                                            }
                                             // Forward to textarea, then refresh palette
                                             // state — text-modifying keys (Char, Backspace,
                                             // Delete) and cursor-movement keys (Left, Right)
                                             // can both affect whether the palette should open.
                                             textarea.input(Event::Key(key));
-                                            let query = textarea.lines().join("\n");
+                                            let query = textarea_value(&textarea);
                                             refresh_command_palette_state(&mut state, &query);
                                         }
                                     }
@@ -801,5 +863,56 @@ mod tests {
             kind: crossterm::event::KeyEventKind::Press,
             state: crossterm::event::KeyEventState::NONE,
         }));
+    }
+
+    #[test]
+    fn ctrl_up_is_treated_as_capture_history_previous() {
+        assert!(is_capture_history_previous_key(
+            crossterm::event::KeyEvent {
+                code: KeyCode::Up,
+                modifiers: KeyModifiers::CONTROL,
+                kind: crossterm::event::KeyEventKind::Press,
+                state: crossterm::event::KeyEventState::NONE,
+            }
+        ));
+        assert!(!is_capture_history_previous_key(
+            crossterm::event::KeyEvent {
+                code: KeyCode::Up,
+                modifiers: KeyModifiers::NONE,
+                kind: crossterm::event::KeyEventKind::Press,
+                state: crossterm::event::KeyEventState::NONE,
+            }
+        ));
+    }
+
+    #[test]
+    fn ctrl_down_is_treated_as_capture_history_next() {
+        assert!(is_capture_history_next_key(crossterm::event::KeyEvent {
+            code: KeyCode::Down,
+            modifiers: KeyModifiers::CONTROL,
+            kind: crossterm::event::KeyEventKind::Press,
+            state: crossterm::event::KeyEventState::NONE,
+        }));
+        assert!(!is_capture_history_next_key(crossterm::event::KeyEvent {
+            code: KeyCode::Down,
+            modifiers: KeyModifiers::NONE,
+            kind: crossterm::event::KeyEventKind::Press,
+            state: crossterm::event::KeyEventState::NONE,
+        }));
+    }
+
+    #[test]
+    fn textarea_first_and_last_line_detection_tracks_cursor_position() {
+        let mut textarea = TextArea::from(["first", "second", "third"]);
+        assert!(textarea_cursor_is_on_first_line(&textarea));
+        assert!(!textarea_cursor_is_on_last_line(&textarea));
+
+        textarea.move_cursor(CursorMove::Down);
+        assert!(!textarea_cursor_is_on_first_line(&textarea));
+        assert!(!textarea_cursor_is_on_last_line(&textarea));
+
+        textarea.move_cursor(CursorMove::Down);
+        assert!(!textarea_cursor_is_on_first_line(&textarea));
+        assert!(textarea_cursor_is_on_last_line(&textarea));
     }
 }

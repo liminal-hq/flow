@@ -10,6 +10,8 @@ use liminal_flow_core::model::{Branch, Capture, FlowId, Thread, ThreadStatus};
 use liminal_flow_store::repo::{branch_repo, capture_repo, scope_repo, thread_repo};
 use rusqlite::Connection;
 
+const MAX_CAPTURE_HISTORY: usize = 100;
+
 /// Interaction mode for the TUI.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mode {
@@ -184,7 +186,7 @@ pub fn filtered_slash_commands(query: &str) -> Vec<(usize, &'static str, &'stati
 pub const SHORTCUT_HINTS: &[(&str, &str)] = &[
     ("/ for commands (Insert)", "Esc to Normal mode"),
     ("Enter submits/expands (Insert)", "Ctrl+J adds newline"),
-    ("Up/Down move selection", "r resumes selected (Normal)"),
+    ("Ctrl+Up/Down browse notes", "Up/Down move selection"),
     (
         "p parks selected branch (Normal)",
         "d marks selected done (Normal)",
@@ -236,6 +238,12 @@ pub struct TuiState {
     pub expanded: HashSet<usize>,
     /// Recent notes (captures) for the selected thread or branch, shown in the status pane.
     pub selected_notes: Vec<Capture>,
+    /// Session-only plain-text note history for the Capture input.
+    pub capture_history: Vec<String>,
+    /// Current index within `capture_history` while browsing with Ctrl+Up/Down.
+    pub capture_history_index: Option<usize>,
+    /// Draft text saved before history browsing so Ctrl+Down can restore it.
+    pub capture_history_draft: Option<String>,
 }
 
 impl Default for TuiState {
@@ -263,6 +271,60 @@ impl TuiState {
             help_scroll: 0,
             expanded: HashSet::new(),
             selected_notes: Vec::new(),
+            capture_history: Vec::new(),
+            capture_history_index: None,
+            capture_history_draft: None,
+        }
+    }
+
+    pub fn clear_capture_history_navigation(&mut self) {
+        self.capture_history_index = None;
+        self.capture_history_draft = None;
+    }
+
+    pub fn push_capture_history(&mut self, note: &str) {
+        let trimmed = note.trim();
+        if trimmed.is_empty() || trimmed.starts_with('/') {
+            return;
+        }
+
+        self.clear_capture_history_navigation();
+
+        if self.capture_history.len() == MAX_CAPTURE_HISTORY {
+            self.capture_history.remove(0);
+        }
+
+        self.capture_history.push(note.to_string());
+    }
+
+    pub fn previous_capture_history(&mut self, draft: &str) -> Option<String> {
+        if self.capture_history.is_empty() {
+            return None;
+        }
+
+        let next_index = match self.capture_history_index {
+            Some(0) => 0,
+            Some(index) => index.saturating_sub(1),
+            None => {
+                self.capture_history_draft = Some(draft.to_string());
+                self.capture_history.len() - 1
+            }
+        };
+
+        self.capture_history_index = Some(next_index);
+        self.capture_history.get(next_index).cloned()
+    }
+
+    pub fn next_capture_history(&mut self) -> Option<String> {
+        let index = self.capture_history_index?;
+
+        if index + 1 < self.capture_history.len() {
+            let next_index = index + 1;
+            self.capture_history_index = Some(next_index);
+            self.capture_history.get(next_index).cloned()
+        } else {
+            self.capture_history_index = None;
+            Some(self.capture_history_draft.take().unwrap_or_default())
         }
     }
 
@@ -712,6 +774,75 @@ mod tests {
         state.refresh_selected_details(&conn);
         assert_eq!(state.selected_notes.len(), 1);
         assert_eq!(state.selected_notes[0].text, "note on branch two");
+    }
+
+    #[test]
+    fn capture_history_ignores_blank_and_slash_inputs() {
+        let mut state = TuiState::new();
+        state.push_capture_history("");
+        state.push_capture_history("   ");
+        state.push_capture_history("/done");
+        assert!(state.capture_history.is_empty());
+    }
+
+    #[test]
+    fn capture_history_moves_back_through_session_notes() {
+        let mut state = TuiState::new();
+        state.push_capture_history("first note");
+        state.push_capture_history("second note");
+
+        assert_eq!(
+            state.previous_capture_history("draft in flight"),
+            Some("second note".to_string())
+        );
+        assert_eq!(
+            state.previous_capture_history("ignored"),
+            Some("first note".to_string())
+        );
+        assert_eq!(
+            state.previous_capture_history("ignored"),
+            Some("first note".to_string())
+        );
+    }
+
+    #[test]
+    fn capture_history_restores_the_saved_draft_at_the_bottom() {
+        let mut state = TuiState::new();
+        state.push_capture_history("first note");
+        state.push_capture_history("second note");
+
+        assert_eq!(
+            state.previous_capture_history("draft in flight"),
+            Some("second note".to_string())
+        );
+        assert_eq!(
+            state.next_capture_history(),
+            Some("draft in flight".to_string())
+        );
+        assert_eq!(state.capture_history_index, None);
+        assert_eq!(state.capture_history_draft, None);
+    }
+
+    #[test]
+    fn capture_history_moves_forward_after_multiple_steps_back() {
+        let mut state = TuiState::new();
+        state.push_capture_history("first note");
+        state.push_capture_history("second note");
+        state.push_capture_history("third note");
+
+        assert_eq!(
+            state.previous_capture_history("draft in flight"),
+            Some("third note".to_string())
+        );
+        assert_eq!(
+            state.previous_capture_history("ignored"),
+            Some("second note".to_string())
+        );
+        assert_eq!(state.next_capture_history(), Some("third note".to_string()));
+        assert_eq!(
+            state.next_capture_history(),
+            Some("draft in flight".to_string())
+        );
     }
 
     #[test]
