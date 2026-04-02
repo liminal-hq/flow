@@ -31,6 +31,7 @@ const HELP_TEXT: &[(&str, &str)] = &[
     ("? (empty line)", "Show shortcut hints"),
     ("Up / Down", "Navigate threads & branches"),
     ("Enter (empty)", "Expand/collapse branches"),
+    ("Ctrl+J", "Insert newline"),
     ("Mouse wheel", "Scroll Threads or Status"),
     ("Enter (text)", "Submit input"),
     ("PageUp / PageDown", "Scroll the Status pane"),

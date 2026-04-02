@@ -183,7 +183,7 @@ pub fn filtered_slash_commands(query: &str) -> Vec<(usize, &'static str, &'stati
 /// Keyboard shortcut hints shown when ? is typed on an empty line.
 pub const SHORTCUT_HINTS: &[(&str, &str)] = &[
     ("/ for commands (Insert)", "Esc to Normal mode"),
-    ("Enter submits/expands (Insert)", "i switches to Insert"),
+    ("Enter submits/expands (Insert)", "Ctrl+J adds newline"),
     ("Up/Down move selection", "r resumes selected (Normal)"),
     (
         "p parks selected branch (Normal)",
