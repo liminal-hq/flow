@@ -19,7 +19,7 @@ use crossterm::terminal::{
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
 use rusqlite::Connection;
-use tui_textarea::TextArea;
+use tui_textarea::{CursorMove, TextArea};
 
 use crate::input::{self, InputResult};
 use crate::poll;
@@ -144,6 +144,14 @@ fn replace_textarea_value(textarea: &mut TextArea, value: &str) {
     if !value.is_empty() {
         textarea.insert_str(value);
     }
+}
+
+fn textarea_cursor_is_on_first_line(textarea: &TextArea) -> bool {
+    textarea.cursor().0 == 0
+}
+
+fn textarea_cursor_is_on_last_line(textarea: &TextArea) -> bool {
+    textarea.cursor().0 + 1 >= textarea.lines().len()
 }
 
 fn selected_command_target(state: &TuiState) -> Option<input::CommandTarget> {
@@ -646,16 +654,24 @@ fn run_loop(
                             } else {
                                 // Normal Insert mode handling
                                 if is_capture_history_previous_key(key) {
-                                    if let Some(previous) =
-                                        state.previous_capture_history(&textarea_value(&textarea))
-                                    {
-                                        replace_textarea_value(&mut textarea, &previous);
-                                        refresh_command_palette_state(&mut state, &previous);
+                                    if textarea_cursor_is_on_first_line(&textarea) {
+                                        if let Some(previous) = state
+                                            .previous_capture_history(&textarea_value(&textarea))
+                                        {
+                                            replace_textarea_value(&mut textarea, &previous);
+                                            refresh_command_palette_state(&mut state, &previous);
+                                        }
+                                    } else {
+                                        textarea.move_cursor(CursorMove::Up);
                                     }
                                 } else if is_capture_history_next_key(key) {
-                                    if let Some(next) = state.next_capture_history() {
-                                        replace_textarea_value(&mut textarea, &next);
-                                        refresh_command_palette_state(&mut state, &next);
+                                    if textarea_cursor_is_on_last_line(&textarea) {
+                                        if let Some(next) = state.next_capture_history() {
+                                            replace_textarea_value(&mut textarea, &next);
+                                            refresh_command_palette_state(&mut state, &next);
+                                        }
+                                    } else {
+                                        textarea.move_cursor(CursorMove::Down);
                                     }
                                 } else if is_insert_newline_key(key) {
                                     state.clear_capture_history_navigation();
@@ -883,5 +899,20 @@ mod tests {
             kind: crossterm::event::KeyEventKind::Press,
             state: crossterm::event::KeyEventState::NONE,
         }));
+    }
+
+    #[test]
+    fn textarea_first_and_last_line_detection_tracks_cursor_position() {
+        let mut textarea = TextArea::from(["first", "second", "third"]);
+        assert!(textarea_cursor_is_on_first_line(&textarea));
+        assert!(!textarea_cursor_is_on_last_line(&textarea));
+
+        textarea.move_cursor(CursorMove::Down);
+        assert!(!textarea_cursor_is_on_first_line(&textarea));
+        assert!(!textarea_cursor_is_on_last_line(&textarea));
+
+        textarea.move_cursor(CursorMove::Down);
+        assert!(!textarea_cursor_is_on_first_line(&textarea));
+        assert!(textarea_cursor_is_on_last_line(&textarea));
     }
 }

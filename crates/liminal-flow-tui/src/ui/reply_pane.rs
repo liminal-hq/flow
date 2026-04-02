@@ -12,6 +12,18 @@ use ratatui::Frame;
 use crate::state::TuiState;
 use crate::ui::theme;
 
+fn note_lines(note_text: &str) -> Vec<Line<'static>> {
+    note_text
+        .split('\n')
+        .map(|line| {
+            Line::from(vec![
+                Span::styled("  ".to_string(), theme::text()),
+                Span::styled(line.to_string(), theme::text()),
+            ])
+        })
+        .collect()
+}
+
 /// Render the reply/status pane into the given area.
 pub fn render(frame: &mut Frame, area: Rect, state: &TuiState) {
     let mut lines: Vec<Line> = Vec::new();
@@ -68,10 +80,7 @@ pub fn render(frame: &mut Frame, area: Rect, state: &TuiState) {
                     theme::muted(),
                 ),
             ]));
-            lines.push(Line::from(vec![
-                Span::styled("  ", theme::text()),
-                Span::styled(note.text.clone(), theme::text()),
-            ]));
+            lines.extend(note_lines(&note.text));
         }
     }
 
@@ -120,4 +129,18 @@ pub fn render(frame: &mut Frame, area: Rect, state: &TuiState) {
         .scroll((state.status_scroll, 0))
         .wrap(Wrap { trim: false });
     frame.render_widget(paragraph, area);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn note_lines_preserve_embedded_newlines() {
+        let lines = note_lines("first line\nsecond line\n");
+        assert_eq!(lines.len(), 3);
+        assert_eq!(lines[0].spans[1].content.as_ref(), "first line");
+        assert_eq!(lines[1].spans[1].content.as_ref(), "second line");
+        assert_eq!(lines[2].spans[1].content.as_ref(), "");
+    }
 }
