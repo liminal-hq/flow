@@ -1,0 +1,150 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="780" viewBox="0 0 1240 780" font-family="-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" role="img" aria-labelledby="t">
+  <title id="t">Flow Desktop — the Workbench screen</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0c1222"/><stop offset="100%" stop-color="#080d1a"/>
+    </linearGradient>
+    <filter id="glow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="1240" height="780" rx="14" fill="url(#bg)" stroke="rgba(46,198,106,.25)" stroke-width="1.5"/>
+
+  <!-- titlebar -->
+  <line x1="0" y1="44" x2="1240" y2="44" stroke="rgba(255,255,255,.08)"/>
+  <circle cx="26" cy="22" r="6" fill="#ff5f57"/><circle cx="46" cy="22" r="6" fill="#febc2e"/><circle cx="66" cy="22" r="6" fill="#28c840"/>
+  <circle cx="470" cy="22" r="4" fill="#2ec66a" filter="url(#glow)"/>
+  <text x="482" y="27" font-family="Menlo,monospace" font-size="13" fill="#e8ecf6" font-weight="600">improving AIDX <tspan fill="#5a627a">▸</tspan> answering support <tspan fill="#5a627a">· 23m in focus</tspan></text>
+  <text x="1140" y="27" font-family="Menlo,monospace" font-size="13" fill="#8b93a7">◎  ⌘K  ⚙</text>
+
+  <!-- sidebar -->
+  <line x1="292" y1="44" x2="292" y2="688" stroke="rgba(255,255,255,.08)"/>
+  <rect x="0" y="44" width="292" height="644" fill="rgba(0,0,0,.14)"/>
+  <text x="18" y="76" font-family="Menlo,monospace" font-size="11" letter-spacing="2" fill="#8b93a7" font-weight="700">STREAMS</text>
+  <text x="274" y="76" text-anchor="end" font-family="Menlo,monospace" font-size="10" fill="#5a627a">2 live · 2 paused · 1 done</text>
+
+  <!-- active thread -->
+  <rect x="10" y="90" width="272" height="48" rx="10" fill="rgba(46,198,106,.09)" stroke="rgba(46,198,106,.25)"/>
+  <circle cx="26" cy="107" r="4.5" fill="#2ec66a" filter="url(#glow)"/>
+  <text x="40" y="111" font-size="13.5" fill="#e8ecf6" font-weight="600">improving AIDX</text>
+  <text x="40" y="128" font-family="Menlo,monospace" font-size="9.5" fill="#5a627a">⌂ component-library · started 09:12</text>
+  <!-- branch: live -->
+  <path d="M26 140 v10 q0 8 8 8 h6" fill="none" stroke="#2ec66a" stroke-width="2"/>
+  <rect x="36" y="148" width="246" height="26" rx="7" fill="rgba(90,162,255,.08)"/>
+  <circle cx="48" cy="161" r="3.5" fill="#2ec66a" filter="url(#glow)"/>
+  <text x="60" y="165" font-size="12.5" fill="#e8ecf6" font-weight="570">answering support</text>
+  <!-- branch: parked -->
+  <path d="M26 140 v40 q0 8 8 8 h6" fill="none" stroke="rgba(90,162,255,.4)" stroke-width="2"/>
+  <circle cx="48" cy="191" r="3.5" fill="#a78bfa"/>
+  <text x="60" y="195" font-size="12.5" fill="#5a627a">reading article</text>
+  <rect x="162" y="182" width="56" height="15" rx="7.5" fill="rgba(167,139,250,.12)"/>
+  <text x="190" y="193" text-anchor="middle" font-family="Menlo,monospace" font-size="8.5" fill="#a78bfa" font-weight="700">PARKED</text>
+
+  <!-- paused threads -->
+  <circle cx="26" cy="228" r="4" fill="#ffaa40"/>
+  <text x="40" y="232" font-size="13" fill="#8b93a7" font-weight="530">wear os sync</text>
+  <rect x="134" y="220" width="74" height="15" rx="7.5" fill="rgba(255,170,64,.1)"/>
+  <text x="171" y="231" text-anchor="middle" font-family="Menlo,monospace" font-size="8.5" fill="#ffaa40" font-weight="700">PAUSED 2H</text>
+  <text x="40" y="247" font-family="Menlo,monospace" font-size="9.5" fill="#5a627a">⌂ wear-companion</text>
+
+  <circle cx="26" cy="278" r="4" fill="#ffaa40"/>
+  <text x="40" y="282" font-size="13" fill="#8b93a7" font-weight="530">component library docs</text>
+  <rect x="196" y="270" width="72" height="15" rx="7.5" fill="rgba(255,170,64,.1)"/>
+  <text x="232" y="281" text-anchor="middle" font-family="Menlo,monospace" font-size="8.5" fill="#ffaa40" font-weight="700">YESTERDAY</text>
+  <text x="40" y="297" font-family="Menlo,monospace" font-size="9.5" fill="#5a627a">⌂ component-library</text>
+
+  <!-- done tombstone -->
+  <circle cx="26" cy="328" r="4" fill="none" stroke="#2ec66a" stroke-width="2"/>
+  <text x="40" y="332" font-size="13" fill="#5a627a">fix release pipeline</text>
+  <line x1="40" y1="328" x2="152" y2="328" stroke="rgba(46,198,106,.5)"/>
+  <rect x="162" y="320" width="44" height="15" rx="7.5" fill="rgba(46,198,106,.1)"/>
+  <text x="184" y="331" text-anchor="middle" font-family="Menlo,monospace" font-size="8.5" fill="#2ec66a" font-weight="700">DONE</text>
+
+  <rect x="16" y="638" width="260" height="34" rx="9" fill="none" stroke="rgba(255,255,255,.14)" stroke-dasharray="4 4"/>
+  <text x="146" y="659" text-anchor="middle" font-family="Menlo,monospace" font-size="11.5" fill="#8b93a7" font-weight="600">+ new thread  /now</text>
+
+  <!-- centre: focus stack -->
+  <rect x="348" y="72" width="690" height="44" rx="12" fill="#0d1426" stroke="rgba(255,255,255,.08)" opacity=".6"/>
+  <rect x="366" y="84" width="58" height="18" rx="5" fill="none" stroke="rgba(255,255,255,.14)"/>
+  <text x="395" y="97" text-anchor="middle" font-family="Menlo,monospace" font-size="9" fill="#5a627a" font-weight="700">THREAD</text>
+  <text x="436" y="98" font-size="12.5" fill="#8b93a7" font-weight="560">improving AIDX</text>
+
+  <rect x="322" y="100" width="742" height="158" rx="14" fill="#121a30" stroke="rgba(46,198,106,.35)" stroke-width="1.5"/>
+  <text x="346" y="142" font-size="23" fill="#e8ecf6" font-weight="650">answering support</text>
+  <rect x="924" y="118" width="118" height="26" rx="13" fill="rgba(46,198,106,.1)" stroke="rgba(46,198,106,.3)"/>
+  <circle cx="938" cy="131" r="3.5" fill="#2ec66a" filter="url(#glow)"/>
+  <text x="948" y="135" font-family="Menlo,monospace" font-size="10" fill="#2ec66a" font-weight="700">ACTIVE · 23M</text>
+  <!-- scope chips -->
+  <g font-family="Menlo,monospace" font-size="11">
+    <rect x="346" y="158" width="164" height="24" rx="7" fill="rgba(90,162,255,.06)" stroke="rgba(90,162,255,.16)"/>
+    <text x="356" y="174" fill="#8b93a7"><tspan fill="#5aa2ff" font-weight="700">⌂</tspan> component-library</text>
+    <rect x="518" y="158" width="124" height="24" rx="7" fill="rgba(90,162,255,.06)" stroke="rgba(90,162,255,.16)"/>
+    <text x="528" y="174" fill="#8b93a7"><tspan fill="#5aa2ff" font-weight="700">⎇</tspan> feature/aidx</text>
+    <rect x="650" y="158" width="192" height="24" rx="7" fill="rgba(90,162,255,.06)" stroke="rgba(90,162,255,.16)"/>
+    <text x="660" y="174" fill="#8b93a7"><tspan fill="#5aa2ff" font-weight="700">~</tspan> /code/component-library</text>
+  </g>
+  <!-- action buttons -->
+  <g font-family="Menlo,monospace" font-size="12" font-weight="600">
+    <rect x="346" y="200" width="94" height="32" rx="9" fill="rgba(46,198,106,.14)" stroke="rgba(46,198,106,.4)"/>
+    <text x="393" y="220" text-anchor="middle" fill="#dffbe9">✓ done</text>
+    <rect x="450" y="200" width="150" height="32" rx="9" fill="none" stroke="rgba(255,255,255,.14)"/>
+    <text x="525" y="220" text-anchor="middle" fill="#8b93a7">⇤ back to thread</text>
+    <rect x="610" y="200" width="80" height="32" rx="9" fill="none" stroke="rgba(255,255,255,.14)"/>
+    <text x="650" y="220" text-anchor="middle" fill="#8b93a7">⧉ park</text>
+    <rect x="700" y="200" width="150" height="32" rx="9" fill="none" stroke="rgba(255,255,255,.14)"/>
+    <text x="775" y="220" text-anchor="middle" fill="#8b93a7">＋ branch deeper</text>
+  </g>
+
+  <!-- notes -->
+  <text x="324" y="296" font-family="Menlo,monospace" font-size="11" letter-spacing="2" fill="#8b93a7" font-weight="700">NOTES &amp; TRAIL</text>
+  <rect x="812" y="280" width="252" height="24" rx="8" fill="none" stroke="rgba(255,255,255,.1)"/>
+  <rect x="812" y="280" width="102" height="24" rx="8" fill="rgba(90,162,255,.12)"/>
+  <g font-family="Menlo,monospace" font-size="10.5" font-weight="600">
+    <text x="863" y="296" text-anchor="middle" fill="#5aa2ff">this branch</text>
+    <text x="962" y="296" text-anchor="middle" fill="#5a627a">whole thread</text>
+    <text x="1038" y="296" text-anchor="middle" fill="#5a627a">all</text>
+  </g>
+  <line x1="324" y1="318" x2="620" y2="318" stroke="rgba(255,255,255,.08)"/>
+  <text x="693" y="322" text-anchor="middle" font-family="Menlo,monospace" font-size="9.5" letter-spacing="2" fill="#5a627a" font-weight="700">TODAY</text>
+  <line x1="766" y1="318" x2="1064" y2="318" stroke="rgba(255,255,255,.08)"/>
+  <g font-family="Menlo,monospace">
+    <text x="324" y="352" font-size="11" fill="#5a627a">14:02</text>
+    <text x="392" y="352" font-size="13" font-family="-apple-system,'Segoe UI',sans-serif" fill="#c7cddc">need to check auth flow</text>
+    <text x="324" y="388" font-size="11" fill="#5a627a">13:47</text>
+    <text x="392" y="388" font-size="13" font-family="-apple-system,'Segoe UI',sans-serif" fill="#c7cddc">support ticket #482 — token refresh 401s after idle</text>
+    <rect x="800" y="374" width="118" height="19" rx="5" fill="rgba(167,139,250,.1)"/>
+    <text x="808" y="387" font-size="10" fill="#a78bfa">⎇ feature/aidx</text>
+    <text x="324" y="424" font-size="11" fill="#5a627a">13:41</text>
+    <text x="392" y="424" font-size="11.5" fill="#5a627a">▶ branched from <tspan fill="#5aa2ff" font-weight="600">improving AIDX</tspan> — “answering support”</text>
+    <text x="324" y="460" font-size="11" fill="#5a627a">11:20</text>
+    <text x="392" y="460" font-size="13" font-family="-apple-system,'Segoe UI',sans-serif" fill="#c7cddc">AIDX scoring feels off for long sessions — sample rate?</text>
+    <text x="324" y="496" font-size="11" fill="#5a627a">09:12</text>
+    <text x="392" y="496" font-size="11.5" fill="#5a627a">● thread started via <tspan fill="#5aa2ff" font-weight="600">flo now</tspan> in zsh</text>
+  </g>
+
+  <!-- today rail -->
+  <line x1="1176" y1="44" x2="1176" y2="688" stroke="rgba(255,255,255,.08)"/>
+  <text x="1213" y="86" font-family="Menlo,monospace" font-size="9" letter-spacing="2" fill="#5a627a" font-weight="700" transform="rotate(90 1213 86)">TODAY</text>
+  <g fill="none" stroke-linecap="round">
+    <path d="M1208 130 v110" stroke="#5aa2ff" stroke-opacity=".5" stroke-width="2.5"/>
+    <path d="M1208 240 c0 26 10 34 10 60 c0 26 -8 36 -10 52" stroke="#a78bfa" stroke-opacity=".55" stroke-width="2"/>
+    <path d="M1208 240 v160" stroke="#5aa2ff" stroke-opacity=".35" stroke-width="2.5" stroke-dasharray="2 5"/>
+    <path d="M1208 400 v190" stroke="#2ec66a" stroke-opacity=".8" stroke-width="2.5"/>
+  </g>
+  <circle cx="1208" cy="130" r="3.5" fill="#5aa2ff"/>
+  <circle cx="1218" cy="300" r="2.5" fill="#a78bfa"/>
+  <circle cx="1208" cy="400" r="3.5" fill="#2ec66a"/>
+  <circle cx="1208" cy="590" r="4" fill="#2ec66a" filter="url(#glow)"/>
+  <rect x="1192" y="620" width="32" height="32" rx="9" fill="none" stroke="rgba(255,255,255,.14)"/>
+  <text x="1208" y="641" text-anchor="middle" font-size="14" fill="#8b93a7">◎</text>
+
+  <!-- capture bar -->
+  <line x1="0" y1="688" x2="1240" y2="688" stroke="rgba(255,255,255,.08)"/>
+  <rect x="20" y="702" width="1200" height="46" rx="12" fill="rgba(8,13,26,.9)" stroke="rgba(90,162,255,.3)" stroke-width="1.5"/>
+  <text x="40" y="731" font-family="Menlo,monospace" font-size="15" fill="#5aa2ff" font-weight="800">›</text>
+  <rect x="58" y="716" width="8" height="18" fill="#5aa2ff"/>
+  <text x="74" y="730" font-family="Menlo,monospace" font-size="12.5" fill="#5a627a">capture a thought — plain text becomes a note…</text>
+  <rect x="1022" y="712" width="180" height="26" rx="13" fill="rgba(46,198,106,.08)" stroke="rgba(46,198,106,.25)"/>
+  <text x="1112" y="729" text-anchor="middle" font-family="Menlo,monospace" font-size="10.5" fill="#2ec66a" font-weight="700">→ answering support</text>
+  <text x="26" y="768" font-family="Menlo,monospace" font-size="10.5" fill="#5a627a">/ commands    ? hints    ⌃↑↓ note history    ↵ capture</text>
+</svg>

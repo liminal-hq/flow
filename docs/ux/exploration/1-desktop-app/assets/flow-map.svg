@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1240" height="700" viewBox="0 0 1240 700" font-family="-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" role="img" aria-labelledby="t">
+  <title id="t">Flow Desktop — the Flow Map: the day replayed as a braided river of attention</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0c1222"/><stop offset="100%" stop-color="#080d1a"/>
+    </linearGradient>
+    <linearGradient id="gsup" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#5aa2ff"/><stop offset="100%" stop-color="#2ec66a"/>
+    </linearGradient>
+    <filter id="soft" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="1240" height="700" rx="14" fill="url(#bg)" stroke="rgba(90,162,255,.2)" stroke-width="1.5"/>
+
+  <!-- titlebar -->
+  <line x1="0" y1="44" x2="1240" y2="44" stroke="rgba(255,255,255,.08)"/>
+  <circle cx="26" cy="22" r="6" fill="#ff5f57"/><circle cx="46" cy="22" r="6" fill="#febc2e"/><circle cx="66" cy="22" r="6" fill="#28c840"/>
+  <text x="620" y="27" text-anchor="middle" font-family="Menlo,monospace" font-size="12.5" fill="#8b93a7">◎ flow map — <tspan fill="#e8ecf6" font-weight="700">where your attention actually went</tspan></text>
+
+  <!-- header -->
+  <rect x="24" y="58" width="248" height="34" rx="10" fill="none" stroke="rgba(255,255,255,.12)"/>
+  <text x="148" y="80" text-anchor="middle" font-family="Menlo,monospace" font-size="13" fill="#e8ecf6" font-weight="650">‹  Today · Thu Aug 14  ›</text>
+  <g font-family="Menlo,monospace" font-size="10.5">
+    <rect x="678" y="61" width="86" height="26" rx="13" fill="none" stroke="rgba(255,255,255,.1)"/>
+    <text x="721" y="78" text-anchor="middle" fill="#8b93a7"><tspan fill="#e8ecf6" font-weight="700">3</tspan> threads</text>
+    <rect x="772" y="61" width="92" height="26" rx="13" fill="none" stroke="rgba(255,255,255,.1)"/>
+    <text x="818" y="78" text-anchor="middle" fill="#8b93a7"><tspan fill="#e8ecf6" font-weight="700">3</tspan> branches</text>
+    <rect x="872" y="61" width="92" height="26" rx="13" fill="none" stroke="rgba(255,255,255,.1)"/>
+    <text x="918" y="78" text-anchor="middle" fill="#8b93a7"><tspan fill="#e8ecf6" font-weight="700">26</tspan> captures</text>
+    <rect x="972" y="61" width="240" height="26" rx="13" fill="rgba(46,198,106,.08)" stroke="rgba(46,198,106,.35)"/>
+    <text x="1092" y="78" text-anchor="middle" fill="#dffbe9">longest focus <tspan font-weight="700">1h 12m</tspan></text>
+  </g>
+
+  <!-- lane labels -->
+  <g font-family="Menlo,monospace" font-size="11.5" fill="#8b93a7" font-weight="600">
+    <text x="24" y="222">improving AIDX</text>
+    <text x="24" y="238" font-size="9.5" fill="#5a627a" font-weight="500">⌂ component-library</text>
+    <text x="24" y="296" font-size="10.5" fill="#5a627a" font-weight="500">↳ branches</text>
+    <text x="24" y="352">wear os sync</text>
+    <text x="24" y="368" font-size="9.5" fill="#5a627a" font-weight="500">⌂ wear-companion</text>
+    <text x="24" y="432">fix release pipeline</text>
+    <text x="24" y="448" font-size="9.5" fill="#5a627a" font-weight="500">✓ done 09:50</text>
+  </g>
+
+  <!-- braid, offset -->
+  <g transform="translate(10,100)">
+    <g stroke="rgba(255,255,255,.05)" stroke-width="1">
+      <line x1="263" y1="30" x2="263" y2="382"/><line x1="437" y1="30" x2="437" y2="382"/>
+      <line x1="610" y1="30" x2="610" y2="382"/><line x1="783" y1="30" x2="783" y2="382"/>
+      <line x1="957" y1="30" x2="957" y2="382"/>
+    </g>
+    <g font-family="Menlo,monospace" font-size="10.5" fill="#5a627a">
+      <text x="90" y="406">09:00</text><text x="245" y="406">10:00</text><text x="419" y="406">11:00</text>
+      <text x="592" y="406">12:00</text><text x="765" y="406">13:00</text><text x="939" y="406">14:00</text>
+    </g>
+
+    <path d="M90 330 L235 330" stroke="#5aa2ff" stroke-opacity=".55" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="235" cy="330" r="7" fill="none" stroke="#2ec66a" stroke-width="2.5"/>
+    <path d="M231.5 330 l2.5 2.5 l5 -5" stroke="#2ec66a" stroke-width="2" fill="none"/>
+
+    <path d="M125 120 L379 120" stroke="#5aa2ff" stroke-width="5" stroke-linecap="round" stroke-opacity=".85"/>
+    <path d="M379 120 L452 120" stroke="#5aa2ff" stroke-width="2.5" stroke-dasharray="2 7" stroke-opacity=".45" stroke-linecap="round"/>
+    <path d="M452 120 L901 120" stroke="#5aa2ff" stroke-width="5" stroke-linecap="round" stroke-opacity=".85"/>
+    <path d="M901 120 L1043 120" stroke="#5aa2ff" stroke-width="2" stroke-opacity=".35" stroke-linecap="round"/>
+
+    <path d="M639 120 C665 120 665 192 691 192 L711 192" stroke="#a78bfa" stroke-width="3.5" fill="none" stroke-opacity=".8" stroke-linecap="round"/>
+    <path d="M711 192 L748 192" stroke="#a78bfa" stroke-width="2" stroke-dasharray="2 6" stroke-opacity=".4" stroke-linecap="round"/>
+    <circle cx="748" cy="192" r="4.5" fill="none" stroke="#a78bfa" stroke-width="2" stroke-opacity=".8"/>
+
+    <path d="M901 120 C927 120 927 192 953 192 L1035 192" stroke="url(#gsup)" stroke-width="5" fill="none" stroke-linecap="round" filter="url(#soft)"/>
+
+    <path d="M379 250 L452 250" stroke="#ffaa40" stroke-width="5" stroke-linecap="round" stroke-opacity=".9"/>
+    <path d="M452 250 L1043 250" stroke="#ffaa40" stroke-width="2" stroke-dasharray="2 7" stroke-opacity=".35" stroke-linecap="round"/>
+    <path d="M379 120 C400 120 400 250 379 250" stroke="rgba(255,255,255,.14)" stroke-width="1.5" fill="none" stroke-dasharray="3 4"/>
+    <path d="M452 250 C431 250 431 120 452 120" stroke="rgba(255,255,255,.14)" stroke-width="1.5" fill="none" stroke-dasharray="3 4"/>
+
+    <circle cx="125" cy="120" r="5" fill="#5aa2ff"/>
+    <circle cx="332" cy="120" r="3.5" fill="#cdd6ea"/>
+    <circle cx="495" cy="120" r="3.5" fill="#cdd6ea"/>
+    <circle cx="668" cy="192" r="3.5" fill="#cdd6ea"/>
+    <circle cx="836" cy="120" r="3.5" fill="#cdd6ea"/>
+    <circle cx="918" cy="192" r="3.5" fill="#cdd6ea"/>
+    <circle cx="961" cy="192" r="5.5" fill="#2ec66a" filter="url(#soft)"/>
+    <circle cx="404" cy="250" r="3.5" fill="#cdd6ea"/>
+
+    <line x1="1043" y1="26" x2="1043" y2="382" stroke="#2ec66a" stroke-opacity=".5" stroke-width="1.5"/>
+    <circle cx="1043" cy="192" r="6" fill="#2ec66a" filter="url(#soft)"/>
+    <text x="1054" y="34" font-family="Menlo,monospace" font-size="10.5" fill="#2ec66a" font-weight="700">NOW 14:26</text>
+    <text x="1054" y="196" font-family="Menlo,monospace" font-size="10.5" fill="#8b93a7">answering</text>
+    <text x="1054" y="209" font-family="Menlo,monospace" font-size="10.5" fill="#8b93a7">support</text>
+
+    <!-- tooltip -->
+    <rect x="880" y="120" width="238" height="46" rx="10" fill="rgba(11,16,30,.97)" stroke="rgba(46,198,106,.35)"/>
+    <text x="894" y="139" font-family="Menlo,monospace" font-size="11.5" fill="#c7cddc">“need to check auth flow”</text>
+    <text x="894" y="156" font-family="Menlo,monospace" font-size="9.5" fill="#5a627a">14:02 · answering support · ⎇ feature/aidx</text>
+  </g>
+
+  <!-- insight strip -->
+  <g font-family="Menlo,monospace">
+    <rect x="24" y="558" width="384" height="112" rx="12" fill="rgba(255,255,255,.015)" stroke="rgba(255,255,255,.08)"/>
+    <text x="40" y="582" font-size="9.5" letter-spacing="1.6" fill="#5a627a" font-weight="700">READ BACK</text>
+    <text x="40" y="604" font-size="12" font-family="-apple-system,'Segoe UI',sans-serif" fill="#c7cddc">You paused <tspan font-weight="650" fill="#e8ecf6">improving AIDX</tspan> for 25 min to handle</text>
+    <text x="40" y="622" font-size="12" font-family="-apple-system,'Segoe UI',sans-serif" fill="#c7cddc"><tspan font-weight="650" fill="#e8ecf6">wear os sync</tspan> — the dashed gap is that interlude,</text>
+    <text x="40" y="640" font-size="12" font-family="-apple-system,'Segoe UI',sans-serif" fill="#c7cddc">drawn honestly.</text>
+
+    <rect x="424" y="558" width="384" height="112" rx="12" fill="rgba(255,255,255,.015)" stroke="rgba(255,255,255,.08)"/>
+    <text x="440" y="582" font-size="9.5" letter-spacing="1.6" fill="#5a627a" font-weight="700">PATTERN</text>
+    <text x="440" y="604" font-size="12" font-family="-apple-system,'Segoe UI',sans-serif" fill="#c7cddc">Deep-focus block <tspan font-weight="650" fill="#e8ecf6">11:05 – 13:41</tspan> was today's</text>
+    <text x="440" y="622" font-size="12" font-family="-apple-system,'Segoe UI',sans-serif" fill="#c7cddc">longest. Your branches cluster after lunch —</text>
+    <text x="440" y="640" font-size="12" font-family="-apple-system,'Segoe UI',sans-serif" fill="#8b93a7" font-style="italic">tangents live in the afternoon.</text>
+
+    <rect x="824" y="558" width="392" height="112" rx="12" fill="rgba(255,255,255,.015)" stroke="rgba(255,255,255,.08)"/>
+    <text x="840" y="582" font-size="9.5" letter-spacing="1.6" fill="#5a627a" font-weight="700">LOOSE END</text>
+    <text x="840" y="604" font-size="12" font-family="-apple-system,'Segoe UI',sans-serif" fill="#c7cddc"><tspan font-weight="650" fill="#e8ecf6">reading article</tspan> has been parked for 1h 51m.</text>
+    <text x="840" y="622" font-size="12" font-family="-apple-system,'Segoe UI',sans-serif" fill="#c7cddc"><tspan fill="#5aa2ff">Resume it ↵</tspan> or let it drift to the archive.</text>
+  </g>
+</svg>

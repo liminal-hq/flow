@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flow Clean — 2 · Day</title>
+<style>
+  :root{
+    --bg:#0a0d14; --surface:#0e1320; --surface2:#111726; --raised:#151c2e;
+    --line:rgba(255,255,255,.07); --line2:rgba(255,255,255,.12);
+    --text:#e6eaf2; --dim:#9aa3b5; --faint:#5d6579;
+    --green:#2ec66a; --blue:#5aa2ff; --amber:#ffaa40; --violet:#a78bfa; --rose:#f43f5e;
+    --mono:ui-monospace,"JetBrains Mono","SF Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:linear-gradient(170deg,#090c12,#0b1019);color:var(--text);
+    font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+    min-height:100vh;padding:48px 24px 80px}
+  .kicker{font:600 11px/1 var(--mono);letter-spacing:.22em;text-transform:uppercase;color:var(--faint);text-align:center}
+  h1{text-align:center;font-size:26px;font-weight:650;margin:10px 0 4px}
+  h1 .g{background:linear-gradient(90deg,#ffaa40,#f43f5e,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{text-align:center;color:var(--dim);max-width:700px;margin:0 auto 40px;font-size:14px}
+
+  .stage{position:relative;max-width:1280px;margin:0 auto}
+  .window{border-radius:12px;overflow:hidden;height:780px;display:flex;flex-direction:column;
+    border:1px solid var(--line2);background:var(--bg);box-shadow:0 40px 90px rgba(0,0,0,.55)}
+  .titlebar{height:42px;flex:none;display:flex;align-items:center;gap:12px;padding:0 14px;border-bottom:1px solid var(--line);background:var(--surface)}
+  .lights{display:flex;gap:8px}
+  .lights i{width:12px;height:12px;border-radius:50%;display:block}
+  .lights i:nth-child(1){background:#ff5f57}.lights i:nth-child(2){background:#febc2e}.lights i:nth-child(3){background:#28c840}
+  .datebar{margin:0 auto;display:flex;align-items:center;gap:14px;font:600 13px var(--mono)}
+  .datebar .arr{color:var(--faint);border:1px solid var(--line);border-radius:6px;width:24px;height:24px;display:grid;place-items:center;font-size:12px}
+  .seg{display:flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;font:600 11px var(--mono)}
+  .seg span{padding:4px 12px;color:var(--faint)}
+  .seg .on{background:var(--raised);color:var(--text)}
+  .total{font:600 11px var(--mono);color:var(--dim)}
+  .total b{color:var(--green)}
+
+  .cols{flex:1;display:flex;min-height:0}
+
+  /* timeline */
+  .tl{flex:1;min-width:0;position:relative;padding:18px 26px 18px 0;background:var(--bg)}
+  .canvas{position:absolute;left:76px;right:26px;top:24px;bottom:56px}
+  .hour{position:absolute;left:-58px;font:500 10.5px var(--mono);color:var(--faint);transform:translateY(-50%)}
+  .hline{position:absolute;left:0;right:0;height:1px;background:var(--line)}
+  .block{position:absolute;left:0;right:34%;border-radius:8px;background:var(--surface2);
+    border:1px solid var(--line2);border-left:3px solid var(--blue);padding:7px 12px;overflow:hidden}
+  .block .t{font-size:12.5px;font-weight:600;color:#d4dae6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .block .m{font:500 10px var(--mono);color:var(--faint)}
+  .block.small{padding:4px 12px}
+  .block.small .t{font-size:11.5px}
+  .block.orange{border-left-color:var(--amber)}
+  .block.live{border-color:rgba(46,198,106,.45);border-left-color:var(--green);background:#0f1a24}
+  .block.live .t{color:#e6eaf2}
+  .block .dots{position:absolute;right:10px;top:8px;display:flex;gap:4px}
+  .block .dots i{width:5px;height:5px;border-radius:50%;background:var(--faint)}
+  .block.sel{outline:2px solid rgba(90,162,255,.5)}
+  .gap-label{position:absolute;left:0;right:34%;text-align:center;font:500 10.5px var(--mono);color:var(--faint)}
+  .nowline{position:absolute;left:-8px;right:30%;height:2px;background:var(--green);border-radius:1px}
+  .nowline::before{content:"";position:absolute;left:-4px;top:-3px;width:8px;height:8px;border-radius:50%;background:var(--green)}
+  .nowline b{position:absolute;right:-58px;top:-7px;font:700 10px var(--mono);color:var(--green)}
+
+  /* right panel */
+  .side{width:392px;flex:none;border-left:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column;min-height:0}
+  .p-sec{padding:16px 20px;border-bottom:1px solid var(--line)}
+  .p-sec .cap{font:650 10px var(--mono);letter-spacing:.18em;color:var(--faint);margin-bottom:9px;display:flex}
+  .p-sec .cap .r{margin-left:auto;font-weight:500;letter-spacing:0}
+  .nowcard{border:1px solid rgba(46,198,106,.35);border-radius:10px;background:var(--surface2);padding:12px 14px}
+  .nowcard .r1{display:flex;align-items:center;gap:9px}
+  .nowcard .dot{width:8px;height:8px;border-radius:50%;background:var(--green)}
+  .nowcard .t{font-size:14px;font-weight:620}
+  .nowcard time{margin-left:auto;font:600 11.5px var(--mono);color:var(--dim)}
+  .nowcard .m{font:500 11px var(--mono);color:var(--faint);margin-top:5px;padding-left:17px}
+  .blk-notes .n-item{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--line)}
+  .blk-notes .n-item:last-child{border-bottom:none}
+  .blk-notes time{font:500 10.5px var(--mono);color:var(--faint);flex:none;padding-top:1px}
+  .blk-notes p{font-size:12.5px;color:#b9c1d2}
+  .later{flex:1;overflow:hidden}
+  .l-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;color:var(--dim)}
+  .l-item .st{width:7px;height:7px;border-radius:50%;background:var(--amber);flex:none}
+  .l-item .age{margin-left:auto;font:500 10.5px var(--mono);color:var(--faint)}
+  .l-item kbd{font:600 9.5px var(--mono);color:var(--faint);border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+  .capbar{flex:none;margin:14px 16px 16px;display:flex;align-items:center;gap:10px;border:1px solid var(--line2);
+    border-radius:9px;background:var(--bg);padding:10px 14px;font:450 12.5px var(--mono);color:var(--faint)}
+  .capbar .p{color:var(--blue);font-weight:700}
+
+  .pin{position:absolute;z-index:9;width:26px;height:26px;border-radius:50%;
+    background:linear-gradient(135deg,#ffaa40,#f43f5e);color:#14060a;
+    font:800 13px var(--mono);display:grid;place-items:center;box-shadow:0 4px 14px rgba(244,63,94,.45)}
+  .legend{max-width:1280px;margin:34px auto 0;display:grid;grid-template-columns:repeat(2,1fr);gap:12px 28px}
+  .leg{display:flex;gap:12px;align-items:flex-start}
+  .leg .n{flex:none;width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#ffaa40,#f43f5e);
+    color:#14060a;font:800 11.5px var(--mono);display:grid;place-items:center;margin-top:2px}
+  .leg p{font-size:13px;color:var(--dim)}
+  .leg p b{color:var(--text);font-weight:620}
+  .foot{max-width:1280px;margin:40px auto 0;text-align:center;font:500 11.5px var(--mono);color:var(--faint)}
+  .foot a{color:var(--blue);text-decoration:none}
+  @media (max-width:900px){.legend{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="kicker">Liminal Flow · Ground-up Rethinks · Series 3 (Clean) · 2 of 4</div>
+<h1>FLOW / <span class="g">DAY</span></h1>
+<p class="sub">A calendar that fills itself in. The day column is not a plan — it's a faithful record of where your attention actually went, drawn as blocks while you work. You read it the way you read a calendar, but backwards: not "what's next?" — <b style="color:var(--text)">"what happened?"</b></p>
+
+<div class="stage">
+  <div class="pin" style="top:180px;left:280px">1</div>
+  <div class="pin" style="top:388px;left:530px">2</div>
+  <div class="pin" style="top:498px;left:280px">3</div>
+  <div class="pin" style="top:130px;right:-13px">4</div>
+  <div class="pin" style="top:360px;right:-13px">5</div>
+  <div class="pin" style="bottom:40px;right:180px">6</div>
+
+  <div class="window">
+    <div class="titlebar">
+      <div class="lights"><i></i><i></i><i></i></div>
+      <div class="datebar">
+        <span class="arr">‹</span> Today · Thu Aug 14 <span class="arr">›</span>
+        <div class="seg"><span class="on">day</span><span>week</span></div>
+        <span class="total">recorded <b>3h 12m</b> across 3 focuses</span>
+      </div>
+    </div>
+
+    <div class="cols">
+      <!-- timeline -->
+      <div class="tl">
+        <div class="canvas">
+          <!-- hour grid: 09:00 → 18:00 over 100% -->
+          <div class="hline" style="top:0%"></div><span class="hour" style="top:0%">09:00</span>
+          <div class="hline" style="top:11.1%"></div><span class="hour" style="top:11.1%">10:00</span>
+          <div class="hline" style="top:22.2%"></div><span class="hour" style="top:22.2%">11:00</span>
+          <div class="hline" style="top:33.3%"></div><span class="hour" style="top:33.3%">12:00</span>
+          <div class="hline" style="top:44.4%"></div><span class="hour" style="top:44.4%">13:00</span>
+          <div class="hline" style="top:55.6%"></div><span class="hour" style="top:55.6%">14:00</span>
+          <div class="hline" style="top:66.7%"></div><span class="hour" style="top:66.7%">15:00</span>
+          <div class="hline" style="top:77.8%"></div><span class="hour" style="top:77.8%">16:00</span>
+          <div class="hline" style="top:88.9%"></div><span class="hour" style="top:88.9%">17:00</span>
+          <div class="hline" style="top:100%"></div><span class="hour" style="top:100%">18:00</span>
+
+          <!-- blocks -->
+          <div class="block" style="top:2.2%;height:14%">
+            <div class="t">Improving AIDX</div><div class="m">09:12 – 10:40 · 1h 28m · 3 notes</div>
+            <div class="dots"><i></i><i></i><i></i></div>
+          </div>
+          <div class="block small orange" style="top:16.6%;height:4.2%">
+            <div class="t">Wear OS sync — battery repro <span style="color:var(--faint);font-weight:500">· 25m</span></div>
+          </div>
+          <div class="block" style="top:21.2%;height:15.5%">
+            <div class="t">Improving AIDX</div><div class="m">11:05 – 12:30 · 1h 25m · 1 note</div>
+            <div class="dots"><i></i></div>
+          </div>
+          <div class="gap-label" style="top:38.5%">— away 35m · nothing recorded, nothing invented —</div>
+          <div class="block sel" style="top:41.5%;height:6.2%">
+            <div class="t">Improving AIDX</div><div class="m">13:05 – 13:41 · 36m</div>
+          </div>
+          <div class="block live" style="top:48.2%;height:8.2%">
+            <div class="t">Support ticket #482 — token refresh bug</div>
+            <div class="m">13:41 – now · 45m · sub-task of Improving AIDX</div>
+          </div>
+          <div class="nowline" style="top:56.6%"><b>14:26</b></div>
+        </div>
+      </div>
+
+      <!-- right panel -->
+      <div class="side">
+        <div class="p-sec">
+          <div class="cap">NOW</div>
+          <div class="nowcard">
+            <div class="r1"><span class="dot"></span><span class="t">Support ticket #482</span><time>45m</time></div>
+            <div class="m">component-library · feature/aidx · will return to Improving AIDX</div>
+          </div>
+        </div>
+        <div class="p-sec blk-notes">
+          <div class="cap">SELECTED BLOCK · 13:05 – 13:41 <span class="r">Improving AIDX</span></div>
+          <div class="n-item"><time>13:09</time><p>decay window is hardcoded at 30m — that's the bug</p></div>
+          <div class="n-item"><time>13:38</time><p>fix sketched; needs a test with a 90m synthetic session</p></div>
+        </div>
+        <div class="p-sec later">
+          <div class="cap">NOT YET TODAY <span class="r">order = queue</span></div>
+          <div class="l-item"><span class="st"></span> Improving AIDX — resume at decay-window test <span class="age">next</span><kbd>↵</kbd></div>
+          <div class="l-item"><span class="st"></span> Component library docs <span class="age">1d</span></div>
+          <div class="l-item"><span class="st" style="background:var(--violet)"></span> Release sign-off — waiting on Dana <span class="age">tue</span></div>
+        </div>
+        <div class="capbar"><span class="p">›</span> note lands on the current block…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="leg"><span class="n">1</span><p><b>Blocks are recorded, never planned.</b> A block appears when you start a focus and grows while you stay. The day column is append-only history in calendar clothing — familiar to read, impossible to fall behind on, because there is nothing to fill in.</p></div>
+  <div class="leg"><span class="n">2</span><p><b>Gaps are kept, labelled, and neutral.</b> Time away is drawn as honest whitespace — "nothing recorded, nothing invented." No app-filling, no shame red. The record stays trustworthy precisely because it admits what it doesn't know.</p></div>
+  <div class="leg"><span class="n">3</span><p><b>Interruptions read as geology.</b> The morning shows AIDX split by a 25-minute Wear OS interlude — three strata instead of one lie about "3 hours of AIDX." Sub-tasks (the live green block) carry their parentage in the subtitle, so the story stays legible.</p></div>
+  <div class="leg"><span class="n">4</span><p><b>The right panel answers three questions.</b> Now (what's running), Selected block (what was I thinking then — click any block to replay its notes), and Not-yet-today (the queue, in order). Fixed sections, no tabs, no rearranging.</p></div>
+  <div class="leg"><span class="n">5</span><p><b>Notes are pinned to time × block.</b> Every note lands on the block that was running when you wrote it. Clicking 13:05–13:41 shows exactly the two thoughts from that half hour — "what was I thinking before lunch?" becomes a click, not an archaeology dig.</p></div>
+  <div class="leg"><span class="n">6</span><p><b>Week view is the same data, folded.</b> Seven day-columns side by side, blocks coloured by focus. Because it's all recorded, the week view doubles as a truthful timesheet — export it, or just stop guessing on Friday.</p></div>
+</div>
+
+<div class="foot">LIMINAL FLOW · CLEAN SERIES — <a href="01-queue.html">1 · Queue</a> · next: <a href="03-board.html">3 · Board</a> · <a href="04-review.html">4 · Review</a></div>
+
+</body>
+</html>

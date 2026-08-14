@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flow Desktop — 4 · The Flow Map</title>
+<style>
+  :root{
+    --bg0:#050507; --bg1:#0a1020; --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.14);
+    --text:#e8ecf6; --dim:#8b93a7; --faint:#5a627a;
+    --orange:#ffaa40; --rose:#f43f5e; --violet:#a78bfa; --blue:#5aa2ff; --green:#2ec66a;
+    --mono:ui-monospace,"JetBrains Mono","SF Mono","Cascadia Code",Menlo,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(1100px 500px at 15% -10%, rgba(167,139,250,.10), transparent 60%),
+      radial-gradient(900px 500px at 90% 0%, rgba(255,170,64,.07), transparent 55%),
+      linear-gradient(160deg,var(--bg0),var(--bg1));
+    color:var(--text);
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+    min-height:100vh;padding:48px 24px 80px;
+  }
+  .kicker{font:600 11px/1 var(--mono);letter-spacing:.22em;text-transform:uppercase;color:var(--faint);text-align:center}
+  h1{text-align:center;font-size:26px;font-weight:650;margin:10px 0 4px}
+  h1 .g{background:linear-gradient(90deg,var(--orange),var(--rose),var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{text-align:center;color:var(--dim);max-width:720px;margin:0 auto 40px;font-size:14px}
+
+  .stage{position:relative;max-width:1240px;margin:0 auto}
+  .window{border-radius:14px;overflow:hidden;background:linear-gradient(175deg,#0c1222,#080d1a);
+    border:1px solid var(--line2);
+    box-shadow:0 0 0 1px rgba(90,162,255,.12), 0 40px 90px rgba(0,0,0,.6);
+    display:flex;flex-direction:column}
+  .titlebar{height:44px;flex:none;display:flex;align-items:center;gap:14px;padding:0 14px;
+    border-bottom:1px solid var(--line);background:rgba(255,255,255,.015)}
+  .lights{display:flex;gap:8px}
+  .lights i{width:12px;height:12px;border-radius:50%;display:block}
+  .lights i:nth-child(1){background:#ff5f57}.lights i:nth-child(2){background:#febc2e}.lights i:nth-child(3){background:#28c840}
+  .tb-title{flex:1;text-align:center;font:560 12.5px var(--mono);color:var(--dim)}
+  .tb-title b{color:var(--text)}
+  .tb-close{font:600 11px var(--mono);color:var(--faint);border:1px solid var(--line);border-radius:6px;padding:3px 9px}
+
+  .map-h{display:flex;align-items:center;gap:14px;padding:18px 26px 6px}
+  .date-pick{display:inline-flex;align-items:center;gap:10px;font:620 14px var(--mono);border:1px solid var(--line2);
+    border-radius:10px;padding:8px 14px}
+  .date-pick .arr{color:var(--faint)}
+  .stats{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
+  .stat{font:560 11px var(--mono);color:var(--dim);border:1px solid var(--line);border-radius:999px;padding:5px 11px}
+  .stat b{color:var(--text);font-weight:650}
+  .stat.hero{color:#dffbe9;border-color:rgba(46,198,106,.35);background:rgba(46,198,106,.08)}
+
+  .map-wrap{position:relative;padding:6px 10px 4px}
+  .lane-label{position:absolute;font:560 11.5px var(--mono);color:var(--dim);left:26px}
+  .lane-label small{display:block;font-weight:500;font-size:10px;color:var(--faint)}
+  .lane-label.b{padding-left:12px;color:var(--faint)}
+
+  .tip{position:absolute;left:788px;top:118px;width:230px;background:rgba(11,16,30,.97);
+    border:1px solid rgba(46,198,106,.35);border-radius:10px;padding:10px 12px;z-index:4;
+    box-shadow:0 14px 34px rgba(0,0,0,.6)}
+  .tip .t{font:450 12.5px var(--mono);color:#c7cddc}
+  .tip .m{font:500 10.5px var(--mono);color:var(--faint);margin-top:5px}
+  .tip::after{content:"";position:absolute;left:24px;bottom:-6px;width:10px;height:10px;background:rgba(11,16,30,.97);
+    border-right:1px solid rgba(46,198,106,.35);border-bottom:1px solid rgba(46,198,106,.35);transform:rotate(45deg)}
+
+  .insight{display:flex;gap:10px;padding:10px 26px 20px;flex-wrap:wrap}
+  .ins{flex:1;min-width:240px;border:1px solid var(--line);border-radius:12px;padding:12px 16px;background:rgba(255,255,255,.015)}
+  .ins .cap{font:650 9.5px var(--mono);letter-spacing:.16em;color:var(--faint);margin-bottom:4px}
+  .ins .v{font-size:13.5px;color:#c7cddc}
+  .ins .v b{color:var(--text)}
+  .ins .v i{color:var(--dim)}
+
+  .pin{position:absolute;z-index:6;width:26px;height:26px;border-radius:50%;
+    background:linear-gradient(135deg,var(--orange),var(--rose));color:#14060a;
+    font:800 13px var(--mono);display:grid;place-items:center;box-shadow:0 4px 14px rgba(244,63,94,.45)}
+
+  .legend{max-width:1240px;margin:34px auto 0;display:grid;grid-template-columns:repeat(2,1fr);gap:12px 28px}
+  .leg{display:flex;gap:12px;align-items:flex-start}
+  .leg .n{flex:none;width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--orange),var(--rose));
+    color:#14060a;font:800 11.5px var(--mono);display:grid;place-items:center;margin-top:2px}
+  .leg p{font-size:13px;color:var(--dim)}
+  .leg p b{color:var(--text);font-weight:620}
+  .foot{max-width:1240px;margin:40px auto 0;text-align:center;font:500 11.5px var(--mono);color:var(--faint)}
+  .foot a{color:var(--blue);text-decoration:none}
+  @media (max-width:900px){.legend{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="kicker">Liminal Flow · Desktop Design · Screen 4 of 4</div>
+<h1>The <span class="g">Flow Map</span></h1>
+<p class="sub">Your attention, replayed as a braided river. Flow already records every state change as an immutable event — the map simply draws that ledger. Nothing to fill in, nothing to track. It was always there.</p>
+
+<div class="stage">
+  <div class="pin" style="top:104px;left:-13px">1</div>
+  <div class="pin" style="top:214px;left:585px">2</div>
+  <div class="pin" style="top:96px;right:280px">3</div>
+  <div class="pin" style="top:322px;left:415px">4</div>
+  <div class="pin" style="top:60px;left:190px">5</div>
+  <div class="pin" style="top:250px;right:-13px">6</div>
+
+  <div class="window">
+    <div class="titlebar">
+      <div class="lights"><i></i><i></i><i></i></div>
+      <div class="tb-title">◎ flow map — <b>where your attention actually went</b></div>
+      <span class="tb-close">esc ✕</span>
+    </div>
+
+    <div class="map-h">
+      <div class="date-pick"><span class="arr">‹</span> Today · Thu Aug 14 <span class="arr">›</span> <span style="color:var(--faint);font-size:11px">▾ week</span></div>
+      <div class="stats">
+        <span class="stat"><b>3</b> threads</span>
+        <span class="stat"><b>3</b> branches</span>
+        <span class="stat"><b>26</b> captures</span>
+        <span class="stat"><b>3</b> switches</span>
+        <span class="stat hero">longest focus <b>1h 12m</b></span>
+      </div>
+    </div>
+
+    <div class="map-wrap">
+      <div class="lane-label" style="top:96px">improving AIDX<small>⌂ component-library</small></div>
+      <div class="lane-label b" style="top:168px">↳ branches</div>
+      <div class="lane-label" style="top:238px">wear os sync<small>⌂ wear-companion</small></div>
+      <div class="lane-label" style="top:308px">fix release pipeline<small>✓ done 09:50</small></div>
+
+      <!-- tooltip on a capture dot -->
+      <div class="tip">
+        <div class="t">“need to check auth flow”</div>
+        <div class="m">14:02 · answering support · ⎇ feature/aidx</div>
+      </div>
+
+      <svg viewBox="0 0 1218 400" width="100%" aria-label="Braided timeline of today's attention">
+        <defs>
+          <linearGradient id="gsup" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#5aa2ff"/><stop offset="100%" stop-color="#2ec66a"/>
+          </linearGradient>
+          <filter id="soft" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+
+        <!-- hour grid -->
+        <g stroke="rgba(255,255,255,.05)" stroke-width="1">
+          <line x1="263" y1="30" x2="263" y2="352"/><line x1="437" y1="30" x2="437" y2="352"/>
+          <line x1="610" y1="30" x2="610" y2="352"/><line x1="783" y1="30" x2="783" y2="352"/>
+          <line x1="957" y1="30" x2="957" y2="352"/>
+        </g>
+        <g font-family="ui-monospace,Menlo,monospace" font-size="10.5" fill="#5a627a">
+          <text x="90" y="376">09:00</text><text x="245" y="376">10:00</text><text x="419" y="376">11:00</text>
+          <text x="592" y="376">12:00</text><text x="765" y="376">13:00</text><text x="939" y="376">14:00</text>
+        </g>
+
+        <!-- fix release pipeline: 09:00–09:50, done -->
+        <path d="M90 330 L235 330" stroke="#5aa2ff" stroke-opacity=".55" stroke-width="4" stroke-linecap="round"/>
+        <circle cx="235" cy="330" r="7" fill="none" stroke="#2ec66a" stroke-width="2.5"/>
+        <path d="M231.5 330 l2.5 2.5 l5 -5" stroke="#2ec66a" stroke-width="2" fill="none"/>
+
+        <!-- improving AIDX main stream -->
+        <path d="M125 120 L379 120" stroke="#5aa2ff" stroke-width="5" stroke-linecap="round" stroke-opacity=".85"/>
+        <!-- pause: honest dashed gap while wear os takes over -->
+        <path d="M379 120 L452 120" stroke="#5aa2ff" stroke-width="2.5" stroke-dasharray="2 7" stroke-opacity=".45" stroke-linecap="round"/>
+        <path d="M452 120 L901 120" stroke="#5aa2ff" stroke-width="5" stroke-linecap="round" stroke-opacity=".85"/>
+        <!-- after branch takes focus, parent runs thin -->
+        <path d="M901 120 L1043 120" stroke="#5aa2ff" stroke-width="2" stroke-opacity=".35" stroke-linecap="round"/>
+
+        <!-- branch: reading article (parked) -->
+        <path d="M639 120 C665 120 665 192 691 192 L711 192" stroke="#a78bfa" stroke-width="3.5" fill="none" stroke-opacity=".8" stroke-linecap="round"/>
+        <path d="M711 192 L748 192" stroke="#a78bfa" stroke-width="2" stroke-dasharray="2 6" stroke-opacity=".4" stroke-linecap="round"/>
+        <circle cx="748" cy="192" r="4.5" fill="none" stroke="#a78bfa" stroke-width="2" stroke-opacity=".8"/>
+
+        <!-- branch: answering support (live) -->
+        <path d="M901 120 C927 120 927 192 953 192 L1035 192" stroke="url(#gsup)" stroke-width="5" fill="none" stroke-linecap="round" filter="url(#soft)"/>
+
+        <!-- wear os sync -->
+        <path d="M231 250 C300 250 320 250 379 250" stroke="#ffaa40" stroke-width="0" fill="none"/>
+        <path d="M379 250 L452 250" stroke="#ffaa40" stroke-width="5" stroke-linecap="round" stroke-opacity=".9"/>
+        <path d="M452 250 L1043 250" stroke="#ffaa40" stroke-width="2" stroke-dasharray="2 7" stroke-opacity=".35" stroke-linecap="round"/>
+        <!-- switch connectors -->
+        <path d="M379 120 C400 120 400 250 379 250 " stroke="rgba(255,255,255,.14)" stroke-width="1.5" fill="none" stroke-dasharray="3 4"/>
+        <path d="M452 250 C431 250 431 120 452 120" stroke="rgba(255,255,255,.14)" stroke-width="1.5" fill="none" stroke-dasharray="3 4"/>
+
+        <!-- capture dots -->
+        <g>
+          <circle cx="125" cy="120" r="5" fill="#5aa2ff"/>
+          <circle cx="332" cy="120" r="3.5" fill="#cdd6ea"/>
+          <circle cx="495" cy="120" r="3.5" fill="#cdd6ea"/>
+          <circle cx="668" cy="192" r="3.5" fill="#cdd6ea"/>
+          <circle cx="836" cy="120" r="3.5" fill="#cdd6ea"/>
+          <circle cx="918" cy="192" r="3.5" fill="#cdd6ea"/>
+          <circle cx="961" cy="192" r="5.5" fill="#2ec66a" filter="url(#soft)"/>
+          <circle cx="404" cy="250" r="3.5" fill="#cdd6ea"/>
+        </g>
+
+        <!-- NOW line -->
+        <line x1="1043" y1="26" x2="1043" y2="352" stroke="#2ec66a" stroke-opacity=".5" stroke-width="1.5"/>
+        <circle cx="1043" cy="192" r="6" fill="#2ec66a" filter="url(#soft)"/>
+        <text x="1054" y="34" font-family="ui-monospace,Menlo,monospace" font-size="10.5" fill="#2ec66a" font-weight="700">NOW 14:26</text>
+        <text x="1054" y="196" font-family="ui-monospace,Menlo,monospace" font-size="10.5" fill="#8b93a7">answering</text>
+        <text x="1054" y="209" font-family="ui-monospace,Menlo,monospace" font-size="10.5" fill="#8b93a7">support</text>
+      </svg>
+    </div>
+
+    <div class="insight">
+      <div class="ins"><div class="cap">READ BACK</div><div class="v">You paused <b>improving AIDX</b> for 25 min to handle <b>wear os sync</b> — the dashed gap is that interlude, drawn honestly.</div></div>
+      <div class="ins"><div class="cap">PATTERN</div><div class="v">Deep-focus block <b>11:05 – 13:41</b> was today’s longest. Your branches cluster after lunch — <i>tangents live in the afternoon.</i></div></div>
+      <div class="ins"><div class="cap">LOOSE END</div><div class="v"><b>reading article</b> has been parked for 1h 51m. <span style="color:var(--blue)">Resume it ↵</span> or let it drift to the archive.</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="leg"><span class="n">1</span><p><b>Lanes are threads, streams are attention.</b> Thick beam = active focus; thin = alive but backgrounded; dashed = paused, drawn as an honest gap rather than hidden. The ✓ ring is a completed thread’s full stop.</p></div>
+  <div class="leg"><span class="n">2</span><p><b>Branches literally branch.</b> Sub-tasks curve off the parent lane and either return (done), fade out with a ○ (parked), or glow onward (live). The green-tipped stream is you, right now.</p></div>
+  <div class="leg"><span class="n">3</span><p><b>Zero bookkeeping.</b> The map is a pure render of the append-only events table that Flow already writes on every <i>now / branch / park / done</i>. The visualization costs the user nothing — it’s a receipt, not a form.</p></div>
+  <div class="leg"><span class="n">4</span><p><b>Dots are thoughts.</b> Every capture lands on the stream that owned your attention when you had it. Hovering replays the note with its scope — a time machine for “what was I thinking?”</p></div>
+  <div class="leg"><span class="n">5</span><p><b>Scrub through days.</b> Arrow through yesterday, flip to a week view where each day compresses into one braid — patterns (morning deep work, afternoon tangents) become visible in a way no todo list can show.</p></div>
+  <div class="leg"><span class="n">6</span><p><b>Insights, not judgements.</b> The strip below reads the braid back in plain language: interludes, longest block, loose ends with a one-key resume. Flow never scores you — it just remembers on your behalf.</p></div>
+</div>
+
+<div class="foot">LIMINAL FLOW · TAURI DESKTOP CONCEPT — <a href="01-workbench.html">1 · Workbench</a> · <a href="02-quick-capture.html">2 · Quick Capture</a> · <a href="03-companion.html">3 · Companion &amp; Tray</a></div>
+
+</body>
+</html>

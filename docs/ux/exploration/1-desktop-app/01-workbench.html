@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flow Desktop — 1 · The Workbench</title>
+<style>
+  :root{
+    --bg0:#050507; --bg1:#0a1020; --panel:#0d1322; --panel2:#101830;
+    --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.14);
+    --text:#e8ecf6; --dim:#8b93a7; --faint:#5a627a;
+    --orange:#ffaa40; --rose:#f43f5e; --violet:#a78bfa; --blue:#5aa2ff; --green:#2ec66a;
+    --mono:ui-monospace,"JetBrains Mono","SF Mono","Cascadia Code",Menlo,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(1100px 500px at 15% -10%, rgba(167,139,250,.10), transparent 60%),
+      radial-gradient(900px 500px at 90% 0%, rgba(255,170,64,.07), transparent 55%),
+      linear-gradient(160deg,var(--bg0),var(--bg1));
+    color:var(--text);
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+    min-height:100vh; padding:48px 24px 80px;
+  }
+  .kicker{font:600 11px/1 var(--mono);letter-spacing:.22em;text-transform:uppercase;color:var(--faint);text-align:center}
+  h1{text-align:center;font-size:26px;font-weight:650;margin:10px 0 4px}
+  h1 .g{background:linear-gradient(90deg,var(--orange),var(--rose),var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{text-align:center;color:var(--dim);max-width:680px;margin:0 auto 40px;font-size:14px}
+
+  /* ============ the window ============ */
+  .stage{position:relative;max-width:1240px;margin:0 auto}
+  .window{
+    border-radius:14px;overflow:hidden;background:linear-gradient(175deg,#0c1222,#080d1a);
+    border:1px solid var(--line2);
+    box-shadow:0 0 0 1px rgba(46,198,106,.18), 0 0 44px rgba(46,198,106,.07), 0 40px 90px rgba(0,0,0,.6);
+    display:flex;flex-direction:column;height:780px;
+  }
+  /* titlebar */
+  .titlebar{height:44px;flex:none;display:flex;align-items:center;gap:14px;padding:0 14px;
+    border-bottom:1px solid var(--line);background:rgba(255,255,255,.015)}
+  .lights{display:flex;gap:8px}
+  .lights i{width:12px;height:12px;border-radius:50%;background:#3a4157;display:block}
+  .lights i:nth-child(1){background:#ff5f57}.lights i:nth-child(2){background:#febc2e}.lights i:nth-child(3){background:#28c840}
+  .crumbs{flex:1;display:flex;justify-content:center;align-items:center;gap:8px;font:500 12.5px var(--mono);color:var(--dim)}
+  .crumbs .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+  .crumbs b{color:var(--text);font-weight:600}
+  .crumbs .sep{color:var(--faint)}
+  .tb-actions{display:flex;gap:6px}
+  .tb-actions span{width:30px;height:26px;border-radius:7px;display:grid;place-items:center;color:var(--dim);font-size:13px;border:1px solid transparent}
+  .tb-actions span:hover{background:rgba(255,255,255,.05)}
+  .tb-actions .kbd-chip{width:auto;padding:0 8px;font:600 10.5px var(--mono);border:1px solid var(--line);color:var(--faint)}
+
+  .main{flex:1;display:flex;min-height:0}
+
+  /* ============ sidebar: streams ============ */
+  .side{width:292px;flex:none;border-right:1px solid var(--line);display:flex;flex-direction:column;background:rgba(0,0,0,.14)}
+  .side-h{padding:16px 18px 10px;display:flex;align-items:baseline;justify-content:space-between}
+  .side-h b{font:650 11px var(--mono);letter-spacing:.18em;color:var(--dim)}
+  .side-h small{font:500 11px var(--mono);color:var(--faint)}
+  .streams{flex:1;overflow:hidden;padding:2px 10px}
+  .thread{position:relative;border-radius:10px;padding:9px 12px 9px 34px;margin:2px 0;cursor:default}
+  .thread .node{position:absolute;left:13px;top:14px;width:9px;height:9px;border-radius:50%;background:var(--faint)}
+  .thread .t{font-size:13.5px;font-weight:520;color:var(--dim)}
+  .thread .meta{font:500 10.5px var(--mono);color:var(--faint);margin-top:1px}
+  .thread.active{background:linear-gradient(90deg,rgba(46,198,106,.10),rgba(46,198,106,.02));border:1px solid rgba(46,198,106,.22)}
+  .thread.active .node{background:var(--green);box-shadow:0 0 10px var(--green)}
+  .thread.active .t{color:var(--text);font-weight:600}
+  .thread.selected{outline:1px solid rgba(90,162,255,.4);background:rgba(90,162,255,.06)}
+  .badge{display:inline-block;font:600 9.5px var(--mono);letter-spacing:.08em;padding:2px 7px;border-radius:20px;vertical-align:1px;margin-left:6px}
+  .badge.paused{color:var(--orange);background:rgba(255,170,64,.1)}
+  .badge.parked{color:var(--violet);background:rgba(167,139,250,.12)}
+  .badge.done{color:var(--green);background:rgba(46,198,106,.1)}
+  /* branch rows: literal flow lines */
+  .branches{position:relative;margin:0 0 4px}
+  .branch{position:relative;padding:6px 12px 6px 52px;border-radius:8px}
+  .branch::before{content:"";position:absolute;left:17px;top:-8px;width:16px;height:24px;
+    border-left:2px solid rgba(90,162,255,.4);border-bottom:2px solid rgba(90,162,255,.4);border-bottom-left-radius:12px}
+  .branch .bnode{position:absolute;left:36px;top:13px;width:7px;height:7px;border-radius:50%;background:var(--blue)}
+  .branch .t{font-size:13px;color:var(--dim)}
+  .branch.live{background:rgba(90,162,255,.07)}
+  .branch.live::before{border-color:var(--green)}
+  .branch.live .bnode{background:var(--green);box-shadow:0 0 8px var(--green)}
+  .branch.live .t{color:var(--text);font-weight:560}
+  .branch.parked .bnode{background:var(--violet);box-shadow:none}
+  .branch.parked .t{color:var(--faint)}
+  .thread.done-t .t{color:var(--faint);text-decoration:line-through;text-decoration-color:rgba(46,198,106,.5)}
+  .thread.done-t .node{background:transparent;border:2px solid var(--green);width:7px;height:7px}
+  .side-f{flex:none;padding:12px 16px;border-top:1px solid var(--line);display:flex;gap:8px}
+  .ghost-btn{flex:1;text-align:center;font:600 12px var(--mono);color:var(--dim);border:1px dashed var(--line2);border-radius:9px;padding:8px 0}
+  .ghost-btn:hover{color:var(--text);border-color:var(--blue)}
+
+  /* ============ center: focus canvas ============ */
+  .center{flex:1;min-width:0;display:flex;flex-direction:column;padding:26px 30px 0}
+  .stack{position:relative;margin-bottom:26px}
+  .card{border-radius:14px;border:1px solid var(--line2);background:linear-gradient(165deg,#121a30,#0d1426);padding:18px 22px}
+  .card.parent{position:absolute;inset:-14px 18px auto 18px;height:60px;opacity:.55;z-index:0;
+    display:flex;align-items:flex-start;gap:10px;padding:10px 22px;border-color:var(--line)}
+  .card.parent .pt{font-size:13px;color:var(--dim);font-weight:550}
+  .card.parent .pk{font:600 9.5px var(--mono);letter-spacing:.12em;color:var(--faint);border:1px solid var(--line);
+    border-radius:5px;padding:2px 6px;margin-top:-1px}
+  .card.focus{position:relative;z-index:1;border-color:rgba(46,198,106,.35);
+    box-shadow:0 0 0 1px rgba(46,198,106,.12), 0 18px 44px rgba(0,0,0,.45)}
+  .focus-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+  .focus-title{font-size:23px;font-weight:650;letter-spacing:-.01em}
+  .live-chip{display:inline-flex;align-items:center;gap:7px;font:650 10.5px var(--mono);letter-spacing:.14em;
+    color:var(--green);background:rgba(46,198,106,.1);border:1px solid rgba(46,198,106,.3);border-radius:999px;padding:5px 11px;white-space:nowrap}
+  .live-chip i{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+  .scopes{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+  .scope{display:inline-flex;align-items:center;gap:6px;font:520 11.5px var(--mono);color:var(--dim);
+    background:rgba(90,162,255,.06);border:1px solid rgba(90,162,255,.16);border-radius:7px;padding:4px 9px}
+  .scope b{color:var(--blue);font-weight:600}
+  .focus-actions{display:flex;gap:10px;margin-top:18px}
+  .btn{font:600 12.5px var(--mono);border-radius:9px;padding:8px 14px;border:1px solid var(--line2);color:var(--dim);display:inline-flex;gap:8px;align-items:center}
+  .btn kbd{font:600 10px var(--mono);border:1px solid var(--line);border-radius:4px;padding:1px 5px;color:var(--faint)}
+  .btn.primary{color:#dffbe9;background:rgba(46,198,106,.14);border-color:rgba(46,198,106,.4)}
+  .btn:hover{border-color:var(--blue);color:var(--text)}
+
+  /* notes */
+  .notes-h{display:flex;align-items:baseline;justify-content:space-between;margin:2px 2px 10px}
+  .notes-h b{font:650 11px var(--mono);letter-spacing:.18em;color:var(--dim)}
+  .seg{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;font:600 11px var(--mono)}
+  .seg span{padding:4px 12px;color:var(--faint)}
+  .seg .on{background:rgba(90,162,255,.12);color:var(--blue)}
+  .notes{flex:1;overflow:hidden;min-height:0;padding-bottom:8px}
+  .day-sep{display:flex;align-items:center;gap:12px;font:650 10px var(--mono);letter-spacing:.2em;color:var(--faint);margin:10px 0}
+  .day-sep::before,.day-sep::after{content:"";height:1px;background:var(--line);flex:1}
+  .note{display:flex;gap:14px;padding:8px 6px;border-radius:9px}
+  .note:hover{background:rgba(255,255,255,.025)}
+  .note time{font:520 11px var(--mono);color:var(--faint);flex:none;padding-top:2px;width:42px}
+  .note .body{font-size:13.5px;color:#c7cddc}
+  .note .body .inline-scope{font:520 10.5px var(--mono);color:var(--violet);background:rgba(167,139,250,.1);
+    border-radius:5px;padding:1px 6px;margin-left:8px;white-space:nowrap}
+  .note.event .body{color:var(--faint);font:500 12px var(--mono)}
+  .note.event .body b{color:var(--blue);font-weight:600}
+
+  /* ============ today rail ============ */
+  .rail{width:64px;flex:none;border-left:1px solid var(--line);display:flex;flex-direction:column;align-items:center;padding:14px 0;background:rgba(0,0,0,.14)}
+  .rail b{font:650 9.5px var(--mono);letter-spacing:.18em;color:var(--faint);writing-mode:vertical-rl;margin-bottom:12px}
+  .rail svg{flex:1}
+  .rail .open{width:34px;height:34px;border-radius:9px;border:1px solid var(--line2);display:grid;place-items:center;color:var(--dim);font-size:15px;margin-top:10px}
+  .rail .open:hover{color:var(--blue);border-color:var(--blue)}
+
+  /* ============ capture bar ============ */
+  .capture{flex:none;padding:14px 22px 16px;border-top:1px solid var(--line);background:rgba(255,255,255,.015)}
+  .cap-box{display:flex;align-items:center;gap:12px;border:1px solid rgba(90,162,255,.3);border-radius:12px;
+    background:rgba(8,13,26,.9);padding:12px 16px;box-shadow:0 0 0 3px rgba(90,162,255,.06)}
+  .cap-box .prompt{font:700 14px var(--mono);color:var(--blue)}
+  .cap-box .ph{flex:1;font:450 13.5px var(--mono);color:var(--faint)}
+  .cap-box .ph .caret{display:inline-block;width:8px;height:16px;background:var(--blue);vertical-align:-3px;margin-right:6px;opacity:.9}
+  .cap-box .target{font:600 10.5px var(--mono);color:var(--green);background:rgba(46,198,106,.08);
+    border:1px solid rgba(46,198,106,.25);border-radius:999px;padding:4px 10px;white-space:nowrap}
+  .cap-hints{display:flex;gap:16px;margin-top:8px;padding:0 6px;font:520 11px var(--mono);color:var(--faint)}
+  .cap-hints kbd{border:1px solid var(--line);border-radius:4px;padding:0 5px;color:var(--dim)}
+
+  /* ============ annotations ============ */
+  .pin{position:absolute;z-index:5;width:26px;height:26px;border-radius:50%;
+    background:linear-gradient(135deg,var(--orange),var(--rose));color:#14060a;
+    font:800 13px var(--mono);display:grid;place-items:center;box-shadow:0 4px 14px rgba(244,63,94,.45);cursor:default}
+  .legend{max-width:1240px;margin:34px auto 0;display:grid;grid-template-columns:repeat(2,1fr);gap:12px 28px}
+  .leg{display:flex;gap:12px;align-items:flex-start}
+  .leg .n{flex:none;width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--orange),var(--rose));
+    color:#14060a;font:800 11.5px var(--mono);display:grid;place-items:center;margin-top:2px}
+  .leg p{font-size:13px;color:var(--dim)}
+  .leg p b{color:var(--text);font-weight:620}
+  .foot{max-width:1240px;margin:40px auto 0;text-align:center;font:500 11.5px var(--mono);color:var(--faint)}
+  .foot a{color:var(--blue);text-decoration:none}
+  @media (max-width:900px){.legend{grid-template-columns:1fr}.window{height:auto;min-height:780px}}
+</style>
+</head>
+<body>
+
+<div class="kicker">Liminal Flow · Desktop Design · Screen 1 of 4</div>
+<h1>The <span class="g">Workbench</span></h1>
+<p class="sub">The main window. Attention is drawn as a literal flow — streams on the left, the focus stack in the middle, one capture bar that speaks the same grammar as the CLI. Frameless Tauri window, custom titlebar.</p>
+
+<div class="stage">
+  <div class="pin" style="top:8px;left:50%;transform:translateX(-50%)">1</div>
+  <div class="pin" style="top:120px;left:-13px">2</div>
+  <div class="pin" style="top:96px;right:335px">3</div>
+  <div class="pin" style="top:208px;right:395px">4</div>
+  <div class="pin" style="top:420px;right:335px">5</div>
+  <div class="pin" style="top:330px;right:-13px">6</div>
+  <div class="pin" style="bottom:52px;left:50%;transform:translateX(-50%)">7</div>
+  <div class="pin" style="bottom:150px;left:-13px">8</div>
+
+  <div class="window">
+    <div class="titlebar">
+      <div class="lights"><i></i><i></i><i></i></div>
+      <div class="crumbs"><span class="dot"></span> <b>improving AIDX</b> <span class="sep">▸</span> <b>answering support</b> <span class="sep">·</span> 23m in focus</div>
+      <div class="tb-actions"><span title="Flow map">◎</span><span title="Search">⌕</span><span class="kbd-chip">⌘K</span><span title="Settings">⚙</span></div>
+    </div>
+
+    <div class="main">
+      <!-- sidebar -->
+      <div class="side">
+        <div class="side-h"><b>STREAMS</b><small>2 live · 2 paused · 1 done</small></div>
+        <div class="streams">
+          <div class="thread active">
+            <span class="node"></span>
+            <div class="t">improving AIDX</div>
+            <div class="meta">⌂ component-library · started 09:12</div>
+          </div>
+          <div class="branches">
+            <div class="branch live"><span class="bnode"></span><div class="t">answering support</div></div>
+            <div class="branch parked"><span class="bnode"></span><div class="t">reading article <span class="badge parked">PARKED</span></div></div>
+          </div>
+          <div class="thread selected">
+            <span class="node" style="background:var(--orange)"></span>
+            <div class="t">wear os sync <span class="badge paused">PAUSED 2H</span></div>
+            <div class="meta">⌂ wear-companion</div>
+          </div>
+          <div class="thread">
+            <span class="node" style="background:var(--orange)"></span>
+            <div class="t">component library docs <span class="badge paused">YESTERDAY</span></div>
+            <div class="meta">⌂ component-library</div>
+          </div>
+          <div class="thread done-t">
+            <span class="node"></span>
+            <div class="t">fix release pipeline <span class="badge done">DONE</span></div>
+            <div class="meta">archive with ⇧A</div>
+          </div>
+        </div>
+        <div class="side-f"><div class="ghost-btn">+ new thread <kbd style="border:1px solid var(--line);border-radius:4px;padding:0 4px;font-size:10px">/now</kbd></div></div>
+      </div>
+
+      <!-- center -->
+      <div class="center">
+        <div class="stack">
+          <div class="card parent"><span class="pk">THREAD</span><span class="pt">improving AIDX</span></div>
+          <div class="card focus" style="margin-top:34px">
+            <div class="focus-top">
+              <div>
+                <div class="focus-title">answering support</div>
+                <div class="scopes">
+                  <span class="scope"><b>⌂</b> component-library</span>
+                  <span class="scope"><b>⎇</b> feature/aidx</span>
+                  <span class="scope"><b>~</b> /code/component-library</span>
+                </div>
+              </div>
+              <span class="live-chip"><i></i> ACTIVE · 23M</span>
+            </div>
+            <div class="focus-actions">
+              <span class="btn primary">✓ done <kbd>d</kbd></span>
+              <span class="btn">⇤ back to thread <kbd>/back</kbd></span>
+              <span class="btn">⧉ park <kbd>p</kbd></span>
+              <span class="btn">＋ branch deeper <kbd>/branch</kbd></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="notes-h"><b>NOTES &amp; TRAIL</b><div class="seg"><span class="on">this branch</span><span>whole thread</span><span>everything</span></div></div>
+        <div class="notes">
+          <div class="day-sep">TODAY</div>
+          <div class="note"><time>14:02</time><div class="body">need to check auth flow</div></div>
+          <div class="note"><time>13:47</time><div class="body">support ticket #482 — token refresh 401s after idle <span class="inline-scope">⎇ feature/aidx</span></div></div>
+          <div class="note event"><time>13:41</time><div class="body">▶ branched from <b>improving AIDX</b> — “answering support”</div></div>
+          <div class="note"><time>11:20</time><div class="body">AIDX scoring feels off for long sessions — sample rate?</div></div>
+          <div class="note event"><time>09:12</time><div class="body">● thread started via <b>flo now</b> in zsh</div></div>
+        </div>
+      </div>
+
+      <!-- today rail -->
+      <div class="rail">
+        <b>TODAY</b>
+        <svg width="40" height="430" viewBox="0 0 40 430" fill="none" aria-hidden="true">
+          <path d="M20 6 C20 60 20 90 20 120" stroke="#5aa2ff" stroke-opacity=".5" stroke-width="2.5"/>
+          <path d="M20 120 C20 150 30 160 30 190 C30 220 22 232 20 250" stroke="#a78bfa" stroke-opacity=".55" stroke-width="2"/>
+          <path d="M20 120 C20 170 20 240 20 300" stroke="#5aa2ff" stroke-opacity=".35" stroke-width="2.5" stroke-dasharray="2 5"/>
+          <path d="M20 300 C20 340 20 380 20 424" stroke="#2ec66a" stroke-opacity=".8" stroke-width="2.5"/>
+          <circle cx="20" cy="6" r="3.5" fill="#5aa2ff"/>
+          <circle cx="20" cy="76" r="2.5" fill="#8b93a7"/>
+          <circle cx="30" cy="190" r="2.5" fill="#a78bfa"/>
+          <circle cx="20" cy="300" r="3.5" fill="#2ec66a"/>
+          <circle cx="20" cy="358" r="2.5" fill="#8b93a7"/>
+          <circle cx="20" cy="424" r="4" fill="#2ec66a"/>
+          <circle cx="20" cy="424" r="8" stroke="#2ec66a" stroke-opacity=".4"/>
+        </svg>
+        <span class="open" title="Open flow map">◎</span>
+      </div>
+    </div>
+
+    <!-- capture -->
+    <div class="capture">
+      <div class="cap-box">
+        <span class="prompt">›</span>
+        <span class="ph"><span class="caret"></span>capture a thought — plain text becomes a note…</span>
+        <span class="target">→ answering support</span>
+      </div>
+      <div class="cap-hints">
+        <span><kbd>/</kbd> commands</span><span><kbd>?</kbd> hints</span><span><kbd>⌃↑↓</kbd> note history</span><span><kbd>↵</kbd> capture</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="leg"><span class="n">1</span><p><b>Focus breadcrumb titlebar.</b> The frameless window’s drag region doubles as a status line: live dot, thread ▸ branch, time in focus. You always know where you are, even at a glance from another monitor.</p></div>
+  <div class="leg"><span class="n">2</span><p><b>Streams, not lists.</b> Threads render as flow lines — branches literally fork off their parent with drawn connectors. The active beam glows green; paused streams cool to amber; done items remain as tombstones until archived.</p></div>
+  <div class="leg"><span class="n">3</span><p><b>The focus stack.</b> Cards physically stack: the parent thread peeks out behind the active branch. <i>Back</i> pops the card; <i>branch deeper</i> pushes a new one. The mental stack becomes a visible one.</p></div>
+  <div class="leg"><span class="n">4</span><p><b>Ambient scope chips.</b> Repo, git branch and cwd are captured automatically at creation time — shown as chips, never asked for. Clicking one filters the stream list to that scope.</p></div>
+  <div class="leg"><span class="n">5</span><p><b>Notes &amp; trail.</b> Notes interleave with system events (branched, resumed, started via CLI) in one river, filterable by branch / thread / everything. Compact mono timestamps keep it scannable.</p></div>
+  <div class="leg"><span class="n">6</span><p><b>The Today rail.</b> A slim braid of your day — every fork, pause and capture as a vertical stream. It’s a live teaser of the full Flow Map (mock-up 4); click ◎ to expand.</p></div>
+  <div class="leg"><span class="n">7</span><p><b>One capture bar, same grammar.</b> Plain text notes the active target (shown as a green pill). <kbd>/</kbd> opens the same slash-command palette as the TUI — <i>/now, /branch, /park, /done</i>. Muscle memory transfers 1:1 from the terminal.</p></div>
+  <div class="leg"><span class="n">8</span><p><b>State as light.</b> The window ring glows softly with the state colour — green while focused, amber when everything is paused, violet when you’re parked deep in a branch. Ambient awareness without a single notification.</p></div>
+</div>
+
+<div class="foot">LIMINAL FLOW · TAURI DESKTOP CONCEPT — next: <a href="02-quick-capture.html">2 · Quick Capture</a> · <a href="03-companion.html">3 · Companion &amp; Tray</a> · <a href="04-flow-map.html">4 · Flow Map</a></div>
+
+</body>
+</html>

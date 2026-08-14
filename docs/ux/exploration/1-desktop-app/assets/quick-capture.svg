@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="640" viewBox="0 0 1200 640" font-family="-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" role="img" aria-labelledby="t">
+  <title id="t">Flow Desktop — the Quick Capture palette floating over the desktop</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#141a2e"/><stop offset="55%" stop-color="#0a0e1c"/><stop offset="100%" stop-color="#120f22"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="640" rx="16" fill="url(#bg)"/>
+
+  <!-- blurred fake windows behind -->
+  <g opacity=".5">
+    <rect x="40" y="44" width="520" height="420" rx="10" fill="rgba(255,255,255,.04)" stroke="rgba(255,255,255,.05)"/>
+    <line x1="40" y1="72" x2="560" y2="72" stroke="rgba(255,255,255,.05)"/>
+    <rect x="56" y="92" width="300" height="8" rx="4" fill="rgba(255,255,255,.05)"/>
+    <rect x="56" y="112" width="400" height="8" rx="4" fill="rgba(255,255,255,.05)"/>
+    <rect x="56" y="132" width="240" height="8" rx="4" fill="rgba(255,255,255,.05)"/>
+    <rect x="700" y="110" width="452" height="460" rx="10" fill="rgba(255,255,255,.04)" stroke="rgba(255,255,255,.05)"/>
+    <line x1="700" y1="138" x2="1152" y2="138" stroke="rgba(255,255,255,.05)"/>
+    <rect x="716" y="158" width="320" height="8" rx="4" fill="rgba(255,255,255,.05)"/>
+    <rect x="716" y="178" width="230" height="8" rx="4" fill="rgba(255,255,255,.05)"/>
+  </g>
+  <rect width="1200" height="640" rx="16" fill="rgba(4,6,12,.55)"/>
+
+  <!-- palette: slash state -->
+  <rect x="280" y="70" width="640" height="304" rx="16" fill="rgba(11,16,30,.96)" stroke="rgba(90,162,255,.3)" stroke-width="1.5"/>
+  <circle cx="304" cy="94" r="4" fill="#2ec66a"/>
+  <text x="316" y="99" font-family="Menlo,monospace" font-size="11.5" fill="#8b93a7">capturing to <tspan fill="#e8ecf6" font-weight="700">answering support</tspan> <tspan fill="#5a627a">· improving AIDX</tspan></text>
+  <text x="898" y="99" text-anchor="end" font-family="Menlo,monospace" font-size="10.5" fill="#5a627a">⌂ component-library · ⎇ feature/aidx</text>
+  <line x1="280" y1="112" x2="920" y2="112" stroke="rgba(255,255,255,.08)"/>
+  <text x="302" y="146" font-family="Menlo,monospace" font-size="17" fill="#5aa2ff" font-weight="800">›</text>
+  <text x="322" y="146" font-family="Menlo,monospace" font-size="16" fill="#e8ecf6">/par</text>
+  <rect x="362" y="130" width="9" height="20" fill="#5aa2ff"/>
+  <line x1="280" y1="164" x2="920" y2="164" stroke="rgba(255,255,255,.08)"/>
+  <!-- command rows -->
+  <rect x="290" y="172" width="620" height="40" rx="10" fill="rgba(90,162,255,.12)" stroke="rgba(90,162,255,.35)"/>
+  <g font-family="Menlo,monospace">
+    <text x="306" y="197" font-size="13.5" fill="#5aa2ff" font-weight="700">/park</text>
+    <text x="396" y="196" font-size="12" font-family="-apple-system,'Segoe UI',sans-serif" fill="#c7cddc">park the active branch — keep it warm, drop it from focus</text>
+    <rect x="836" y="180" width="62" height="18" rx="5" fill="none" stroke="rgba(255,255,255,.14)"/>
+    <text x="867" y="193" text-anchor="middle" font-size="9" fill="#5a627a" font-weight="700">BRANCH</text>
+    <text x="306" y="239" font-size="13.5" fill="#5aa2ff" font-weight="700">/pause</text>
+    <text x="396" y="238" font-size="12" font-family="-apple-system,'Segoe UI',sans-serif" fill="#8b93a7">pause the current thread with an optional note</text>
+    <rect x="836" y="224" width="62" height="18" rx="5" fill="none" stroke="rgba(255,255,255,.14)"/>
+    <text x="867" y="237" text-anchor="middle" font-size="9" fill="#5a627a" font-weight="700">THREAD</text>
+    <text x="306" y="281" font-size="13.5" fill="#5aa2ff" font-weight="700">/back</text>
+    <text x="396" y="280" font-size="12" font-family="-apple-system,'Segoe UI',sans-serif" fill="#8b93a7">return to the parent thread, parking active branches</text>
+    <rect x="836" y="266" width="62" height="18" rx="5" fill="none" stroke="rgba(255,255,255,.14)"/>
+    <text x="867" y="279" text-anchor="middle" font-size="9" fill="#5a627a" font-weight="700">STACK</text>
+  </g>
+  <line x1="280" y1="330" x2="920" y2="330" stroke="rgba(255,255,255,.08)"/>
+  <text x="300" y="356" font-family="Menlo,monospace" font-size="10.5" fill="#5a627a">↑↓ choose   ⇥ complete   ↵ run   esc vanish</text>
+  <text x="898" y="356" text-anchor="end" font-family="Menlo,monospace" font-size="10.5" fill="#5a627a">⌘↵ run &amp; open workbench</text>
+
+  <!-- palette: note state -->
+  <rect x="320" y="452" width="560" height="98" rx="16" fill="rgba(11,16,30,.96)" stroke="rgba(46,198,106,.3)" stroke-width="1.5"/>
+  <text x="342" y="490" font-family="Menlo,monospace" font-size="16" fill="#2ec66a" font-weight="800">›</text>
+  <text x="362" y="490" font-family="Menlo,monospace" font-size="13.5" fill="#e8ecf6">rate limiter also needs the retry-after header</text>
+  <rect x="742" y="474" width="9" height="20" fill="#2ec66a"/>
+  <line x1="320" y1="508" x2="880" y2="508" stroke="rgba(255,255,255,.08)"/>
+  <text x="342" y="532" font-family="Menlo,monospace" font-size="10.5" fill="#2ec66a">↵ note → <tspan fill="#dffbe9" font-weight="700">answering support</tspan></text>
+  <text x="858" y="532" text-anchor="end" font-family="Menlo,monospace" font-size="10.5" fill="#5a627a">no window switch · you never left your editor</text>
+
+  <!-- caption -->
+  <text x="600" y="610" text-anchor="middle" font-family="Menlo,monospace" font-size="11" fill="#5a627a">⌥ Space anywhere → transparent always-on-top window · plain text is a note · / is the shared command grammar</text>
+</svg>
