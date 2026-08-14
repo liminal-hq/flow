@@ -25,9 +25,9 @@
   .window{border-radius:12px;overflow:hidden;height:800px;display:flex;flex-direction:column;
     border:1px solid var(--line2);background:var(--bg);box-shadow:0 40px 90px rgba(0,0,0,.55)}
   .titlebar{height:42px;flex:none;display:flex;align-items:center;gap:12px;padding:0 14px;border-bottom:1px solid var(--line);background:var(--surface)}
-  .lights{display:flex;gap:8px}
-  .lights i{width:12px;height:12px;border-radius:50%;display:block}
-  .lights i:nth-child(1){background:#ff5f57}.lights i:nth-child(2){background:#febc2e}.lights i:nth-child(3){background:#28c840}
+  .lights{display:flex;gap:16px;order:99;margin-left:12px;font:400 13px var(--mono);color:#8b93a7}
+  .lights i{font-style:normal}
+  .lights i:nth-child(1)::before{content:"−"}.lights i:nth-child(2)::before{content:"□"}.lights i:nth-child(3)::before{content:"×"}
   .weekpick{margin:0 auto;display:flex;align-items:center;gap:12px;font:600 13px var(--mono)}
   .weekpick .arr{color:var(--faint);border:1px solid var(--line);border-radius:6px;width:24px;height:24px;display:grid;place-items:center;font-size:12px}
   .tb-right{font:600 11px var(--mono);color:var(--faint)}
@@ -125,7 +125,7 @@
     <div class="titlebar">
       <div class="lights"><i></i><i></i><i></i></div>
       <div class="weekpick"><span class="arr">‹</span> Week 33 · Aug 11 – 15 <span class="arr">›</span></div>
-      <div class="tb-right">⌘E export · read-only</div>
+      <div class="tb-right">Ctrl+E export · read-only</div>
     </div>
 
     <div class="body">

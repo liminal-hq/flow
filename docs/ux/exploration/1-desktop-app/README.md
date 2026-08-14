@@ -53,8 +53,8 @@ Derived from `assets/hero.svg`:
 Flow is built Linux-first, and the desktop app wears GNOME/Adwaita chrome:
 window controls on the right of the headerbar, a headerbar view switcher, and
 Ctrl/Super key notation throughout (Ctrl+K for the palette, Super+Space for
-Quick Capture). The SVG renditions in `assets/` reflect this; treat any
-macOS-style chrome remaining in the HTML mock-ups as superseded.
+Quick Capture). Both the HTML mock-ups and the SVG renditions in `assets/`
+reflect this.
 
 There are exactly two kinds of bars in the design, and **no Flow window has a
 menu bar**:

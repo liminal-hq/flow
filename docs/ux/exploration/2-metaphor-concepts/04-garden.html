@@ -33,9 +33,9 @@
     background:linear-gradient(180deg,#070b16 0%,#0a1122 52%,#0d1424 64%,#080c17 64.2%,#05070d 100%)}
 
   .bar{position:absolute;top:0;left:0;right:0;height:44px;display:flex;align-items:center;gap:14px;padding:0 16px;z-index:8}
-  .lights{display:flex;gap:8px}
-  .lights i{width:12px;height:12px;border-radius:50%;display:block}
-  .lights i:nth-child(1){background:#ff5f57}.lights i:nth-child(2){background:#febc2e}.lights i:nth-child(3){background:#28c840}
+  .lights{display:flex;gap:16px;order:99;margin-left:12px;font:400 13px var(--mono);color:#8b93a7}
+  .lights i{font-style:normal}
+  .lights i:nth-child(1)::before{content:"−"}.lights i:nth-child(2)::before{content:"□"}.lights i:nth-child(3)::before{content:"×"}
   .bar .where{font:560 12px var(--mono);color:var(--faint)}
   .bar .right{margin-left:auto;display:flex;gap:8px}
   .wchip{font:600 10.5px var(--mono);color:var(--dim);border:1px solid var(--line);border-radius:999px;padding:4px 11px}

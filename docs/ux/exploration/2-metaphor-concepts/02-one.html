@@ -32,8 +32,9 @@
     box-shadow:0 0 0 1px rgba(46,198,106,.14), 0 40px 90px rgba(0,0,0,.6);
     background:radial-gradient(900px 620px at 50% 42%, #101830, #080d19 70%)}
 
-  .lights{position:absolute;top:16px;left:16px;display:flex;gap:8px;z-index:5}
-  .lights i{width:12px;height:12px;border-radius:50%;display:block;background:#2a3049}
+  .lights{position:absolute;top:16px;right:20px;display:flex;gap:16px;z-index:5;font:400 13px var(--mono);color:#5d6579}
+  .lights i{font-style:normal}
+  .lights i:nth-child(1)::before{content:"−"}.lights i:nth-child(2)::before{content:"□"}.lights i:nth-child(3)::before{content:"×"}
 
   /* corners */
   .corner{position:absolute;z-index:5;font:560 11.5px var(--mono);color:var(--faint)}
@@ -125,9 +126,9 @@
       <div class="beneath"><i></i><i></i></div>
     </div>
 
-    <div class="verb up"><b>↑</b> DONE <kbd>⌘↵</kbd></div>
-    <div class="verb down"><b>↓</b> SET ASIDE <kbd>⌘⎋</kbd></div>
-    <div class="verb left"><b>→</b> TANGENT <kbd>⌘T</kbd></div>
+    <div class="verb up"><b>↑</b> DONE <kbd>Ctrl+↵</kbd></div>
+    <div class="verb down"><b>↓</b> SET ASIDE <kbd>Ctrl+Esc</kbd></div>
+    <div class="verb left"><b>→</b> TANGENT <kbd>Ctrl+T</kbd></div>
 
     <div class="peek-l"><small>← improving AIDX waits underneath</small></div>
 
@@ -145,7 +146,7 @@
       <div class="mini"><div class="t">reading article</div><div class="m">set aside tue</div></div>
       <div class="mini dim"><div class="t">component library docs</div><div class="m">yesterday</div></div>
       <div class="mini dim"><div class="t">plan v0.0.6</div><div class="m">someday · no guilt</div></div>
-      <div class="hint"><kbd>⌘L</kbd> open later · slides over, never stays</div>
+      <div class="hint"><kbd>Ctrl+L</kbd> open later · slides over, never stays</div>
     </div>
 
     <div class="thought"><span class="p">›</span> think out loud — it sticks to this card…</div>
@@ -158,7 +159,7 @@
   <div class="leg"><span class="n">3</span><p><b>Three verbs total.</b> Done (up), set aside (down), tangent (right). Every gesture animates the card physically off-screen in that direction, so your hands learn the grammar in a day. There is deliberately no "edit" — cards are intentions, not documents.</p></div>
   <div class="leg"><span class="n">4</span><p><b>The interrupted card haunts the edge.</b> When you take a tangent, the parent doesn't vanish into a list — it stays as a glowing sliver on the left edge, physically <i>underneath</i>. Finishing the tangent slides the parent back in. Unclosed loops are visible as geometry, not badge counts.</p></div>
   <div class="leg"><span class="n">5</span><p><b>The breath bar, not a timer.</b> A soft fill that swells over the first ~25 minutes and then just glows. It never counts down, never buzzes. It exists so that "how long have I been here?" has an ambient answer instead of an anxious one.</p></div>
-  <div class="leg"><span class="n">6</span><p><b>Thoughts stick to the card.</b> One underline input. Whatever you type is stamped onto the current card with a timestamp — the card accumulates a margin of your thinking, which becomes tomorrow's re-entry ramp. The "later" tray (right) slides over on ⌘L and closes on its own; it cannot be pinned open.</p></div>
+  <div class="leg"><span class="n">6</span><p><b>Thoughts stick to the card.</b> One underline input. Whatever you type is stamped onto the current card with a timestamp — the card accumulates a margin of your thinking, which becomes tomorrow's re-entry ramp. The "later" tray (right) slides over on Ctrl+L and closes on its own; it cannot be pinned open.</p></div>
 </div>
 
 <div class="foot">LIMINAL FLOW · GROUND-UP RETHINKS — <a href="01-desk.html">A · Desk</a> · next: <a href="03-dialogue.html">C · Dialogue</a> · <a href="04-garden.html">D · Garden</a></div>

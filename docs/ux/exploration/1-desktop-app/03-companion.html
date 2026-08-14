@@ -34,6 +34,7 @@
     border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 14px;gap:18px;
     font:520 11.5px var(--mono);color:var(--faint)}
   .menubar .right{margin-left:auto;display:flex;gap:16px;align-items:center}
+  .menubar .clock{position:absolute;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.06);border-radius:9px;padding:1px 10px;color:#c8cdd8}
   .menubar .tray-ic{color:var(--green);font-weight:700;background:rgba(46,198,106,.12);border-radius:5px;padding:1px 7px}
   .fake{position:absolute;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);filter:blur(1px)}
   .fake .bar{height:24px;border-bottom:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.03);border-radius:10px 10px 0 0}
@@ -130,8 +131,9 @@
 
   <div class="desk">
     <div class="menubar">
-      <span>File</span><span>Edit</span><span>View</span>
-      <div class="right"><span class="tray-ic">≋ flo</span><span>14:26</span></div>
+      <span>Activities</span>
+      <span class="clock">Aug 14  14:26</span>
+      <div class="right"><span class="tray-ic">≋ flo</span><span>🔊 ⚡ ▾</span></div>
     </div>
     <div class="fake" style="left:120px;top:210px;width:480px;height:400px"><div class="bar"></div><div class="l" style="width:65%"></div><div class="l" style="width:80%"></div><div class="l" style="width:50%"></div></div>
     <div class="fake" style="right:120px;top:330px;width:380px;height:290px"><div class="bar"></div><div class="l" style="width:70%"></div><div class="l" style="width:45%"></div></div>
@@ -168,7 +170,7 @@
         <div class="item"><span class="st" style="background:var(--orange)"></span> component library docs <kbd>1d</kbd></div>
       </div>
       <div class="row-acts">
-        <span class="a">› quick capture ⌥␣</span><span class="a">⏸ pause all</span><span class="a">◨ workbench</span>
+        <span class="a">› capture Super+␣</span><span class="a">⏸ pause all</span><span class="a">◨ workbench</span>
       </div>
     </div>
 

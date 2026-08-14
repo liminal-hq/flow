@@ -26,9 +26,9 @@
     border:1px solid var(--line2);background:var(--bg);
     box-shadow:0 40px 90px rgba(0,0,0,.55)}
   .titlebar{height:42px;flex:none;display:flex;align-items:center;gap:12px;padding:0 14px;border-bottom:1px solid var(--line);background:var(--surface)}
-  .lights{display:flex;gap:8px}
-  .lights i{width:12px;height:12px;border-radius:50%;display:block}
-  .lights i:nth-child(1){background:#ff5f57}.lights i:nth-child(2){background:#febc2e}.lights i:nth-child(3){background:#28c840}
+  .lights{display:flex;gap:16px;order:99;margin-left:12px;font:400 13px var(--mono);color:#8b93a7}
+  .lights i{font-style:normal}
+  .lights i:nth-child(1)::before{content:"−"}.lights i:nth-child(2)::before{content:"□"}.lights i:nth-child(3)::before{content:"×"}
   .tb-search{margin:0 auto;display:flex;align-items:center;gap:8px;width:380px;height:28px;border:1px solid var(--line);
     border-radius:7px;padding:0 10px;font:450 12px var(--mono);color:var(--faint);background:var(--bg)}
   .tb-search kbd{margin-left:auto;border:1px solid var(--line);border-radius:4px;padding:0 5px;font-size:10px;color:var(--faint)}
@@ -130,7 +130,7 @@
   <div class="window">
     <div class="titlebar">
       <div class="lights"><i></i><i></i><i></i></div>
-      <div class="tb-search">⌕ search everything… <kbd>⌘K</kbd></div>
+      <div class="tb-search">⌕ search everything… <kbd>Ctrl+K</kbd></div>
     </div>
 
     <div class="cols">
@@ -163,7 +163,7 @@
           </div>
         </div>
 
-        <div class="sec-h">UP NEXT <span class="n">· 4</span><span class="hint">drag or ⌘↑↓ to reorder · Enter starts the top item</span></div>
+        <div class="sec-h">UP NEXT <span class="n">· 4</span><span class="hint">drag or Ctrl+Shift+↑↓ to reorder · Enter starts the top item</span></div>
         <div class="rows">
           <div class="row sel">
             <span class="st" style="background:var(--amber)"></span><span class="t">Improving AIDX — resume at "check the decay window"</span>
@@ -229,7 +229,7 @@
   <div class="leg"><span class="n">2</span><p><b>A nav that mirrors the mental model.</b> Focus (now/queue, waiting, someday), Log (today, week, done), System. Nothing invented: every section answers a question you actually ask — "what's next?", "what am I blocked on?", "what did I do?"</p></div>
   <div class="leg"><span class="n">3</span><p><b>The queue is an order, not a backlog.</b> Items hold an explicit position — position 1 is what Enter starts next. Each held item carries its <i>re-entry point</i> ("resume at: check the decay window"), so starting is never a cold start.</p></div>
   <div class="leg"><span class="n">4</span><p><b>Inspector, not modal.</b> Selection drives the right pane: state, scope, re-entry note, sub-tasks, and the note trail. Every field is a flat row — no cards inside cards. Actions repeat at the bottom with their keys, teaching the keyboard as you click.</p></div>
-  <div class="leg"><span class="n">5</span><p><b>One input, two meanings, zero modes.</b> The command bar captures: plain text while something is selected becomes a note; plain text otherwise becomes a queue item. ⌘K opens search/commands. There is no other way to create anything — so there is nothing to learn.</p></div>
+  <div class="leg"><span class="n">5</span><p><b>One input, two meanings, zero modes.</b> The command bar captures: plain text while something is selected becomes a note; plain text otherwise becomes a queue item. Ctrl+K opens search/commands. There is no other way to create anything — so there is nothing to learn.</p></div>
   <div class="leg"><span class="n">6</span><p><b>Waiting is a first-class state.</b> Blocked items name what they're waiting on and leave the queue entirely — they can't guilt you from position 3. A daily sweep asks about anything waiting &gt; 3 days: still blocked, or quietly done?</p></div>
 </div>
 

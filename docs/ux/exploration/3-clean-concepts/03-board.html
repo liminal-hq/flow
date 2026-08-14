@@ -25,9 +25,9 @@
   .window{border-radius:12px;overflow:hidden;height:740px;display:flex;flex-direction:column;
     border:1px solid var(--line2);background:var(--bg);box-shadow:0 40px 90px rgba(0,0,0,.55)}
   .titlebar{height:42px;flex:none;display:flex;align-items:center;gap:12px;padding:0 14px;border-bottom:1px solid var(--line);background:var(--surface)}
-  .lights{display:flex;gap:8px}
-  .lights i{width:12px;height:12px;border-radius:50%;display:block}
-  .lights i:nth-child(1){background:#ff5f57}.lights i:nth-child(2){background:#febc2e}.lights i:nth-child(3){background:#28c840}
+  .lights{display:flex;gap:16px;order:99;margin-left:12px;font:400 13px var(--mono);color:#8b93a7}
+  .lights i{font-style:normal}
+  .lights i:nth-child(1)::before{content:"−"}.lights i:nth-child(2)::before{content:"□"}.lights i:nth-child(3)::before{content:"×"}
   .tb-mid{margin:0 auto;font:600 12.5px var(--mono);color:var(--dim)}
   .tb-mid b{color:var(--text)}
   .tb-right{font:600 11px var(--mono);color:var(--faint)}
@@ -202,7 +202,7 @@
 
     <div class="capbar">
       <span class="p">›</span> new card lands at the bottom of Next…
-      <div class="keys"><span><kbd>↵</kbd> add</span><span><kbd>⌘↵</kbd> add &amp; start (swaps Now)</span><span><kbd>1–4</kbd> jump column</span></div>
+      <div class="keys"><span><kbd>↵</kbd> add</span><span><kbd>Ctrl+↵</kbd> add &amp; start (swaps Now)</span><span><kbd>1–4</kbd> jump column</span></div>
     </div>
   </div>
 </div>
@@ -213,7 +213,7 @@
   <div class="leg"><span class="n">3</span><p><b>Next is ordered and capped.</b> Five slots, numbered. When a sixth card arrives, the board asks which one drops to Someday. The cap converts "backlog anxiety" into a small, concrete decision made at add-time instead of a pile read at review-time.</p></div>
   <div class="leg"><span class="n">4</span><p><b>Waiting names its blocker.</b> Every card in Waiting must say what it's waiting on — a person, a reply, a build. Cards age visibly (2d, 3d) and a stale card prompts one question at day-start: nudge, drop, or still blocked?</p></div>
   <div class="leg"><span class="n">5</span><p><b>Done resets at midnight.</b> The column is a today-sized win list, not an archive — three finishes, timestamps, gone tomorrow. History lives in the log; the board only ever shows a day you can act on.</p></div>
-  <div class="leg"><span class="n">6</span><p><b>Capture is one line, placement is automatic.</b> Plain text becomes a card at the bottom of Next; ⌘↵ starts it immediately via the same explicit swap. No card editor, no fields — a title and a scope picked up from context are enough to start.</p></div>
+  <div class="leg"><span class="n">6</span><p><b>Capture is one line, placement is automatic.</b> Plain text becomes a card at the bottom of Next; Ctrl+↵ starts it immediately via the same explicit swap. No card editor, no fields — a title and a scope picked up from context are enough to start.</p></div>
 </div>
 
 <div class="foot">LIMINAL FLOW · CLEAN SERIES — <a href="01-queue.html">1 · Queue</a> · <a href="02-day.html">2 · Day</a> · next: <a href="04-review.html">4 · Review</a></div>

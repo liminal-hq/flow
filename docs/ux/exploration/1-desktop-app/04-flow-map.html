@@ -33,9 +33,13 @@
     display:flex;flex-direction:column}
   .titlebar{height:44px;flex:none;display:flex;align-items:center;gap:14px;padding:0 14px;
     border-bottom:1px solid var(--line);background:rgba(255,255,255,.015)}
-  .lights{display:flex;gap:8px}
-  .lights i{width:12px;height:12px;border-radius:50%;display:block}
-  .lights i:nth-child(1){background:#ff5f57}.lights i:nth-child(2){background:#febc2e}.lights i:nth-child(3){background:#28c840}
+  .wordmark{font:800 13.5px var(--mono);background:linear-gradient(90deg,var(--orange),var(--rose),var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent;white-space:nowrap}
+  .switcher{display:flex;align-items:center;background:rgba(255,255,255,.05);border-radius:14px;padding:3px;font:600 11px var(--mono);white-space:nowrap}
+  .switcher span{padding:4px 12px;border-radius:11px;color:var(--faint)}
+  .switcher .on{background:rgba(255,255,255,.11);color:var(--text);font-weight:700}
+  .lights{display:flex;gap:16px;order:99;margin-left:12px;font:400 13px var(--mono);color:#8b93a7}
+  .lights i{font-style:normal}
+  .lights i:nth-child(1)::before{content:"−"}.lights i:nth-child(2)::before{content:"□"}.lights i:nth-child(3)::before{content:"×"}
   .tb-title{flex:1;text-align:center;font:560 12.5px var(--mono);color:var(--dim)}
   .tb-title b{color:var(--text)}
   .tb-close{font:600 11px var(--mono);color:var(--faint);border:1px solid var(--line);border-radius:6px;padding:3px 9px}
@@ -100,9 +104,11 @@
 
   <div class="window">
     <div class="titlebar">
-      <div class="lights"><i></i><i></i><i></i></div>
-      <div class="tb-title">◎ flow map — <b>where your attention actually went</b></div>
+      <span class="wordmark">≋ Flow</span>
+      <div class="switcher"><span>◨ Workbench</span><span class="on">◎ Flow Map</span></div>
+      <div class="tb-title">flow map — <b>where your attention actually went</b></div>
       <span class="tb-close">esc ✕</span>
+      <div class="lights"><i></i><i></i><i></i></div>
     </div>
 
     <div class="map-h">
