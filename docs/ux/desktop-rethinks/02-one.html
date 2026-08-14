@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flow Rethinks — B · One</title>
+<style>
+  :root{
+    --bg0:#050507; --bg1:#0a1020; --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.14);
+    --text:#e8ecf6; --dim:#8b93a7; --faint:#5a627a;
+    --orange:#ffaa40; --rose:#f43f5e; --violet:#a78bfa; --blue:#5aa2ff; --green:#2ec66a;
+    --mono:ui-monospace,"JetBrains Mono","SF Mono","Cascadia Code",Menlo,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(1100px 500px at 15% -10%, rgba(167,139,250,.10), transparent 60%),
+      radial-gradient(900px 500px at 90% 0%, rgba(255,170,64,.07), transparent 55%),
+      linear-gradient(160deg,var(--bg0),var(--bg1));
+    color:var(--text);
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+    min-height:100vh;padding:48px 24px 80px;
+  }
+  .kicker{font:600 11px/1 var(--mono);letter-spacing:.22em;text-transform:uppercase;color:var(--faint);text-align:center}
+  h1{text-align:center;font-size:26px;font-weight:650;margin:10px 0 4px}
+  h1 .g{background:linear-gradient(90deg,var(--orange),var(--rose),var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{text-align:center;color:var(--dim);max-width:700px;margin:0 auto 40px;font-size:14px}
+
+  .stage{position:relative;max-width:1240px;margin:0 auto}
+  .window{position:relative;border-radius:14px;overflow:hidden;height:720px;
+    border:1px solid var(--line2);
+    box-shadow:0 0 0 1px rgba(46,198,106,.14), 0 40px 90px rgba(0,0,0,.6);
+    background:radial-gradient(900px 620px at 50% 42%, #101830, #080d19 70%)}
+
+  .lights{position:absolute;top:16px;left:16px;display:flex;gap:8px;z-index:5}
+  .lights i{width:12px;height:12px;border-radius:50%;display:block;background:#2a3049}
+
+  /* corners */
+  .corner{position:absolute;z-index:5;font:560 11.5px var(--mono);color:var(--faint)}
+  .corner.tl{top:52px;left:28px}
+  .corner.tr{top:20px;right:28px;text-align:right}
+  .corner b{color:var(--dim);font-weight:620}
+  .beneath{display:flex;gap:5px;align-items:center;margin-top:6px}
+  .beneath i{width:26px;height:5px;border-radius:3px;background:rgba(90,162,255,.35)}
+  .beneath i:first-child{background:rgba(90,162,255,.7)}
+
+  /* the one thing */
+  .now{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 130px}
+  .now .whisper-ctx{font:560 12px var(--mono);color:var(--faint);letter-spacing:.14em;text-transform:uppercase;margin-bottom:26px}
+  .now .whisper-ctx b{color:var(--green)}
+  .now h2{font-size:52px;line-height:1.12;font-weight:680;letter-spacing:-.02em;max-width:820px}
+  .now .since{margin-top:30px;font:520 13px var(--mono);color:var(--dim)}
+  .now .since b{color:var(--text)}
+  .breath{margin-top:18px;width:180px;height:3px;border-radius:2px;background:rgba(255,255,255,.07);position:relative;overflow:hidden}
+  .breath i{position:absolute;left:0;top:0;bottom:0;width:58%;border-radius:2px;background:linear-gradient(90deg,rgba(46,198,106,.2),var(--green))}
+  .now .lastnote{margin-top:34px;font:450 14px var(--mono);color:#9aa3b8;max-width:560px}
+  .now .lastnote span{color:var(--faint)}
+
+  /* gesture verbs */
+  .verb{position:absolute;z-index:5;font:600 11px var(--mono);letter-spacing:.16em;color:var(--faint);display:flex;align-items:center;gap:8px}
+  .verb kbd{border:1px solid var(--line);border-radius:5px;padding:2px 7px;color:var(--dim);font-size:10px}
+  .verb.up{top:20px;left:50%;transform:translateX(-50%)}
+  .verb.down{bottom:74px;left:50%;transform:translateX(-50%)}
+  .verb.left{left:24px;top:50%;transform:rotate(-90deg) translateX(0);transform-origin:left center}
+  .verb.up b{color:var(--green)} .verb.down b{color:var(--orange)} .verb.left b{color:var(--blue)}
+
+  /* previous card peeking left -->
+  <!-- (peek strips) */
+  .peek-l{position:absolute;left:-6px;top:32%;height:36%;width:14px;border-radius:0 10px 10px 0;
+    background:linear-gradient(90deg,rgba(90,162,255,.5),rgba(90,162,255,.08));box-shadow:0 0 24px rgba(90,162,255,.25)}
+  .peek-l small{position:absolute;left:20px;top:50%;transform:translateY(-50%);font:560 10.5px var(--mono);color:var(--faint);white-space:nowrap;writing-mode:vertical-rl}
+
+  /* later tray -->
+  <!-- semi-open film strip on the right */
+  .tray{position:absolute;right:0;top:0;bottom:0;width:216px;z-index:6;
+    background:linear-gradient(270deg,rgba(6,9,17,.97) 78%,transparent);padding:64px 18px 20px;display:flex;flex-direction:column;gap:12px}
+  .tray b.cap{font:650 10px var(--mono);letter-spacing:.22em;color:var(--faint)}
+  .mini{border:1px solid var(--line2);border-radius:11px;background:linear-gradient(170deg,#141c31,#0e1526);padding:11px 13px}
+  .mini .t{font-size:12.5px;font-weight:580;color:#c9d0e0;line-height:1.3}
+  .mini .m{font:500 10px var(--mono);color:var(--faint);margin-top:5px}
+  .mini.dim{opacity:.6}
+  .tray .hint{margin-top:auto;font:500 10.5px var(--mono);color:var(--faint)}
+  .tray .hint kbd{border:1px solid var(--line);border-radius:4px;padding:1px 5px;color:var(--dim)}
+
+  /* thought line */
+  .thought{position:absolute;left:50%;bottom:22px;transform:translateX(-50%);z-index:5;
+    width:520px;display:flex;gap:10px;align-items:center;border-bottom:1px solid rgba(255,255,255,.16);padding:8px 6px;
+    font:450 13.5px var(--mono);color:var(--faint)}
+  .thought .p{color:var(--green);font-weight:700}
+
+  .pin{position:absolute;z-index:9;width:26px;height:26px;border-radius:50%;
+    background:linear-gradient(135deg,var(--orange),var(--rose));color:#14060a;
+    font:800 13px var(--mono);display:grid;place-items:center;box-shadow:0 4px 14px rgba(244,63,94,.45)}
+
+  .legend{max-width:1240px;margin:34px auto 0;display:grid;grid-template-columns:repeat(2,1fr);gap:12px 28px}
+  .leg{display:flex;gap:12px;align-items:flex-start}
+  .leg .n{flex:none;width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--orange),var(--rose));
+    color:#14060a;font:800 11.5px var(--mono);display:grid;place-items:center;margin-top:2px}
+  .leg p{font-size:13px;color:var(--dim)}
+  .leg p b{color:var(--text);font-weight:620}
+  .foot{max-width:1240px;margin:40px auto 0;text-align:center;font:500 11.5px var(--mono);color:var(--faint)}
+  .foot a{color:var(--blue);text-decoration:none}
+  @media (max-width:900px){.legend{grid-template-columns:1fr}.now h2{font-size:34px}}
+</style>
+</head>
+<body>
+
+<div class="kicker">Liminal Flow · Ground-up Rethinks · Concept B of 4</div>
+<h1>FLOW / <span class="g">ONE</span></h1>
+<p class="sub">The opposite of a dashboard. The app shows exactly one thing: what you are doing right now, in type big enough to steer by. Everything else is off-screen on purpose — a list is a place you <i>visit</i>, never a place you <i>live</i>.</p>
+
+<div class="stage">
+  <div class="pin" style="top:270px;left:50%;transform:translateX(-50%)">1</div>
+  <div class="pin" style="top:70px;left:150px">2</div>
+  <div class="pin" style="top:120px;right:230px">3</div>
+  <div class="pin" style="top:400px;left:60px">4</div>
+  <div class="pin" style="bottom:120px;left:50%;transform:translateX(-64px)">5</div>
+  <div class="pin" style="bottom:60px;right:340px">6</div>
+
+  <div class="window">
+    <div class="lights"><i></i><i></i><i></i></div>
+
+    <div class="corner tl">
+      <b>improving AIDX</b> · component-library
+      <div class="beneath"><i></i><i></i></div>
+    </div>
+
+    <div class="verb up"><b>↑</b> DONE <kbd>⌘↵</kbd></div>
+    <div class="verb down"><b>↓</b> SET ASIDE <kbd>⌘⎋</kbd></div>
+    <div class="verb left"><b>→</b> TANGENT <kbd>⌘T</kbd></div>
+
+    <div class="peek-l"><small>← improving AIDX waits underneath</small></div>
+
+    <div class="now">
+      <div class="whisper-ctx"><b>●</b>&nbsp; now · 23 min</div>
+      <h2>Answer support ticket #482 — the token refresh bug</h2>
+      <div class="since">began <b>13:41</b> · third card today</div>
+      <div class="breath"><i></i></div>
+      <div class="lastnote">"need to check auth flow" <span>— your last thought, 14:02</span></div>
+    </div>
+
+    <div class="tray">
+      <b class="cap">LATER · 4</b>
+      <div class="mini"><div class="t">wear os sync</div><div class="m">set aside 3h ago</div></div>
+      <div class="mini"><div class="t">reading article</div><div class="m">set aside tue</div></div>
+      <div class="mini dim"><div class="t">component library docs</div><div class="m">yesterday</div></div>
+      <div class="mini dim"><div class="t">plan v0.0.6</div><div class="m">someday · no guilt</div></div>
+      <div class="hint"><kbd>⌘L</kbd> open later · slides over, never stays</div>
+    </div>
+
+    <div class="thought"><span class="p">›</span> think out loud — it sticks to this card…</div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="leg"><span class="n">1</span><p><b>One card, teleprompter-sized.</b> The current intention is rendered like a road sign, not a row in a table. Glancing at the second monitor answers "what am I doing?" from across the room. If the type feels too big, that's the point — it makes half-hearted multitasking physically uncomfortable.</p></div>
+  <div class="leg"><span class="n">2</span><p><b>Depth without a tree.</b> The top-left corner shows what this card sits inside — the bars are the stack, two deep. That's all the hierarchy this app will ever show you at once.</p></div>
+  <div class="leg"><span class="n">3</span><p><b>Three verbs total.</b> Done (up), set aside (down), tangent (right). Every gesture animates the card physically off-screen in that direction, so your hands learn the grammar in a day. There is deliberately no "edit" — cards are intentions, not documents.</p></div>
+  <div class="leg"><span class="n">4</span><p><b>The interrupted card haunts the edge.</b> When you take a tangent, the parent doesn't vanish into a list — it stays as a glowing sliver on the left edge, physically <i>underneath</i>. Finishing the tangent slides the parent back in. Unclosed loops are visible as geometry, not badge counts.</p></div>
+  <div class="leg"><span class="n">5</span><p><b>The breath bar, not a timer.</b> A soft fill that swells over the first ~25 minutes and then just glows. It never counts down, never buzzes. It exists so that "how long have I been here?" has an ambient answer instead of an anxious one.</p></div>
+  <div class="leg"><span class="n">6</span><p><b>Thoughts stick to the card.</b> One underline input. Whatever you type is stamped onto the current card with a timestamp — the card accumulates a margin of your thinking, which becomes tomorrow's re-entry ramp. The "later" tray (right) slides over on ⌘L and closes on its own; it cannot be pinned open.</p></div>
+</div>
+
+<div class="foot">LIMINAL FLOW · GROUND-UP RETHINKS — <a href="01-desk.html">A · Desk</a> · next: <a href="03-dialogue.html">C · Dialogue</a> · <a href="04-garden.html">D · Garden</a></div>
+
+</body>
+</html>
