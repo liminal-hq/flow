@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flow Clean — 3 · Board</title>
+<style>
+  :root{
+    --bg:#0a0d14; --surface:#0e1320; --surface2:#111726; --raised:#151c2e;
+    --line:rgba(255,255,255,.07); --line2:rgba(255,255,255,.12);
+    --text:#e6eaf2; --dim:#9aa3b5; --faint:#5d6579;
+    --green:#2ec66a; --blue:#5aa2ff; --amber:#ffaa40; --violet:#a78bfa; --rose:#f43f5e;
+    --mono:ui-monospace,"JetBrains Mono","SF Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:linear-gradient(170deg,#090c12,#0b1019);color:var(--text);
+    font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+    min-height:100vh;padding:48px 24px 80px}
+  .kicker{font:600 11px/1 var(--mono);letter-spacing:.22em;text-transform:uppercase;color:var(--faint);text-align:center}
+  h1{text-align:center;font-size:26px;font-weight:650;margin:10px 0 4px}
+  h1 .g{background:linear-gradient(90deg,#ffaa40,#f43f5e,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{text-align:center;color:var(--dim);max-width:720px;margin:0 auto 40px;font-size:14px}
+
+  .stage{position:relative;max-width:1280px;margin:0 auto}
+  .window{border-radius:12px;overflow:hidden;height:740px;display:flex;flex-direction:column;
+    border:1px solid var(--line2);background:var(--bg);box-shadow:0 40px 90px rgba(0,0,0,.55)}
+  .titlebar{height:42px;flex:none;display:flex;align-items:center;gap:12px;padding:0 14px;border-bottom:1px solid var(--line);background:var(--surface)}
+  .lights{display:flex;gap:16px;order:99;margin-left:12px;font:400 13px var(--mono);color:#8b93a7}
+  .lights i{font-style:normal}
+  .lights i:nth-child(1)::before{content:"−"}.lights i:nth-child(2)::before{content:"□"}.lights i:nth-child(3)::before{content:"×"}
+  .tb-mid{margin:0 auto;font:600 12.5px var(--mono);color:var(--dim)}
+  .tb-mid b{color:var(--text)}
+  .tb-right{font:600 11px var(--mono);color:var(--faint)}
+
+  .board{flex:1;display:flex;gap:14px;padding:18px 18px 8px;min-height:0}
+  .col{flex:1;min-width:0;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:12px;background:var(--surface);min-height:0}
+  .col.now{flex:1.35;border-color:rgba(46,198,106,.35)}
+  .col-h{flex:none;display:flex;align-items:center;gap:9px;padding:12px 15px;border-bottom:1px solid var(--line)}
+  .col-h b{font:650 11px var(--mono);letter-spacing:.16em;color:var(--dim)}
+  .col.now .col-h b{color:var(--green)}
+  .col-h .wip{margin-left:auto;font:600 10.5px var(--mono);color:var(--faint);border:1px solid var(--line);border-radius:999px;padding:2px 9px}
+  .col-h .wip.full{color:var(--green);border-color:rgba(46,198,106,.4)}
+  .col-h .wip.over{color:var(--amber);border-color:rgba(255,170,64,.4)}
+  .col-b{flex:1;overflow:hidden;padding:12px;display:flex;flex-direction:column;gap:10px}
+
+  .card{border:1px solid var(--line2);border-radius:10px;background:var(--surface2);padding:11px 13px}
+  .card .t{font-size:13px;font-weight:600;color:#d4dae6;line-height:1.35}
+  .card .m{display:flex;gap:8px;align-items:center;margin-top:7px;font:500 10.5px var(--mono);color:var(--faint)}
+  .card .m .chip{border:1px solid var(--line);border-radius:5px;padding:1px 7px}
+  .card .m .age{margin-left:auto}
+  .card .reentry{margin-top:8px;font:450 11px var(--mono);color:var(--dim);border-left:2px solid var(--blue);padding:2px 0 2px 8px}
+  .card.pos::before{content:attr(data-pos);float:right;font:700 10px var(--mono);color:var(--faint);
+    border:1px solid var(--line);border-radius:5px;padding:1px 6px;margin-left:8px}
+  .card.wait{border-left:3px solid var(--violet)}
+  .card.wait .who{color:var(--violet)}
+  .card.donec{opacity:.75;padding:8px 13px}
+  .card.donec .t{font-size:12px;color:var(--dim);font-weight:500}
+  .card.donec .t::before{content:"✓ ";color:var(--green);font-weight:700}
+  .card.donec .m{margin-top:3px}
+
+  /* the NOW card */
+  .bigcard{border:1px solid rgba(46,198,106,.4);border-radius:10px;background:#0f1a24;padding:14px 15px;display:flex;flex-direction:column;flex:1;max-height:320px}
+  .bigcard .r1{display:flex;align-items:center;gap:9px}
+  .bigcard .dot{width:8px;height:8px;border-radius:50%;background:var(--green)}
+  .bigcard time{margin-left:auto;font:650 12px var(--mono);color:var(--green)}
+  .bigcard .t{font-size:15.5px;font-weight:640;margin-top:8px;line-height:1.35}
+  .bigcard .sc{font:500 11px var(--mono);color:var(--faint);margin-top:6px}
+  .bigcard .notes{margin-top:12px;border-top:1px solid var(--line);padding-top:9px;flex:1;overflow:hidden}
+  .bigcard .notes .cap{font:650 9.5px var(--mono);letter-spacing:.16em;color:var(--faint)}
+  .bigcard .n{display:flex;gap:9px;padding:6px 0;font-size:12px;color:#b9c1d2}
+  .bigcard .n time{margin-left:0;font:500 10px var(--mono);color:var(--faint);flex:none;padding-top:1px}
+  .bigcard .acts{display:flex;gap:7px;margin-top:10px}
+  .a-btn{font:600 11.5px var(--mono);color:var(--dim);border:1px solid var(--line2);border-radius:7px;padding:6px 0;flex:1;text-align:center}
+  .a-btn.g{color:var(--green);border-color:rgba(46,198,106,.4)}
+
+  /* drag rejection vignette */
+  .ghost{position:absolute;left:404px;top:262px;width:230px;z-index:7;transform:rotate(-3deg);
+    border:1px solid rgba(255,170,64,.5);border-radius:10px;background:rgba(17,23,38,.95);padding:11px 13px;
+    box-shadow:0 18px 40px rgba(0,0,0,.6)}
+  .ghost .t{font-size:13px;font-weight:600;color:#d4dae6}
+  .ghost .m{font:500 10.5px var(--mono);color:var(--faint);margin-top:5px}
+  .toast{position:absolute;left:388px;top:352px;z-index:7;width:262px;border:1px solid rgba(255,170,64,.4);
+    border-radius:9px;background:#171308;padding:9px 12px;font:500 11.5px var(--mono);color:#ffd9a0}
+  .toast b{color:#ffe9c4}
+
+  .capbar{flex:none;margin:8px 18px 16px;display:flex;align-items:center;gap:10px;border:1px solid var(--line2);
+    border-radius:9px;background:var(--surface);padding:11px 14px;font:450 12.5px var(--mono);color:var(--faint)}
+  .capbar .p{color:var(--blue);font-weight:700}
+  .capbar .keys{margin-left:auto;display:flex;gap:12px;font-size:11px}
+  .capbar kbd{border:1px solid var(--line);border-radius:4px;padding:0 5px;color:var(--dim)}
+
+  .pin{position:absolute;z-index:9;width:26px;height:26px;border-radius:50%;
+    background:linear-gradient(135deg,#ffaa40,#f43f5e);color:#14060a;
+    font:800 13px var(--mono);display:grid;place-items:center;box-shadow:0 4px 14px rgba(244,63,94,.45)}
+  .legend{max-width:1280px;margin:34px auto 0;display:grid;grid-template-columns:repeat(2,1fr);gap:12px 28px}
+  .leg{display:flex;gap:12px;align-items:flex-start}
+  .leg .n{flex:none;width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#ffaa40,#f43f5e);
+    color:#14060a;font:800 11.5px var(--mono);display:grid;place-items:center;margin-top:2px}
+  .leg p{font-size:13px;color:var(--dim)}
+  .leg p b{color:var(--text);font-weight:620}
+  .foot{max-width:1280px;margin:40px auto 0;text-align:center;font:500 11.5px var(--mono);color:var(--faint)}
+  .foot a{color:var(--blue);text-decoration:none}
+  @media (max-width:900px){.legend{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="kicker">Liminal Flow · Ground-up Rethinks · Series 3 (Clean) · 3 of 4</div>
+<h1>FLOW / <span class="g">BOARD</span></h1>
+<p class="sub">Personal kanban with teeth. Four fixed columns — <b style="color:var(--text)">Now, Next, Waiting, Done today</b> — and one non-negotiable rule: Now holds exactly one card. The board doesn't advise the limit; it <i>enforces</i> it.</p>
+
+<div class="stage">
+  <div class="pin" style="top:120px;left:150px">1</div>
+  <div class="pin" style="top:392px;left:352px">2</div>
+  <div class="pin" style="top:120px;left:49%">3</div>
+  <div class="pin" style="top:120px;right:300px">4</div>
+  <div class="pin" style="top:120px;right:20px">5</div>
+  <div class="pin" style="bottom:34px;left:50%;transform:translateX(-50%)">6</div>
+
+  <div class="window">
+    <div class="titlebar">
+      <div class="lights"><i></i><i></i><i></i></div>
+      <div class="tb-mid">board · <b>thursday</b></div>
+      <div class="tb-right">3h 12m focused · 3 finishes</div>
+    </div>
+
+    <div class="board">
+      <!-- NOW -->
+      <div class="col now">
+        <div class="col-h"><b>NOW</b><span class="wip full">1 / 1</span></div>
+        <div class="col-b">
+          <div class="bigcard">
+            <div class="r1"><span class="dot"></span><span style="font:650 10px var(--mono);letter-spacing:.14em;color:var(--green)">IN FOCUS</span><time>45:12</time></div>
+            <div class="t">Support ticket #482 — token refresh bug</div>
+            <div class="sc">component-library · feature/aidx · sub-task of Improving AIDX</div>
+            <div class="notes">
+              <div class="cap">CARD NOTES</div>
+              <div class="n"><time>14:02</time>need to check auth flow</div>
+              <div class="n"><time>13:47</time>401s only after &gt;30 min idle — decay window suspect</div>
+            </div>
+            <div class="acts"><span class="a-btn g">✓ Done</span><span class="a-btn">→ Next</span><span class="a-btn">◱ Waiting</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- NEXT -->
+      <div class="col">
+        <div class="col-h"><b>NEXT</b><span class="wip">4 / 5</span></div>
+        <div class="col-b">
+          <div class="card pos" data-pos="1">
+            <div class="t">Improving AIDX</div>
+            <div class="reentry">resume at: test decay-window fix, 90m synthetic session</div>
+            <div class="m"><span class="chip">component-library</span><span class="age">held 45m</span></div>
+          </div>
+          <div class="card pos" data-pos="2">
+            <div class="t">Wear OS sync — battery drain repro</div>
+            <div class="m"><span class="chip">wear-companion</span><span class="age">3h</span></div>
+          </div>
+          <div class="card pos" data-pos="3">
+            <div class="t">Component library docs — props tables</div>
+            <div class="m"><span class="chip">component-library</span><span class="age">1d</span></div>
+          </div>
+          <div class="card pos" data-pos="4">
+            <div class="t">Plan v0.0.6 scope</div>
+            <div class="m"><span class="chip">flow</span><span class="age">2d</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- WAITING -->
+      <div class="col">
+        <div class="col-h"><b>WAITING</b><span class="wip">2</span></div>
+        <div class="col-b">
+          <div class="card wait">
+            <div class="t">Release sign-off</div>
+            <div class="m"><span class="who">◱ Dana's review</span><span class="age">2d</span></div>
+          </div>
+          <div class="card wait">
+            <div class="t">API quota bump</div>
+            <div class="m"><span class="who">◱ support reply</span><span class="age">3d</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DONE -->
+      <div class="col">
+        <div class="col-h"><b>DONE TODAY</b><span class="wip">3</span></div>
+        <div class="col-b">
+          <div class="card donec"><div class="t">Fix release pipeline</div><div class="m"><span class="age">09:50</span></div></div>
+          <div class="card donec"><div class="t">Triage #479, #480</div><div class="m"><span class="age">09:05</span></div></div>
+          <div class="card donec"><div class="t">AIDX baseline measured — 0.61</div><div class="m"><span class="age">10:12</span></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- drag rejection -->
+    <div class="ghost">
+      <div class="t">Wear OS sync — battery drain repro</div>
+      <div class="m">dragging toward NOW…</div>
+    </div>
+    <div class="toast"><b>Now is full.</b> Drop to swap — #482 moves to Next, position 1, with its re-entry note attached.</div>
+
+    <div class="capbar">
+      <span class="p">›</span> new card lands at the bottom of Next…
+      <div class="keys"><span><kbd>↵</kbd> add</span><span><kbd>Ctrl+↵</kbd> add &amp; start (swaps Now)</span><span><kbd>1–4</kbd> jump column</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="leg"><span class="n">1</span><p><b>Now is a column of one.</b> The active card is rendered large, with its live timer and note trail — it's the only card on the board that shows content, because it's the only card you should be reading. WIP limit 1/1 is displayed like a law, not a preference.</p></div>
+  <div class="leg"><span class="n">2</span><p><b>The swap is explicit and fair.</b> Dragging a second card onto Now doesn't stack it — the board explains the trade: the current card moves to Next position 1 and keeps its re-entry note. Context switching is allowed; <i>unaccounted</i> context switching is not.</p></div>
+  <div class="leg"><span class="n">3</span><p><b>Next is ordered and capped.</b> Five slots, numbered. When a sixth card arrives, the board asks which one drops to Someday. The cap converts "backlog anxiety" into a small, concrete decision made at add-time instead of a pile read at review-time.</p></div>
+  <div class="leg"><span class="n">4</span><p><b>Waiting names its blocker.</b> Every card in Waiting must say what it's waiting on — a person, a reply, a build. Cards age visibly (2d, 3d) and a stale card prompts one question at day-start: nudge, drop, or still blocked?</p></div>
+  <div class="leg"><span class="n">5</span><p><b>Done resets at midnight.</b> The column is a today-sized win list, not an archive — three finishes, timestamps, gone tomorrow. History lives in the log; the board only ever shows a day you can act on.</p></div>
+  <div class="leg"><span class="n">6</span><p><b>Capture is one line, placement is automatic.</b> Plain text becomes a card at the bottom of Next; Ctrl+↵ starts it immediately via the same explicit swap. No card editor, no fields — a title and a scope picked up from context are enough to start.</p></div>
+</div>
+
+<div class="foot">LIMINAL FLOW · CLEAN SERIES — <a href="01-queue.html">1 · Queue</a> · <a href="02-day.html">2 · Day</a> · next: <a href="04-review.html">4 · Review</a></div>
+
+</body>
+</html>

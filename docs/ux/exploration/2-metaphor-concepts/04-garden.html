@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flow Rethinks — D · The Garden</title>
+<style>
+  :root{
+    --bg0:#050507; --bg1:#0a1020; --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.14);
+    --text:#e8ecf6; --dim:#8b93a7; --faint:#5a627a;
+    --orange:#ffaa40; --rose:#f43f5e; --violet:#a78bfa; --blue:#5aa2ff; --green:#2ec66a;
+    --mono:ui-monospace,"JetBrains Mono","SF Mono","Cascadia Code",Menlo,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(1100px 500px at 15% -10%, rgba(167,139,250,.10), transparent 60%),
+      radial-gradient(900px 500px at 90% 0%, rgba(255,170,64,.07), transparent 55%),
+      linear-gradient(160deg,var(--bg0),var(--bg1));
+    color:var(--text);
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+    min-height:100vh;padding:48px 24px 80px;
+  }
+  .kicker{font:600 11px/1 var(--mono);letter-spacing:.22em;text-transform:uppercase;color:var(--faint);text-align:center}
+  h1{text-align:center;font-size:26px;font-weight:650;margin:10px 0 4px}
+  h1 .g{background:linear-gradient(90deg,var(--orange),var(--rose),var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{text-align:center;color:var(--dim);max-width:720px;margin:0 auto 40px;font-size:14px}
+
+  .stage{position:relative;max-width:1240px;margin:0 auto}
+  .window{position:relative;border-radius:14px;overflow:hidden;height:740px;
+    border:1px solid var(--line2);
+    box-shadow:0 40px 90px rgba(0,0,0,.6);
+    background:linear-gradient(180deg,#070b16 0%,#0a1122 52%,#0d1424 64%,#080c17 64.2%,#05070d 100%)}
+
+  .bar{position:absolute;top:0;left:0;right:0;height:44px;display:flex;align-items:center;gap:14px;padding:0 16px;z-index:8}
+  .lights{display:flex;gap:16px;order:99;margin-left:12px;font:400 13px var(--mono);color:#8b93a7}
+  .lights i{font-style:normal}
+  .lights i:nth-child(1)::before{content:"−"}.lights i:nth-child(2)::before{content:"□"}.lights i:nth-child(3)::before{content:"×"}
+  .bar .where{font:560 12px var(--mono);color:var(--faint)}
+  .bar .right{margin-left:auto;display:flex;gap:8px}
+  .wchip{font:600 10.5px var(--mono);color:var(--dim);border:1px solid var(--line);border-radius:999px;padding:4px 11px}
+  .wchip b{color:var(--text)}
+  .seasons{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;font:600 10.5px var(--mono)}
+  .seasons span{padding:4px 11px;color:var(--faint)}
+  .seasons .on{background:rgba(255,255,255,.06);color:var(--text)}
+
+  .tip{position:absolute;left:352px;top:168px;width:220px;background:rgba(11,16,30,.97);z-index:7;
+    border:1px solid rgba(90,162,255,.35);border-radius:10px;padding:9px 12px;
+    box-shadow:0 14px 34px rgba(0,0,0,.6)}
+  .tip .t{font:450 12px var(--mono);color:#c7cddc}
+  .tip .m{font:500 10px var(--mono);color:var(--faint);margin-top:4px}
+
+  .water{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);z-index:8;
+    display:flex;align-items:center;gap:10px;width:480px;border:1px solid rgba(46,198,106,.3);border-radius:999px;
+    background:rgba(8,13,26,.92);padding:10px 18px;font:450 13px var(--mono);color:var(--faint)}
+  .water .p{color:var(--green);font-weight:700}
+
+  .pin{position:absolute;z-index:9;width:26px;height:26px;border-radius:50%;
+    background:linear-gradient(135deg,var(--orange),var(--rose));color:#14060a;
+    font:800 13px var(--mono);display:grid;place-items:center;box-shadow:0 4px 14px rgba(244,63,94,.45)}
+
+  .legend{max-width:1240px;margin:34px auto 0;display:grid;grid-template-columns:repeat(2,1fr);gap:12px 28px}
+  .leg{display:flex;gap:12px;align-items:flex-start}
+  .leg .n{flex:none;width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--orange),var(--rose));
+    color:#14060a;font:800 11.5px var(--mono);display:grid;place-items:center;margin-top:2px}
+  .leg p{font-size:13px;color:var(--dim)}
+  .leg p b{color:var(--text);font-weight:620}
+  .foot{max-width:1240px;margin:40px auto 0;text-align:center;font:500 11.5px var(--mono);color:var(--faint)}
+  .foot a{color:var(--blue);text-decoration:none}
+  @media (max-width:900px){.legend{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="kicker">Liminal Flow · Ground-up Rethinks · Concept D of 4</div>
+<h1>FLOW / <span class="g">GARDEN</span></h1>
+<p class="sub">Work as something alive. Every focus is a plant: attention is water, thoughts are dew, tangents are literal branches. Neglected work wilts — visibly, kindly — and finished work blossoms and is carried to the meadow. You don't manage this garden. You <i>tend</i> it.</p>
+
+<div class="stage">
+  <div class="pin" style="top:250px;left:170px">1</div>
+  <div class="pin" style="top:130px;left:530px">4</div>
+  <div class="pin" style="top:330px;right:330px">2</div>
+  <div class="pin" style="top:180px;right:100px">3</div>
+  <div class="pin" style="bottom:130px;left:60px">5</div>
+  <div class="pin" style="bottom:64px;right:280px">6</div>
+
+  <div class="window">
+    <div class="bar">
+      <div class="lights"><i></i><i></i><i></i></div>
+      <span class="where">the garden · thursday, dusk</span>
+      <div class="right">
+        <span class="wchip">clear skies · <b>1 in bloom</b> · 1 thirsty</span>
+        <div class="seasons"><span class="on">day</span><span>week</span><span>season</span></div>
+      </div>
+    </div>
+
+    <!-- dew tooltip -->
+    <div class="tip"><div class="t">“need to check auth flow”</div><div class="m">dew from 14:02 · on the #482 branch</div></div>
+
+    <svg viewBox="0 0 1240 740" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" aria-label="A line-art night garden where each plant is a stream of work">
+      <defs>
+        <filter id="glow" x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <radialGradient id="moon" cx=".5" cy=".5" r=".5">
+          <stop offset="0%" stop-color="#ffe9c4" stop-opacity=".9"/><stop offset="100%" stop-color="#ffe9c4" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="soil" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#0b0f1c"/><stop offset="100%" stop-color="#04060b"/>
+        </linearGradient>
+      </defs>
+
+      <!-- sky -->
+      <circle cx="1100" cy="110" r="90" fill="url(#moon)"/>
+      <circle cx="1100" cy="110" r="26" fill="#ffe9c4" opacity=".85"/>
+      <g fill="#e8ecf6">
+        <circle cx="140" cy="90" r="1.4" opacity=".5"/><circle cx="260" cy="150" r="1.1" opacity=".35"/>
+        <circle cx="480" cy="70" r="1.3" opacity=".45"/><circle cx="700" cy="120" r="1.2" opacity=".4"/>
+        <circle cx="860" cy="70" r="1.4" opacity=".5"/><circle cx="960" cy="210" r="1.1" opacity=".3"/>
+        <circle cx="80" cy="230" r="1.2" opacity=".35"/><circle cx="590" cy="200" r="1" opacity=".3"/>
+      </g>
+
+      <!-- ground -->
+      <rect x="0" y="474" width="1240" height="266" fill="url(#soil)"/>
+      <line x1="0" y1="474" x2="1240" y2="474" stroke="rgba(255,255,255,.14)" stroke-width="1.5"/>
+
+      <!-- ═══ plant 1 · ACTIVE (green, glowing) ═══ -->
+      <g filter="url(#glow)">
+        <path d="M300 474 C295 410 312 340 300 260 C296 220 304 195 299 172" stroke="#2ec66a" stroke-width="3.5" fill="none" stroke-linecap="round"/>
+        <!-- tangent branch -->
+        <path d="M303 330 C335 312 356 292 372 262" stroke="#5aa2ff" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      </g>
+      <!-- leaves -->
+      <g fill="none" stroke="#2ec66a" stroke-width="2.2" stroke-linejoin="round">
+        <path d="M298 420 q -34 -16 -56 -8 q 20 24 56 14 z"/>
+        <path d="M301 372 q 34 -16 56 -8 q -20 24 -56 14 z"/>
+        <path d="M299 290 q -30 -14 -50 -7 q 18 22 50 13 z"/>
+        <path d="M299 216 q 28 -13 47 -6 q -17 20 -47 12 z"/>
+      </g>
+      <g fill="none" stroke="#5aa2ff" stroke-width="1.8">
+        <path d="M352 300 q 26 -12 42 -5 q -15 18 -42 11 z"/>
+        <path d="M372 262 q 8 -22 24 -30 q 2 22 -24 30 z"/>
+      </g>
+      <!-- dew -->
+      <circle cx="345" cy="288" r="3.2" fill="#bcd7ff"/>
+      <circle cx="299" cy="172" r="4" fill="#dffbe9"/>
+      <circle cx="255" cy="416" r="3" fill="#bcd7ff" opacity=".8"/>
+      <!-- fireflies -->
+      <circle cx="240" cy="240" r="2.4" fill="#ffe9a0" filter="url(#glow)" opacity=".9"/>
+      <circle cx="392" cy="200" r="2" fill="#ffe9a0" filter="url(#glow)" opacity=".7"/>
+      <circle cx="330" cy="140" r="1.8" fill="#ffe9a0" filter="url(#glow)" opacity=".6"/>
+
+      <!-- ═══ plant 2 · RESTING (amber, leaves folded) ═══ -->
+      <path d="M540 474 C536 430 546 390 540 340" stroke="#ffaa40" stroke-opacity=".75" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <g fill="none" stroke="#ffaa40" stroke-opacity=".65" stroke-width="2">
+        <path d="M539 430 q -26 -4 -40 8 q 22 12 40 2 z"/>
+        <path d="M541 400 q 26 -4 40 8 q -22 12 -40 2 z"/>
+        <path d="M540 352 q -20 -6 -32 4 q 16 12 32 4 z"/>
+      </g>
+      <circle cx="540" cy="338" r="3" fill="#ffd9a0" opacity=".8"/>
+
+      <!-- ═══ plant 3 · SEEDLING (violet sprout) ═══ -->
+      <path d="M680 474 C679 458 682 448 680 436" stroke="#a78bfa" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <g fill="none" stroke="#a78bfa" stroke-width="1.8">
+        <path d="M679 446 q -16 -8 -28 -4 q 10 14 28 10 z"/>
+        <path d="M681 440 q 16 -8 28 -4 q -10 14 -28 10 z"/>
+      </g>
+
+      <!-- ═══ plant 4 · WILTING (grey, drooping) ═══ -->
+      <path d="M830 474 C826 428 838 396 832 372 C828 354 810 348 796 362 C788 370 786 380 790 388" stroke="#8b93a7" stroke-opacity=".7" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+      <g fill="none" stroke="#8b93a7" stroke-opacity=".55" stroke-width="1.8">
+        <path d="M829 432 q -24 6 -34 20 q 24 4 34 -10 z"/>
+        <path d="M833 408 q 24 6 34 20 q -24 4 -34 -10 z"/>
+      </g>
+      <!-- fallen leaf -->
+      <path d="M866 468 q 18 -10 30 -4 q -12 12 -30 4 z" fill="none" stroke="#8b93a7" stroke-opacity=".4" stroke-width="1.5"/>
+
+      <!-- ═══ plant 5 · BLOSSOMED (done — rose flower) ═══ -->
+      <path d="M1010 474 C1006 420 1016 370 1010 318" stroke="#f43f5e" stroke-opacity=".8" stroke-width="3" fill="none" stroke-linecap="round"/>
+      <g filter="url(#glow)">
+        <circle cx="1010" cy="300" r="9" fill="#ffaa40"/>
+        <g fill="#f43f5e" opacity=".9">
+          <circle cx="1010" cy="281" r="8"/><circle cx="1027" cy="291" r="8"/><circle cx="1027" cy="310" r="8"/>
+          <circle cx="1010" cy="319" r="8"/><circle cx="993" cy="310" r="8"/><circle cx="993" cy="291" r="8"/>
+        </g>
+      </g>
+      <g fill="none" stroke="#f43f5e" stroke-opacity=".55" stroke-width="1.8">
+        <path d="M1009 420 q -26 -10 -42 -4 q 16 18 42 12 z"/>
+      </g>
+      <!-- drifting petals -->
+      <circle cx="1062" cy="352" r="3.5" fill="#f43f5e" opacity=".5"/>
+      <circle cx="1088" cy="398" r="3" fill="#f43f5e" opacity=".3"/>
+
+      <!-- ═══ roots (event history) ═══ -->
+      <g stroke-linecap="round" fill="none">
+        <path d="M300 474 C304 520 288 560 296 618" stroke="#2ec66a" stroke-opacity=".22" stroke-width="2"/>
+        <path d="M300 474 C280 510 270 540 262 566" stroke="#2ec66a" stroke-opacity=".14" stroke-width="1.5"/>
+        <path d="M300 474 C322 512 334 546 340 584" stroke="#2ec66a" stroke-opacity=".14" stroke-width="1.5"/>
+        <path d="M540 474 C544 508 534 534 538 560" stroke="#ffaa40" stroke-opacity=".16" stroke-width="1.5"/>
+        <path d="M680 474 C681 492 678 502 680 512" stroke="#a78bfa" stroke-opacity=".2" stroke-width="1.5"/>
+        <path d="M830 474 C834 516 824 552 830 594" stroke="#8b93a7" stroke-opacity=".15" stroke-width="1.5"/>
+        <path d="M1010 474 C1014 524 1002 566 1008 612" stroke="#f43f5e" stroke-opacity=".16" stroke-width="1.5"/>
+      </g>
+      <g fill="#e8ecf6" opacity=".35">
+        <circle cx="296" cy="520" r="1.8"/><circle cx="290" cy="560" r="1.8"/><circle cx="295" cy="600" r="1.8"/>
+        <circle cx="270" cy="540" r="1.5"/><circle cx="336" cy="566" r="1.5"/>
+        <circle cx="540" cy="530" r="1.5"/><circle cx="830" cy="540" r="1.5"/><circle cx="1009" cy="550" r="1.5"/><circle cx="1010" cy="590" r="1.5"/>
+      </g>
+
+      <!-- plaques -->
+      <g font-family="ui-monospace,Menlo,monospace">
+        <text x="300" y="500" text-anchor="middle" font-size="12" fill="#e8ecf6" font-weight="600">answering support</text>
+        <text x="300" y="516" text-anchor="middle" font-size="10" fill="#2ec66a">in bloom · watered 24m ago</text>
+        <text x="540" y="500" text-anchor="middle" font-size="12" fill="#c3cbdc" font-weight="600">improving AIDX</text>
+        <text x="540" y="516" text-anchor="middle" font-size="10" fill="#ffaa40">resting · holds your place</text>
+        <text x="680" y="500" text-anchor="middle" font-size="12" fill="#c3cbdc" font-weight="600">plan v0.0.6</text>
+        <text x="680" y="516" text-anchor="middle" font-size="10" fill="#a78bfa">seedling · just an idea</text>
+        <text x="830" y="500" text-anchor="middle" font-size="12" fill="#8b93a7" font-weight="600">reading article</text>
+        <text x="830" y="516" text-anchor="middle" font-size="10" fill="#8b93a7">thirsty · 3 days without rain</text>
+        <text x="1010" y="500" text-anchor="middle" font-size="12" fill="#e8ecf6" font-weight="600">fix release pipeline</text>
+        <text x="1010" y="516" text-anchor="middle" font-size="10" fill="#f43f5e">blossomed · off to the meadow ⟶</text>
+      </g>
+
+      <!-- meadow arrow -->
+      <text x="1180" y="452" font-family="ui-monospace,Menlo,monospace" font-size="10" fill="#5a627a" text-anchor="end">the meadow ⟶</text>
+    </svg>
+
+    <div class="water"><span class="p">›</span> water a plant with a thought…</div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="leg"><span class="n">1</span><p><b>Attention is water.</b> The plant you're tending is the one in bloom — it glows, fireflies gather, and every thought you type lands on it as dew. Click any other plant to move the watering can; the garden allows exactly one bloom at a time.</p></div>
+  <div class="leg"><span class="n">2</span><p><b>Wilting is information, not shame.</b> Untouched work droops by degrees — <i>thirsty</i>, then dormant, then quietly composted into the archive. A drooping plant is the softest possible nudge, and "3 days without rain" reads very differently from "OVERDUE".</p></div>
+  <div class="leg"><span class="n">3</span><p><b>Done work blossoms.</b> Finishing something is a visible, slightly celebratory event: the plant flowers, drops petals, and drifts off to <i>the meadow</i> — a separate scene of everything you've ever completed. The meadow is the anti-backlog: a place you visit to feel good.</p></div>
+  <div class="leg"><span class="n">4</span><p><b>Tangents are literal branches.</b> A side-quest grows as a blue offshoot of the parent stem, with its own leaves and dew. Finish it and it fuses back into the stem's growth; abandon it and just that branch wilts, never the whole plant.</p></div>
+  <div class="leg"><span class="n">5</span><p><b>Roots are memory.</b> Below the soil line, every plant's history — each pickup, pause and thought — grows downward as roots. Old work has deep roots you can excavate by scrolling down. Nothing is ever lost; it just goes underground.</p></div>
+  <div class="leg"><span class="n">6</span><p><b>Weather and seasons.</b> The sky reflects load: clear when the garden is small, overcast when too much blooms at once. The <i>season</i> view compresses months into growth rings — your year, readable at a glance like a tree stump.</p></div>
+</div>
+
+<div class="foot">LIMINAL FLOW · GROUND-UP RETHINKS — <a href="01-desk.html">A · Desk</a> · <a href="02-one.html">B · One</a> · <a href="03-dialogue.html">C · Dialogue</a></div>
+
+</body>
+</html>

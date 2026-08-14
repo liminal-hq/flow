@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1220" height="560" viewBox="0 0 1220 560" font-family="-apple-system,'Segoe UI',Helvetica,Arial,sans-serif" role="img" aria-labelledby="t">
+  <title id="t">Flow Desktop epic — build steps and their blocking relationships</title>
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#8b93a7"/>
+    </marker>
+  </defs>
+  <rect width="1220" height="560" rx="14" fill="#0a0d14" stroke="rgba(255,255,255,.12)"/>
+
+  <!-- phase labels -->
+  <g font-family="Menlo,monospace" font-size="10.5" letter-spacing="2" font-weight="700">
+    <text x="130" y="46" text-anchor="middle" fill="#5aa2ff">FOUNDATION</text>
+    <text x="380" y="46" text-anchor="middle" fill="#a78bfa">PLATFORM</text>
+    <text x="640" y="46" text-anchor="middle" fill="#2ec66a">WORKBENCH</text>
+    <text x="900" y="46" text-anchor="middle" fill="#ffaa40">SATELLITE WINDOWS</text>
+    <text x="1110" y="46" text-anchor="middle" fill="#f43f5e">SHIP</text>
+  </g>
+  <g stroke-width="2" opacity=".5">
+    <line x1="80" y1="56" x2="180" y2="56" stroke="#5aa2ff"/>
+    <line x1="330" y1="56" x2="430" y2="56" stroke="#a78bfa"/>
+    <line x1="590" y1="56" x2="690" y2="56" stroke="#2ec66a"/>
+    <line x1="850" y1="56" x2="950" y2="56" stroke="#ffaa40"/>
+    <line x1="1060" y1="56" x2="1160" y2="56" stroke="#f43f5e"/>
+  </g>
+
+  <!-- edges -->
+  <g fill="none" stroke="#8b93a7" stroke-opacity=".45" stroke-width="1.5" marker-end="url(#arr)">
+    <path d="M230 285 C255 285 255 215 278 213"/>
+    <path d="M230 295 C255 295 255 365 278 367"/>
+    <path d="M480 205 C515 200 515 148 538 145"/>
+    <path d="M480 213 C520 220 520 270 538 273"/>
+    <path d="M480 219 C520 240 510 390 538 399"/>
+    <path d="M480 375 C515 370 510 160 538 152"/>
+    <path d="M480 379 C515 372 515 288 538 281"/>
+    <path d="M480 383 C515 383 515 405 538 405"/>
+    <path d="M740 405 C770 405 770 415 798 415"/>
+    <path d="M480 195 C560 100 760 108 798 137"/>
+    <path d="M480 367 C540 330 740 300 798 285"/>
+    <path d="M740 145 C790 100 1010 150 1038 240"/>
+    <path d="M740 277 C770 277 990 270 1038 268"/>
+    <path d="M740 397 C790 430 990 360 1038 296"/>
+  </g>
+
+  <!-- nodes -->
+  <g>
+    <!-- 1 scaffold -->
+    <rect x="30" y="260" width="200" height="64" rx="12" fill="#111726" stroke="#5aa2ff" stroke-width="1.5"/>
+    <text x="46" y="286" font-size="13" fill="#e6eaf2" font-weight="650">1 · Scaffold app crate</text>
+    <text x="46" y="306" font-family="Menlo,monospace" font-size="10" fill="#8b93a7">Tauri 2 · Svelte 5 · Vite · CI</text>
+
+    <!-- 2 bridge -->
+    <rect x="280" y="180" width="200" height="64" rx="12" fill="#111726" stroke="#a78bfa" stroke-width="1.5"/>
+    <text x="296" y="206" font-size="13" fill="#e6eaf2" font-weight="650">2 · Core bridge &amp; sync</text>
+    <text x="296" y="226" font-family="Menlo,monospace" font-size="10" fill="#8b93a7">commands · events ≤250ms</text>
+
+    <!-- 3 shell -->
+    <rect x="280" y="335" width="200" height="64" rx="12" fill="#111726" stroke="#a78bfa" stroke-width="1.5"/>
+    <text x="296" y="361" font-size="13" fill="#e6eaf2" font-weight="650">3 · Shell &amp; design tokens</text>
+    <text x="296" y="381" font-family="Menlo,monospace" font-size="10" fill="#8b93a7">frameless · titlebar · theme</text>
+
+    <!-- 4 sidebar -->
+    <rect x="540" y="112" width="200" height="64" rx="12" fill="#111726" stroke="#2ec66a" stroke-width="1.5"/>
+    <text x="556" y="138" font-size="13" fill="#e6eaf2" font-weight="650">4 · Streams sidebar</text>
+    <text x="556" y="158" font-family="Menlo,monospace" font-size="10" fill="#8b93a7">threads · branches · nav</text>
+
+    <!-- 5 focus -->
+    <rect x="540" y="240" width="200" height="64" rx="12" fill="#111726" stroke="#2ec66a" stroke-width="1.5"/>
+    <text x="556" y="266" font-size="13" fill="#e6eaf2" font-weight="650">5 · Focus stack &amp; notes</text>
+    <text x="556" y="286" font-family="Menlo,monospace" font-size="10" fill="#8b93a7">stack cards · scopes · trail</text>
+
+    <!-- 6 capture -->
+    <rect x="540" y="368" width="200" height="64" rx="12" fill="#111726" stroke="#2ec66a" stroke-width="1.5"/>
+    <text x="556" y="394" font-size="13" fill="#e6eaf2" font-weight="650">6 · Capture &amp; palette</text>
+    <text x="556" y="414" font-family="Menlo,monospace" font-size="10" fill="#8b93a7">notes · slash commands · Ctrl+K</text>
+
+    <!-- 7 quick capture -->
+    <rect x="800" y="385" width="200" height="64" rx="12" fill="#111726" stroke="#ffaa40" stroke-width="1.5"/>
+    <text x="816" y="411" font-size="13" fill="#e6eaf2" font-weight="650">7 · Quick Capture</text>
+    <text x="816" y="431" font-family="Menlo,monospace" font-size="10" fill="#8b93a7">global shortcut overlay</text>
+
+    <!-- 8 companion -->
+    <rect x="800" y="112" width="200" height="64" rx="12" fill="#111726" stroke="#ffaa40" stroke-width="1.5"/>
+    <text x="816" y="138" font-size="13" fill="#e6eaf2" font-weight="650">8 · Companion &amp; tray</text>
+    <text x="816" y="158" font-family="Menlo,monospace" font-size="10" fill="#8b93a7">pill · tray · welcome back</text>
+
+    <!-- 9 flow map -->
+    <rect x="800" y="253" width="200" height="64" rx="12" fill="#111726" stroke="#ffaa40" stroke-width="1.5"/>
+    <text x="816" y="279" font-size="13" fill="#e6eaf2" font-weight="650">9 · Flow Map &amp; rail</text>
+    <text x="816" y="299" font-family="Menlo,monospace" font-size="10" fill="#8b93a7">day braid from events</text>
+
+    <!-- 10 ship -->
+    <rect x="1040" y="236" width="160" height="64" rx="12" fill="#111726" stroke="#f43f5e" stroke-width="1.5"/>
+    <text x="1056" y="262" font-size="13" fill="#e6eaf2" font-weight="650">10 · Package</text>
+    <text x="1056" y="282" font-family="Menlo,monospace" font-size="10" fill="#8b93a7">bundles · release CI</text>
+  </g>
+
+  <text x="30" y="520" font-family="Menlo,monospace" font-size="10.5" fill="#5a627a">arrows read “unblocks” — an issue starts when everything pointing at it is done · 4/5/6 can run in parallel · 7 reuses the palette from 6 · 8/9 need only the bridge and tokens</text>
+</svg>

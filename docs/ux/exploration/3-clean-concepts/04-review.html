@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flow Clean — 4 · Review</title>
+<style>
+  :root{
+    --bg:#0a0d14; --surface:#0e1320; --surface2:#111726; --raised:#151c2e;
+    --line:rgba(255,255,255,.07); --line2:rgba(255,255,255,.12);
+    --text:#e6eaf2; --dim:#9aa3b5; --faint:#5d6579;
+    --green:#2ec66a; --blue:#5aa2ff; --amber:#ffaa40; --violet:#a78bfa; --rose:#f43f5e;
+    --mono:ui-monospace,"JetBrains Mono","SF Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:linear-gradient(170deg,#090c12,#0b1019);color:var(--text);
+    font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+    min-height:100vh;padding:48px 24px 80px}
+  .kicker{font:600 11px/1 var(--mono);letter-spacing:.22em;text-transform:uppercase;color:var(--faint);text-align:center}
+  h1{text-align:center;font-size:26px;font-weight:650;margin:10px 0 4px}
+  h1 .g{background:linear-gradient(90deg,#ffaa40,#f43f5e,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{text-align:center;color:var(--dim);max-width:720px;margin:0 auto 40px;font-size:14px}
+
+  .stage{position:relative;max-width:1280px;margin:0 auto}
+  .window{border-radius:12px;overflow:hidden;height:800px;display:flex;flex-direction:column;
+    border:1px solid var(--line2);background:var(--bg);box-shadow:0 40px 90px rgba(0,0,0,.55)}
+  .titlebar{height:42px;flex:none;display:flex;align-items:center;gap:12px;padding:0 14px;border-bottom:1px solid var(--line);background:var(--surface)}
+  .lights{display:flex;gap:16px;order:99;margin-left:12px;font:400 13px var(--mono);color:#8b93a7}
+  .lights i{font-style:normal}
+  .lights i:nth-child(1)::before{content:"−"}.lights i:nth-child(2)::before{content:"□"}.lights i:nth-child(3)::before{content:"×"}
+  .weekpick{margin:0 auto;display:flex;align-items:center;gap:12px;font:600 13px var(--mono)}
+  .weekpick .arr{color:var(--faint);border:1px solid var(--line);border-radius:6px;width:24px;height:24px;display:grid;place-items:center;font-size:12px}
+  .tb-right{font:600 11px var(--mono);color:var(--faint)}
+
+  .body{flex:1;min-height:0;padding:16px 18px;display:flex;flex-direction:column;gap:14px;overflow:hidden}
+
+  /* stat tiles */
+  .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;flex:none}
+  .tile{border:1px solid var(--line);border-radius:11px;background:var(--surface);padding:13px 16px}
+  .tile .k{font:600 10px var(--mono);letter-spacing:.16em;color:var(--faint)}
+  .tile .v{font:650 24px/1.2 var(--mono);color:var(--text);margin-top:5px;letter-spacing:-.02em}
+  .tile .d{font:500 11px var(--mono);color:var(--dim);margin-top:3px}
+  .tile .d .up{color:var(--green)}
+  .tile .d .warn{color:var(--amber)}
+
+  .mid{flex:1;display:flex;gap:14px;min-height:0}
+  .panel{border:1px solid var(--line);border-radius:11px;background:var(--surface);display:flex;flex-direction:column;min-height:0}
+  .panel .ph{flex:none;display:flex;align-items:baseline;gap:10px;padding:13px 16px 9px}
+  .panel .ph b{font:650 10.5px var(--mono);letter-spacing:.16em;color:var(--dim)}
+  .panel .ph .r{margin-left:auto;font:500 10.5px var(--mono);color:var(--faint)}
+
+  /* heatmap */
+  .heatwrap{width:472px;flex:none}
+  .heat{padding:2px 16px 8px}
+  .hrow{display:flex;align-items:center;gap:4px;margin-bottom:4px}
+  .hrow .day{width:34px;font:500 10px var(--mono);color:var(--faint)}
+  .cell{width:40px;height:26px;border-radius:4px;background:var(--surface2)}
+  .haxis{display:flex;gap:4px;padding-left:38px;margin-bottom:6px}
+  .haxis span{width:40px;font:500 9.5px var(--mono);color:var(--faint);text-align:left}
+  .hleg{display:flex;align-items:center;gap:7px;padding:8px 16px 12px;font:500 10px var(--mono);color:var(--faint)}
+  .hleg i{width:16px;height:9px;border-radius:2px}
+  .cell.q1{background:rgba(90,162,255,.10)} .cell.q2{background:rgba(90,162,255,.26)}
+  .cell.q3{background:rgba(90,162,255,.48)} .cell.q4{background:rgba(90,162,255,.78)}
+  .cell.hov{outline:2px solid #cfe2ff;outline-offset:1px}
+  .heattip{position:absolute;left:315px;top:308px;z-index:7;background:#151c2e;border:1px solid var(--line2);
+    border-radius:8px;padding:7px 11px;font:500 11px var(--mono);color:var(--dim);box-shadow:0 12px 30px rgba(0,0,0,.5)}
+  .heattip b{color:var(--text)}
+
+  /* narrative */
+  .narr{padding:4px 16px 14px;font-size:12.5px;color:var(--dim);line-height:1.6;border-top:1px solid var(--line);margin-top:auto}
+  .narr b{color:var(--text);font-weight:620}
+
+  /* sessions table */
+  .sess{flex:1;min-width:0}
+  table{width:100%;border-collapse:collapse}
+  th{font:650 9.5px var(--mono);letter-spacing:.14em;color:var(--faint);text-align:left;padding:6px 16px;border-bottom:1px solid var(--line)}
+  th.num,td.num{text-align:right}
+  td{padding:7px 16px;border-bottom:1px solid var(--line);font-size:12.5px;color:#c3cbdc;white-space:nowrap}
+  td .mark{display:inline-block;width:7px;height:7px;border-radius:2px;background:var(--faint);margin-right:8px;vertical-align:0}
+  td.num{font:500 11.5px var(--mono);color:var(--dim)}
+  .durbar{display:inline-block;height:8px;border-radius:2px 4px 4px 2px;background:var(--blue);vertical-align:0;margin-right:8px}
+  tr.best td{background:rgba(90,162,255,.05)}
+  tr.best td:first-child{border-left:2px solid var(--blue)}
+
+  /* loose ends */
+  .loose{flex:none;border:1px solid rgba(255,170,64,.25);border-radius:11px;background:var(--surface)}
+  .loose .ph b{color:var(--amber)}
+  .l-row{display:flex;align-items:center;gap:12px;padding:8px 16px;border-top:1px solid var(--line);font-size:12.5px}
+  .l-row .st{width:7px;height:7px;border-radius:50%;flex:none}
+  .l-row .t{color:#c3cbdc}
+  .l-row .why{font:500 10.5px var(--mono);color:var(--faint)}
+  .l-row .acts{margin-left:auto;display:flex;gap:6px}
+  .l-row .a{font:600 10.5px var(--mono);border:1px solid var(--line2);border-radius:6px;padding:3px 10px;color:var(--dim)}
+  .l-row .a.g{color:var(--green);border-color:rgba(46,198,106,.35)}
+
+  .pin{position:absolute;z-index:9;width:26px;height:26px;border-radius:50%;
+    background:linear-gradient(135deg,#ffaa40,#f43f5e);color:#14060a;
+    font:800 13px var(--mono);display:grid;place-items:center;box-shadow:0 4px 14px rgba(244,63,94,.45)}
+  .legend{max-width:1280px;margin:34px auto 0;display:grid;grid-template-columns:repeat(2,1fr);gap:12px 28px}
+  .leg{display:flex;gap:12px;align-items:flex-start}
+  .leg .n{flex:none;width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#ffaa40,#f43f5e);
+    color:#14060a;font:800 11.5px var(--mono);display:grid;place-items:center;margin-top:2px}
+  .leg p{font-size:13px;color:var(--dim)}
+  .leg p b{color:var(--text);font-weight:620}
+  .foot{max-width:1280px;margin:40px auto 0;text-align:center;font:500 11.5px var(--mono);color:var(--faint)}
+  .foot a{color:var(--blue);text-decoration:none}
+  @media (max-width:900px){.legend{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="kicker">Liminal Flow · Ground-up Rethinks · Series 3 (Clean) · 4 of 4</div>
+<h1>FLOW / <span class="g">REVIEW</span></h1>
+<p class="sub">The weekly close. Not a dashboard you stare at daily — a console you open on Friday to read the week honestly: where attention went, what the deepest work was, and which loose ends deserve a decision before Monday.</p>
+
+<div class="stage">
+  <div class="pin" style="top:100px;left:180px">1</div>
+  <div class="pin" style="top:230px;left:-13px">2</div>
+  <div class="pin" style="top:230px;right:-13px">3</div>
+  <div class="pin" style="top:470px;left:340px">4</div>
+  <div class="pin" style="bottom:120px;left:-13px">5</div>
+  <div class="pin" style="bottom:200px;right:300px">6</div>
+
+  <div class="window">
+    <div class="titlebar">
+      <div class="lights"><i></i><i></i><i></i></div>
+      <div class="weekpick"><span class="arr">‹</span> Week 33 · Aug 11 – 15 <span class="arr">›</span></div>
+      <div class="tb-right">Ctrl+E export · read-only</div>
+    </div>
+
+    <div class="body">
+      <!-- stat tiles -->
+      <div class="tiles">
+        <div class="tile"><div class="k">FOCUSED TIME</div><div class="v">14h 36m</div><div class="d"><span class="up">▲ 1h 40m</span> vs last week</div></div>
+        <div class="tile"><div class="k">DEEPEST SESSION</div><div class="v">1h 28m</div><div class="d">Improving AIDX · tue 09:12</div></div>
+        <div class="tile"><div class="k">SWITCHES / DAY</div><div class="v">3.2</div><div class="d"><span class="up">▼ 0.8</span> — calmer than last week</div></div>
+        <div class="tile"><div class="k">LOOSE ENDS</div><div class="v">3</div><div class="d"><span class="warn">2 need a decision</span></div></div>
+      </div>
+
+      <div class="mid">
+        <!-- heatmap -->
+        <div class="panel heatwrap">
+          <div class="ph"><b>FOCUS BY HOUR</b><span class="r">minutes recorded per hour</span></div>
+          <div class="heat">
+            <div class="haxis"><span>09</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span><span>15</span><span>16</span><span>17</span></div>
+            <div class="hrow"><span class="day">MON</span><span class="cell q3"></span><span class="cell q4"></span><span class="cell q2"></span><span class="cell"></span><span class="cell q1"></span><span class="cell q3"></span><span class="cell q3"></span><span class="cell q1"></span><span class="cell"></span></div>
+            <div class="hrow"><span class="day">TUE</span><span class="cell q4"></span><span class="cell q4"></span><span class="cell q3"></span><span class="cell q1"></span><span class="cell"></span><span class="cell q2"></span><span class="cell q4"></span><span class="cell q2"></span><span class="cell q1"></span></div>
+            <div class="hrow"><span class="day">WED</span><span class="cell q2"></span><span class="cell q3"></span><span class="cell q4 hov"></span><span class="cell q1"></span><span class="cell q1"></span><span class="cell q2"></span><span class="cell q1"></span><span class="cell"></span><span class="cell"></span></div>
+            <div class="hrow"><span class="day">THU</span><span class="cell q3"></span><span class="cell q3"></span><span class="cell q4"></span><span class="cell q2"></span><span class="cell q1"></span><span class="cell q3"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span></div>
+            <div class="hrow"><span class="day">FRI</span><span class="cell q2"></span><span class="cell q2"></span><span class="cell q1"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span><span class="cell"></span></div>
+          </div>
+          <div class="hleg">less <i style="background:rgba(90,162,255,.10)"></i><i style="background:rgba(90,162,255,.26)"></i><i style="background:rgba(90,162,255,.48)"></i><i style="background:rgba(90,162,255,.78)"></i> more</div>
+          <div class="narr">Your week in one sentence: <b>mornings belong to deep work</b> — 71% of focused time landed before 12:00 — and Thursday afternoon's support interrupt cost one deep block but closed <b>#482</b> the same day.</div>
+        </div>
+
+        <!-- sessions -->
+        <div class="panel sess">
+          <div class="ph"><b>SESSIONS</b><span class="r">18 recorded · showing longest first</span></div>
+          <table>
+            <tr><th>FOCUS</th><th>DAY</th><th class="num">START</th><th class="num">LENGTH</th><th class="num">NOTES</th></tr>
+            <tr class="best"><td><span class="mark" style="background:#4a8ee8"></span>Improving AIDX</td><td>Tue</td><td class="num">09:12</td><td class="num"><span class="durbar" style="width:88px"></span>1h 28m</td><td class="num">3</td></tr>
+            <tr><td><span class="mark" style="background:#4a8ee8"></span>Improving AIDX</td><td>Thu</td><td class="num">11:05</td><td class="num"><span class="durbar" style="width:85px"></span>1h 25m</td><td class="num">1</td></tr>
+            <tr><td><span class="mark" style="background:#4a8ee8"></span>Improving AIDX</td><td>Mon</td><td class="num">09:31</td><td class="num"><span class="durbar" style="width:74px"></span>1h 14m</td><td class="num">4</td></tr>
+            <tr><td><span class="mark" style="background:#9678ea"></span>Component library docs</td><td>Wed</td><td class="num">10:04</td><td class="num"><span class="durbar" style="width:62px"></span>1h 02m</td><td class="num">2</td></tr>
+            <tr><td><span class="mark" style="background:#f43f5e"></span>Support ticket #482</td><td>Thu</td><td class="num">13:41</td><td class="num"><span class="durbar" style="width:52px"></span>52m</td><td class="num">2</td></tr>
+            <tr><td><span class="mark" style="background:#cb7a1c"></span>Wear OS sync</td><td>Mon</td><td class="num">14:20</td><td class="num"><span class="durbar" style="width:47px"></span>47m</td><td class="num">1</td></tr>
+            <tr><td><span class="mark" style="background:#cb7a1c"></span>Wear OS sync</td><td>Thu</td><td class="num">10:40</td><td class="num"><span class="durbar" style="width:25px"></span>25m</td><td class="num">0</td></tr>
+            <tr><td><span class="mark" style="background:#9678ea"></span>Component library docs</td><td>Fri</td><td class="num">09:15</td><td class="num"><span class="durbar" style="width:22px"></span>22m</td><td class="num">1</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <!-- loose ends -->
+      <div class="loose">
+        <div class="ph"><b>LOOSE ENDS — DECIDE BEFORE MONDAY</b><span class="r">untouched &gt; 3 days, or waiting with no reply</span></div>
+        <div class="l-row"><span class="st" style="background:var(--amber)"></span><span class="t">Reading article — AIDX scoring paper</span><span class="why">untouched 4d · 1 note</span><div class="acts"><span class="a g">→ queue for mon</span><span class="a">archive</span></div></div>
+        <div class="l-row"><span class="st" style="background:var(--violet)"></span><span class="t">API quota bump</span><span class="why">waiting on support · 4d silent</span><div class="acts"><span class="a g">nudge</span><span class="a">drop</span></div></div>
+        <div class="l-row"><span class="st" style="background:var(--amber)"></span><span class="t">Plan v0.0.6 scope</span><span class="why">untouched 3d</span><div class="acts"><span class="a g">→ queue for mon</span><span class="a">someday</span></div></div>
+      </div>
+    </div>
+
+    <div class="heattip"><b>Wed 11:00</b> · 54 min focused · Component library docs</div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="leg"><span class="n">1</span><p><b>Four numbers, chosen to be enough.</b> Focused time, deepest session, switches per day, loose ends. Deltas compare to last week in plain terms ("calmer"). No ring charts, no percentages of percentages — if a fifth tile ever feels necessary, one of these four was wrong.</p></div>
+  <div class="leg"><span class="n">2</span><p><b>The heat grid shows shape, not score.</b> One hue, four steps, minutes per hour — enough to see that mornings are deep and Friday tapers. Hover any cell for the exact figure. It's descriptive weather, deliberately too coarse to gamify.</p></div>
+  <div class="leg"><span class="n">3</span><p><b>Sessions are the ground truth.</b> A plain table, longest first, with an inline magnitude bar and the note count — because a session with zero notes at 25 minutes tells its own story. The best session of the week is quietly highlighted, not trophied.</p></div>
+  <div class="leg"><span class="n">4</span><p><b>The narrative line.</b> One generated sentence that reads the week back in words — where the time went, what an interrupt cost, what it bought. It's the line you'd write in a Friday standup, pre-written and honest.</p></div>
+  <div class="leg"><span class="n">5</span><p><b>Loose ends demand a verdict, not attention.</b> Everything untouched or silently blocked surfaces here with exactly two buttons. The review isn't done until each row has a decision — that's the whole ritual, and it takes four minutes.</p></div>
+  <div class="leg"><span class="n">6</span><p><b>Read-only by design.</b> You can't edit history here — no dragging sessions, no retouching the record. The only writable objects are the loose-end decisions, which feed Monday's queue. Trust in the record is the product.</p></div>
+</div>
+
+<div class="foot">LIMINAL FLOW · CLEAN SERIES — <a href="01-queue.html">1 · Queue</a> · <a href="02-day.html">2 · Day</a> · <a href="03-board.html">3 · Board</a></div>
+
+</body>
+</html>

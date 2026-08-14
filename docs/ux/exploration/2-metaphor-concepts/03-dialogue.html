@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flow Rethinks — C · Dialogue</title>
+<style>
+  :root{
+    --bg0:#050507; --bg1:#0a1020; --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.14);
+    --text:#e8ecf6; --dim:#8b93a7; --faint:#5a627a;
+    --orange:#ffaa40; --rose:#f43f5e; --violet:#a78bfa; --blue:#5aa2ff; --green:#2ec66a;
+    --mono:ui-monospace,"JetBrains Mono","SF Mono","Cascadia Code",Menlo,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(1100px 500px at 15% -10%, rgba(167,139,250,.10), transparent 60%),
+      radial-gradient(900px 500px at 90% 0%, rgba(255,170,64,.07), transparent 55%),
+      linear-gradient(160deg,var(--bg0),var(--bg1));
+    color:var(--text);
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+    min-height:100vh;padding:48px 24px 80px;
+  }
+  .kicker{font:600 11px/1 var(--mono);letter-spacing:.22em;text-transform:uppercase;color:var(--faint);text-align:center}
+  h1{text-align:center;font-size:26px;font-weight:650;margin:10px 0 4px}
+  h1 .g{background:linear-gradient(90deg,var(--orange),var(--rose),var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{text-align:center;color:var(--dim);max-width:720px;margin:0 auto 40px;font-size:14px}
+
+  .stage{position:relative;max-width:900px;margin:0 auto}
+  .window{border-radius:14px;overflow:hidden;height:760px;display:flex;flex-direction:column;
+    border:1px solid var(--line2);
+    box-shadow:0 40px 90px rgba(0,0,0,.6);
+    background:linear-gradient(175deg,#0b1120,#080c17)}
+  .titlebar{height:44px;flex:none;display:flex;align-items:center;gap:14px;padding:0 16px;border-bottom:1px solid var(--line)}
+  .lights{display:flex;gap:16px;order:99;margin-left:12px;font:400 13px var(--mono);color:#8b93a7}
+  .lights i{font-style:normal}
+  .lights i:nth-child(1)::before{content:"−"}.lights i:nth-child(2)::before{content:"□"}.lights i:nth-child(3)::before{content:"×"}
+  .tb{flex:1;text-align:center;font:560 12.5px var(--mono);color:var(--dim)}
+  .tb b{color:var(--text)}
+  .day-chips{display:flex;gap:6px}
+  .day-chips span{font:600 10px var(--mono);color:var(--faint);border:1px solid var(--line);border-radius:999px;padding:3px 9px}
+
+  .chat{flex:1;overflow:hidden;padding:22px 26px 10px;display:flex;flex-direction:column;gap:14px}
+  .tstamp{text-align:center;font:600 10px var(--mono);letter-spacing:.2em;color:var(--faint)}
+
+  .msg{max-width:72%;border-radius:16px;padding:11px 15px;font-size:13.5px;line-height:1.5;position:relative}
+  .me{align-self:flex-end;background:linear-gradient(135deg,rgba(90,162,255,.22),rgba(90,162,255,.12));
+    border:1px solid rgba(90,162,255,.28);border-bottom-right-radius:5px;color:#dbe6fa}
+  .me .t{font:500 9.5px var(--mono);color:rgba(219,230,250,.5);text-align:right;margin-top:4px}
+  .flow{align-self:flex-start;background:rgba(255,255,255,.035);border:1px solid var(--line);
+    border-bottom-left-radius:5px;color:#c3cbdc}
+  .flow::before{content:"≋";position:absolute;left:-26px;top:10px;color:var(--faint);font-size:14px}
+  .flow .t{font:500 9.5px var(--mono);color:var(--faint);margin-top:4px}
+
+  /* structured card inside a flow message */
+  .scard{margin-top:9px;border:1px solid rgba(46,198,106,.3);background:rgba(46,198,106,.06);border-radius:11px;padding:10px 13px}
+  .scard .row{display:flex;align-items:center;gap:9px;font:600 12.5px var(--mono);color:#dffbe9}
+  .scard .row i{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+  .scard .sub2{font:500 10.5px var(--mono);color:var(--dim);margin-top:4px;padding-left:16px}
+  .scard.amber{border-color:rgba(255,170,64,.3);background:rgba(255,170,64,.05)}
+  .scard.amber .row{color:#ffe3b8}
+  .scard.amber .row i{background:var(--orange);box-shadow:none}
+
+  .chips{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap}
+  .chip{font:600 11px var(--mono);color:var(--blue);border:1px solid rgba(90,162,255,.35);border-radius:999px;padding:4px 11px;background:rgba(90,162,255,.06)}
+  .chip.g{color:var(--green);border-color:rgba(46,198,106,.4);background:rgba(46,198,106,.06)}
+  .chip.dim{color:var(--faint);border-color:var(--line)}
+
+  .composer{flex:none;margin:10px 20px 18px;display:flex;align-items:center;gap:12px;
+    border:1px solid rgba(90,162,255,.3);border-radius:14px;background:rgba(8,13,26,.9);padding:13px 16px}
+  .composer .p{font:700 14px var(--mono);color:var(--blue)}
+  .composer .ph{flex:1;font:450 13.5px var(--mono);color:var(--faint)}
+  .composer .mic{color:var(--faint);font-size:15px}
+
+  .pin{position:absolute;z-index:9;width:26px;height:26px;border-radius:50%;
+    background:linear-gradient(135deg,var(--orange),var(--rose));color:#14060a;
+    font:800 13px var(--mono);display:grid;place-items:center;box-shadow:0 4px 14px rgba(244,63,94,.45)}
+
+  .legend{max-width:1100px;margin:34px auto 0;display:grid;grid-template-columns:repeat(2,1fr);gap:12px 28px}
+  .leg{display:flex;gap:12px;align-items:flex-start}
+  .leg .n{flex:none;width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--orange),var(--rose));
+    color:#14060a;font:800 11.5px var(--mono);display:grid;place-items:center;margin-top:2px}
+  .leg p{font-size:13px;color:var(--dim)}
+  .leg p b{color:var(--text);font-weight:620}
+  .foot{max-width:1100px;margin:40px auto 0;text-align:center;font:500 11.5px var(--mono);color:var(--faint)}
+  .foot a{color:var(--blue);text-decoration:none}
+  @media (max-width:900px){.legend{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="kicker">Liminal Flow · Ground-up Rethinks · Concept C of 4</div>
+<h1>FLOW / <span class="g">DIALOGUE</span></h1>
+<p class="sub">What if working memory were someone you talk to? No structure to maintain, no buttons to learn — you narrate your day in plain language and Flow structures it quietly, answering like a colleague who never forgets and never judges.</p>
+
+<div class="stage">
+  <div class="pin" style="top:150px;right:-13px">1</div>
+  <div class="pin" style="top:236px;left:-13px">2</div>
+  <div class="pin" style="top:420px;left:-13px">3</div>
+  <div class="pin" style="top:560px;right:-13px">4</div>
+  <div class="pin" style="bottom:26px;left:-13px">5</div>
+
+  <div class="window">
+    <div class="titlebar">
+      <div class="lights"><i></i><i></i><i></i></div>
+      <div class="tb">≋ flow — <b>thursday, with you since 09:12</b></div>
+      <div class="day-chips"><span>3 focuses</span><span>26 thoughts</span></div>
+    </div>
+
+    <div class="chat">
+      <div class="tstamp">MORNING</div>
+
+      <div class="msg flow">Good morning. Yesterday you left <b>reading article</b> half-read and parked — want it back, or shall I let it rest?
+        <div class="chips"><span class="chip">bring it back</span><span class="chip dim">let it rest</span></div>
+        <div class="t">09:07</div>
+      </div>
+
+      <div class="msg me">ok diving into the AIDX scoring problem<div class="t">09:12</div></div>
+
+      <div class="msg flow">
+        <div class="scard"><div class="row"><i></i> AIDX scoring problem</div><div class="sub2">new focus · picked up repo component-library, branch feature/aidx from your shell</div></div>
+        <div class="t">09:12</div>
+      </div>
+
+      <div class="msg me">the sample rate might be wrong for long sessions, check the decay window<div class="t">11:20</div></div>
+
+      <div class="tstamp">AFTERNOON</div>
+
+      <div class="msg me">ugh, support ticket 482 just came in, token refresh is 401ing. looking at it<div class="t">13:41</div></div>
+
+      <div class="msg flow">
+        Noted — I'll hold your place.
+        <div class="scard amber"><div class="row"><i></i> AIDX scoring problem — on hold at "check the decay window"</div><div class="sub2">4h 29m of attention banked · I'll offer it back when #482 closes</div></div>
+        <div class="scard"><div class="row"><i></i> ticket #482 · token refresh 401</div><div class="sub2">side-quest of AIDX scoring · started 13:41</div></div>
+        <div class="t">13:41</div>
+      </div>
+
+      <div class="msg me">need to check auth flow<div class="t">14:02</div></div>
+
+      <div class="msg flow">Stamped onto <b>#482</b>. You've said "auth flow" three times this week — across two different focuses. Want me to gather those thoughts into one place?
+        <div class="chips"><span class="chip g">yes, gather them</span><span class="chip dim">not now</span></div>
+        <div class="t">14:02</div>
+      </div>
+    </div>
+
+    <div class="composer"><span class="p">›</span><span class="ph">tell me what's happening…</span><span class="mic">🎙</span></div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="leg"><span class="n">1</span><p><b>Zero commands, zero forms.</b> "ok diving into the AIDX scoring problem" — that's the whole interaction. Flow parses intent (new focus? aside? done?) and shows its understanding as a small structured card you can tap to correct. The card is the confirmation; you never re-enter anything.</p></div>
+  <div class="leg"><span class="n">2</span><p><b>It answers like a colleague, not a bot.</b> Short, warm, factual. When you get interrupted it says the one thing an interrupted person needs to hear: <i>"I'll hold your place"</i> — and shows exactly where the bookmark went, with the attention you'd banked.</p></div>
+  <div class="leg"><span class="n">3</span><p><b>The transcript is the database.</b> There is no other UI. Scrolling up *is* the history view; the morning is literally above the afternoon. Structure (focuses, side-quests, holds) lives inside the conversation as cards, so re-reading your day takes thirty seconds.</p></div>
+  <div class="leg"><span class="n">4</span><p><b>It notices, gently.</b> Because everything passes through one stream, Flow can spot patterns — "you've said 'auth flow' three times this week" — and offer to gather threads. Offers are chips, never actions taken on your behalf. Decline once and it drops the subject.</p></div>
+  <div class="leg"><span class="n">5</span><p><b>Talk or type.</b> One composer, plus a mic for the moments your hands are mid-keystroke somewhere else. A global shortcut summons just the composer as a floating strip — the conversation catches up next time you open the window.</p></div>
+</div>
+
+<div class="foot">LIMINAL FLOW · GROUND-UP RETHINKS — <a href="01-desk.html">A · Desk</a> · <a href="02-one.html">B · One</a> · next: <a href="04-garden.html">D · Garden</a></div>
+
+</body>
+</html>

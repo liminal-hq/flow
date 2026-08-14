@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flow Rethinks — A · The Desk</title>
+<style>
+  :root{
+    --bg0:#050507; --bg1:#0a1020; --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.14);
+    --text:#e8ecf6; --dim:#8b93a7; --faint:#5a627a;
+    --orange:#ffaa40; --rose:#f43f5e; --violet:#a78bfa; --blue:#5aa2ff; --green:#2ec66a;
+    --mono:ui-monospace,"JetBrains Mono","SF Mono","Cascadia Code",Menlo,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(1100px 500px at 15% -10%, rgba(167,139,250,.10), transparent 60%),
+      radial-gradient(900px 500px at 90% 0%, rgba(255,170,64,.07), transparent 55%),
+      linear-gradient(160deg,var(--bg0),var(--bg1));
+    color:var(--text);
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+    min-height:100vh;padding:48px 24px 80px;
+  }
+  .kicker{font:600 11px/1 var(--mono);letter-spacing:.22em;text-transform:uppercase;color:var(--faint);text-align:center}
+  h1{text-align:center;font-size:26px;font-weight:650;margin:10px 0 4px}
+  h1 .g{background:linear-gradient(90deg,var(--orange),var(--rose),var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{text-align:center;color:var(--dim);max-width:720px;margin:0 auto 40px;font-size:14px}
+
+  .stage{position:relative;max-width:1240px;margin:0 auto}
+  .window{position:relative;border-radius:14px;overflow:hidden;height:740px;
+    border:1px solid var(--line2);
+    box-shadow:0 40px 90px rgba(0,0,0,.6);
+    background:
+      radial-gradient(620px 460px at 44% 46%, rgba(255,214,150,.10), rgba(255,214,150,.03) 55%, transparent 72%),
+      radial-gradient(900px 700px at 44% 46%, rgba(90,162,255,.05), transparent 70%),
+      linear-gradient(175deg,#0b101f,#070b16)}
+
+  /* toolbar */
+  .bar{position:absolute;top:0;left:0;right:0;height:44px;display:flex;align-items:center;gap:14px;padding:0 16px;z-index:8}
+  .lights{display:flex;gap:16px;order:99;margin-left:12px;font:400 13px var(--mono);color:#8b93a7}
+  .lights i{font-style:normal}
+  .lights i:nth-child(1)::before{content:"−"}.lights i:nth-child(2)::before{content:"□"}.lights i:nth-child(3)::before{content:"×"}
+  .bar .where{font:560 12px var(--mono);color:var(--faint)}
+  .bar .zoom{margin-left:auto;display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;font:600 11px var(--mono)}
+  .bar .zoom span{padding:5px 12px;color:var(--faint)}
+  .bar .zoom .on{background:rgba(255,255,255,.06);color:var(--text)}
+  .bar .search{font:520 12px var(--mono);color:var(--faint);border:1px solid var(--line);border-radius:8px;padding:5px 12px}
+
+  /* cards on the desk */
+  .card{position:absolute;width:230px;border-radius:12px;padding:13px 15px;background:linear-gradient(170deg,#151d33,#0f1628);
+    border:1px solid var(--line2);box-shadow:0 14px 34px rgba(0,0,0,.5)}
+  .card .t{font-size:14px;font-weight:600;line-height:1.35}
+  .card .m{font:500 10.5px var(--mono);color:var(--faint);margin-top:6px}
+  .card .note{font:450 11.5px var(--mono);color:#aab3c7;border-left:2px solid var(--blue);padding:3px 0 3px 9px;margin-top:9px}
+  .card.hot{border-color:rgba(46,198,106,.5);box-shadow:0 0 0 1px rgba(46,198,106,.2), 0 22px 50px rgba(0,0,0,.55), 0 0 44px rgba(255,214,150,.12)}
+  .card.hot .t{font-size:15.5px}
+  .hot-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 9px var(--green);margin-right:7px;vertical-align:1px}
+  .card.tangent{width:196px;border-color:rgba(90,162,255,.4);background:linear-gradient(170deg,#131b31,#0e1526)}
+  .clip{position:absolute;top:-9px;left:18px;width:34px;height:14px;border:2px solid var(--blue);border-bottom:none;border-radius:8px 8px 0 0;opacity:.75}
+  .card.cool{opacity:.72}
+  .card.cool .t{color:#c3cadb;font-weight:560}
+  .card.cold{opacity:.42;filter:saturate(.6)}
+  .card.frozen{opacity:.22;filter:saturate(.3) blur(.4px)}
+  .stack2::before,.stack2::after{content:"";position:absolute;inset:0;border-radius:12px;border:1px solid var(--line);background:#0e1526;z-index:-1}
+  .stack2::before{transform:rotate(2.6deg) translate(5px,4px)}
+  .stack2::after{transform:rotate(-2deg) translate(-4px,6px)}
+  .tag{display:inline-block;font:600 9px var(--mono);letter-spacing:.1em;border-radius:5px;padding:2px 6px;margin-top:8px}
+  .tag.amber{color:var(--orange);background:rgba(255,170,64,.1)}
+  .tag.violet{color:var(--violet);background:rgba(167,139,250,.12)}
+
+  /* horizon */
+  .horizon{position:absolute;right:-40px;top:120px;width:220px;height:520px;transform:rotate(6deg);
+    background:linear-gradient(90deg,transparent,rgba(5,7,12,.9));pointer-events:none}
+  .horizon-label{position:absolute;right:22px;top:360px;writing-mode:vertical-rl;font:600 10px var(--mono);letter-spacing:.26em;color:var(--faint)}
+
+  /* minimap */
+  .minimap{position:absolute;right:18px;bottom:18px;width:170px;height:110px;border-radius:10px;z-index:8;
+    border:1px solid var(--line2);background:rgba(8,12,22,.9);box-shadow:0 10px 30px rgba(0,0,0,.5)}
+  .minimap b{position:absolute;top:7px;left:10px;font:650 8.5px var(--mono);letter-spacing:.2em;color:var(--faint)}
+  .minimap .vp{position:absolute;left:34px;top:26px;width:74px;height:52px;border:1.5px solid rgba(255,214,150,.6);border-radius:4px;background:rgba(255,214,150,.06)}
+  .minimap i{position:absolute;width:5px;height:5px;border-radius:2px;background:var(--faint)}
+
+  /* whisper bar */
+  .whisper{position:absolute;left:50%;bottom:20px;transform:translateX(-50%);z-index:8;
+    display:flex;align-items:center;gap:10px;width:460px;border:1px solid rgba(90,162,255,.3);border-radius:999px;
+    background:rgba(8,13,26,.92);padding:10px 18px;font:450 13px var(--mono);color:var(--faint)}
+  .whisper .p{color:var(--blue);font-weight:700}
+
+  .pin{position:absolute;z-index:9;width:26px;height:26px;border-radius:50%;
+    background:linear-gradient(135deg,var(--orange),var(--rose));color:#14060a;
+    font:800 13px var(--mono);display:grid;place-items:center;box-shadow:0 4px 14px rgba(244,63,94,.45)}
+
+  .legend{max-width:1240px;margin:34px auto 0;display:grid;grid-template-columns:repeat(2,1fr);gap:12px 28px}
+  .leg{display:flex;gap:12px;align-items:flex-start}
+  .leg .n{flex:none;width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--orange),var(--rose));
+    color:#14060a;font:800 11.5px var(--mono);display:grid;place-items:center;margin-top:2px}
+  .leg p{font-size:13px;color:var(--dim)}
+  .leg p b{color:var(--text);font-weight:620}
+  .foot{max-width:1240px;margin:40px auto 0;text-align:center;font:500 11.5px var(--mono);color:var(--faint)}
+  .foot a{color:var(--blue);text-decoration:none}
+  @media (max-width:900px){.legend{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="kicker">Liminal Flow · Ground-up Rethinks · Concept A of 4</div>
+<h1>FLOW / <span class="g">DESK</span></h1>
+<p class="sub">No lists, no tree, no sidebar. Your work lives on an infinite desk under a pool of lamplight. What you're doing sits in the light; what you've set aside stays <i>exactly where you put it</i> — because spatial memory is the one kind that never needs a search box.</p>
+
+<div class="stage">
+  <div class="pin" style="top:280px;left:395px">1</div>
+  <div class="pin" style="top:150px;left:640px">2</div>
+  <div class="pin" style="top:120px;left:120px">3</div>
+  <div class="pin" style="top:410px;right:120px">4</div>
+  <div class="pin" style="bottom:96px;right:200px">5</div>
+  <div class="pin" style="bottom:64px;left:340px">6</div>
+
+  <div class="window">
+    <div class="bar">
+      <div class="lights"><i></i><i></i><i></i></div>
+      <span class="where">the desk · thursday</span>
+      <div class="zoom"><span class="on">desk</span><span>room</span><span>year</span></div>
+      <span class="search">⌕ find anything…</span>
+    </div>
+
+    <!-- hot cluster: the lamp -->
+    <div class="card hot" style="left:378px;top:302px;transform:rotate(-1deg)">
+      <div class="t"><span class="hot-dot"></span>answering support ticket #482</div>
+      <div class="m">under the lamp · 23 min</div>
+      <div class="note">token refresh 401s after idle — check auth flow</div>
+    </div>
+    <div class="card tangent" style="left:560px;top:222px;transform:rotate(2.4deg)">
+      <span class="clip"></span>
+      <div class="t">tangent: read the AIDX scoring paper</div>
+      <div class="m">clipped to #482 · will follow it back</div>
+    </div>
+
+    <!-- mid-distance: warm but resting -->
+    <div class="card cool stack2" style="left:96px;top:170px;transform:rotate(-3deg)">
+      <div class="t">improving AIDX</div>
+      <div class="m">a stack of 3 · this morning</div>
+      <span class="tag amber">RESTING · 1H</span>
+    </div>
+    <div class="card cool" style="left:150px;top:470px;transform:rotate(2deg)">
+      <div class="t">wear os sync</div>
+      <div class="m">left here at 11:05</div>
+      <span class="tag amber">RESTING · 3H</span>
+    </div>
+
+    <!-- far: cooling -->
+    <div class="card cold" style="left:700px;top:500px;transform:rotate(-2.5deg);width:200px">
+      <div class="t">component library docs</div>
+      <div class="m">yesterday</div>
+      <span class="tag violet">DRIFTING</span>
+    </div>
+    <div class="card cold" style="right:150px;top:150px;transform:rotate(3deg);width:190px">
+      <div class="t">reading article</div>
+      <div class="m">tuesday</div>
+      <span class="tag violet">DRIFTING</span>
+    </div>
+    <div class="card frozen" style="right:60px;top:300px;transform:rotate(-4deg);width:180px">
+      <div class="t">fix release pipeline</div>
+      <div class="m">done · sliding off the desk</div>
+    </div>
+
+    <div class="horizon"></div>
+    <div class="horizon-label">THE EDGE · THINGS FALL OFF GENTLY</div>
+
+    <div class="minimap">
+      <b>DESK</b>
+      <span class="vp"></span>
+      <i style="left:52px;top:44px;background:var(--green)"></i>
+      <i style="left:22px;top:32px"></i>
+      <i style="left:28px;top:74px"></i>
+      <i style="left:118px;top:82px"></i>
+      <i style="left:142px;top:38px"></i>
+    </div>
+
+    <div class="whisper"><span class="p">›</span> drop a thought on the desk…</div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="leg"><span class="n">1</span><p><b>The lamp is the only "active" state.</b> Whatever sits in the pool of light is what you're doing — there is no active flag, no status field. Drag a card into the light and the one already there slides just outside the glow, still warm. Focus is a place, not a property.</p></div>
+  <div class="leg"><span class="n">2</span><p><b>Tangents are paper-clipped.</b> A quick side-quest clips onto the card that spawned it and rides along. Unclip it and it becomes its own card; finish it and it slips under its parent. No tree view — the relationship is physical.</p></div>
+  <div class="leg"><span class="n">3</span><p><b>Piles instead of projects.</b> Toss related cards together and they become a stack with a scruffy, human silhouette. You organise the desk the way you organise a real one: roughly, spatially, by feel — and you find things the same way.</p></div>
+  <div class="leg"><span class="n">4</span><p><b>Neglect is visible as temperature.</b> Untouched cards slowly cool: colour drains, they drift toward the edge, and eventually they slide off the desk into the archive — silently. Nothing nags. The desk stays the size of your actual attention.</p></div>
+  <div class="leg"><span class="n">5</span><p><b>Zoom is time.</b> <i>Desk</i> is today; <i>room</i> pulls back to weeks (piles become islands); <i>year</i> renders the archive as a shoreline of everything that ever slid off the edge. Panning replaces every list this app refuses to have.</p></div>
+  <div class="leg"><span class="n">6</span><p><b>The whisper bar.</b> One input, bottom centre. Type a thought and it lands as a card wherever your viewport is; type onto a selected card and it becomes ink on that card. Capture never opens a dialog.</p></div>
+</div>
+
+<div class="foot">LIMINAL FLOW · GROUND-UP RETHINKS — next: <a href="02-one.html">B · One</a> · <a href="03-dialogue.html">C · Dialogue</a> · <a href="04-garden.html">D · Garden</a></div>
+
+</body>
+</html>
