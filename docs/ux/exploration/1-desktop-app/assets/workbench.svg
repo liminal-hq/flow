@@ -4,18 +4,33 @@
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#0c1222"/><stop offset="100%" stop-color="#080d1a"/>
     </linearGradient>
+    <linearGradient id="brand" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#ffaa40"/><stop offset="55%" stop-color="#f43f5e"/><stop offset="100%" stop-color="#a78bfa"/>
+    </linearGradient>
     <filter id="glow" x="-80%" y="-80%" width="260%" height="260%">
       <feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
   </defs>
   <rect width="1240" height="780" rx="14" fill="url(#bg)" stroke="rgba(46,198,106,.25)" stroke-width="1.5"/>
 
-  <!-- titlebar -->
+  <!-- titlebar (GNOME headerbar) -->
   <line x1="0" y1="44" x2="1240" y2="44" stroke="rgba(255,255,255,.08)"/>
-  <circle cx="26" cy="22" r="6" fill="#ff5f57"/><circle cx="46" cy="22" r="6" fill="#febc2e"/><circle cx="66" cy="22" r="6" fill="#28c840"/>
+  <!-- logo (Spindle topbar pattern) -->
+  <text x="16" y="27" font-family="Menlo,monospace" font-size="13.5" font-weight="800" fill="url(#brand)">≋ Flow</text>
+  <!-- view switcher -->
+  <rect x="96" y="8" width="248" height="28" rx="14" fill="rgba(255,255,255,.05)"/>
+  <rect x="99" y="10.5" width="122" height="23" rx="11.5" fill="rgba(255,255,255,.11)"/>
+  <text x="160" y="26" text-anchor="middle" font-family="Menlo,monospace" font-size="11" fill="#e6eaf2" font-weight="700">◨ Workbench</text>
+  <text x="282" y="26" text-anchor="middle" font-family="Menlo,monospace" font-size="11" fill="#5a627a" font-weight="600">◎ Flow Map</text>
   <circle cx="470" cy="22" r="4" fill="#2ec66a" filter="url(#glow)"/>
   <text x="482" y="27" font-family="Menlo,monospace" font-size="13" fill="#e8ecf6" font-weight="600">improving AIDX <tspan fill="#5a627a">▸</tspan> answering support <tspan fill="#5a627a">· 23m in focus</tspan></text>
-  <text x="1140" y="27" font-family="Menlo,monospace" font-size="13" fill="#8b93a7">◎  ⌘K  ⚙</text>
+  <text x="1046" y="27" font-family="Menlo,monospace" font-size="13" fill="#8b93a7">Ctrl+K  ⚙</text>
+  <!-- window controls (Spindle/Threshold Linux pattern: transparent, thin line glyphs) -->
+  <g stroke="#9aa3b5" stroke-width="1.3" fill="none">
+    <line x1="1131" y1="25" x2="1141" y2="25"/>
+    <rect x="1163.5" y="17.5" width="9" height="9"/>
+    <path d="M1195.5 17.5 l9 9 M1204.5 17.5 l-9 9"/>
+  </g>
 
   <!-- sidebar -->
   <line x1="292" y1="44" x2="292" y2="688" stroke="rgba(255,255,255,.08)"/>
@@ -146,5 +161,5 @@
   <text x="74" y="730" font-family="Menlo,monospace" font-size="12.5" fill="#5a627a">capture a thought — plain text becomes a note…</text>
   <rect x="1022" y="712" width="180" height="26" rx="13" fill="rgba(46,198,106,.08)" stroke="rgba(46,198,106,.25)"/>
   <text x="1112" y="729" text-anchor="middle" font-family="Menlo,monospace" font-size="10.5" fill="#2ec66a" font-weight="700">→ answering support</text>
-  <text x="26" y="768" font-family="Menlo,monospace" font-size="10.5" fill="#5a627a">/ commands    ? hints    ⌃↑↓ note history    ↵ capture</text>
+  <text x="26" y="768" font-family="Menlo,monospace" font-size="10.5" fill="#5a627a">/ commands    ? hints    Ctrl+↑↓ note history    ↵ capture</text>
 </svg>

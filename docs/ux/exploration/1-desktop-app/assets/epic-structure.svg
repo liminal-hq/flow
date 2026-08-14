@@ -71,7 +71,7 @@
     <!-- 6 capture -->
     <rect x="540" y="368" width="200" height="64" rx="12" fill="#111726" stroke="#2ec66a" stroke-width="1.5"/>
     <text x="556" y="394" font-size="13" fill="#e6eaf2" font-weight="650">6 · Capture &amp; palette</text>
-    <text x="556" y="414" font-family="Menlo,monospace" font-size="10" fill="#8b93a7">notes · slash commands · ⌘K</text>
+    <text x="556" y="414" font-family="Menlo,monospace" font-size="10" fill="#8b93a7">notes · slash commands · Ctrl+K</text>
 
     <!-- 7 quick capture -->
     <rect x="800" y="385" width="200" height="64" rx="12" fill="#111726" stroke="#ffaa40" stroke-width="1.5"/>

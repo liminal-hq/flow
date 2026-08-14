@@ -48,6 +48,44 @@ Derived from `assets/hero.svg`:
 - Mono accents (`ui-monospace`) for timestamps, scopes, commands and hints —
   a deliberate nod to Flow's terminal-native roots
 
+## Linux-first chrome
+
+Flow is built Linux-first, and the desktop app wears GNOME/Adwaita chrome:
+window controls on the right of the headerbar, a headerbar view switcher, and
+Ctrl/Super key notation throughout (Ctrl+K for the palette, Super+Space for
+Quick Capture). The SVG renditions in `assets/` reflect this; treat any
+macOS-style chrome remaining in the HTML mock-ups as superseded.
+
+There are exactly two kinds of bars in the design, and **no Flow window has a
+menu bar**:
+
+1. **App topbars** (Workbench, Flow Map): the shared Liminal HQ topbar
+   pattern — **Spindle's `Topbar` component is the implementation
+   reference** (window-control pattern originally from Threshold). Layout:
+   brand mark, view switcher, contextual content over a drag region, then
+   platform-appropriate window controls — on Linux, transparent buttons with
+   thin line glyphs (minimise / maximise / close), Adwaita-style hover.
+   Anything menu-like lives behind ⚙ in the topbar or the Ctrl+K palette.
+2. **The GNOME shell top bar** appears only in scene-setting mock-ups (the
+   Companion) because those depict the whole desktop — the tray indicator and
+   its flyout hang from the shell bar, as GNOME intends. It is not Flow
+   chrome.
+
+Transient surfaces (Quick Capture, the Companion pill, the welcome-back card)
+have no chrome at all — no headerbar, no controls, dismissed by Esc/blur.
+
+## Navigating between screens
+
+- The headerbar carries an Adwaita-style **view switcher** between the two
+  full views: **Workbench ⇄ Flow Map**. Esc returns to the Workbench.
+- The **Today rail** in the Workbench is a second, contextual route into the
+  Flow Map (click the braid or ◎).
+- **Quick Capture** and the **Companion pill** are transient windows, not
+  views — they are summoned (Super+Space, always-on-top) and both offer an
+  "open" action that raises the Workbench.
+- **Ctrl+K** opens the palette from either view; commands there can jump
+  views as well as act on the store.
+
 ## Window inventory & Tauri notes
 
 | Window | Tauri specifics |
