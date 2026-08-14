@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flow Desktop — 2 · Quick Capture</title>
+<style>
+  :root{
+    --bg0:#050507; --bg1:#0a1020; --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.14);
+    --text:#e8ecf6; --dim:#8b93a7; --faint:#5a627a;
+    --orange:#ffaa40; --rose:#f43f5e; --violet:#a78bfa; --blue:#5aa2ff; --green:#2ec66a;
+    --mono:ui-monospace,"JetBrains Mono","SF Mono","Cascadia Code",Menlo,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(1100px 500px at 15% -10%, rgba(167,139,250,.10), transparent 60%),
+      radial-gradient(900px 500px at 90% 0%, rgba(255,170,64,.07), transparent 55%),
+      linear-gradient(160deg,var(--bg0),var(--bg1));
+    color:var(--text);
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+    min-height:100vh;padding:48px 24px 80px;
+  }
+  .kicker{font:600 11px/1 var(--mono);letter-spacing:.22em;text-transform:uppercase;color:var(--faint);text-align:center}
+  h1{text-align:center;font-size:26px;font-weight:650;margin:10px 0 4px}
+  h1 .g{background:linear-gradient(90deg,var(--orange),var(--rose),var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{text-align:center;color:var(--dim);max-width:700px;margin:0 auto 40px;font-size:14px}
+
+  /* fake desktop behind the palette */
+  .desk{position:relative;max-width:1100px;margin:0 auto;height:640px;border-radius:16px;overflow:hidden;
+    border:1px solid var(--line2);
+    background:linear-gradient(200deg,#141a2e,#0a0e1c 55%,#120f22);
+    box-shadow:0 40px 90px rgba(0,0,0,.55)}
+  .fake{position:absolute;border-radius:10px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.05);filter:blur(1.5px)}
+  .fake .bar{height:26px;border-bottom:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.03);border-radius:10px 10px 0 0}
+  .fake .l{height:8px;border-radius:4px;background:rgba(255,255,255,.05);margin:12px 16px}
+  .dim-veil{position:absolute;inset:0;background:rgba(4,6,12,.55);backdrop-filter:blur(2px)}
+
+  /* the palette */
+  .palette{position:absolute;left:50%;top:88px;transform:translateX(-50%);width:640px;border-radius:16px;
+    background:rgba(11,16,30,.92);border:1px solid rgba(90,162,255,.28);
+    box-shadow:0 0 0 1px rgba(90,162,255,.1), 0 30px 80px rgba(0,0,0,.7), 0 0 60px rgba(90,162,255,.08);
+    overflow:hidden}
+  .pal-ctx{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--line);
+    font:520 11.5px var(--mono);color:var(--dim);background:rgba(255,255,255,.02)}
+  .pal-ctx .dot{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+  .pal-ctx b{color:var(--text);font-weight:600}
+  .pal-ctx .scope{margin-left:auto;color:var(--faint)}
+  .pal-in{display:flex;align-items:center;gap:12px;padding:16px 18px;font:450 16px var(--mono)}
+  .pal-in .prompt{color:var(--blue);font-weight:700}
+  .pal-in .typed{color:var(--text)}
+  .pal-in .caret{display:inline-block;width:9px;height:20px;background:var(--blue);vertical-align:-4px;margin-left:2px}
+  .cmds{border-top:1px solid var(--line);padding:6px}
+  .cmd{display:flex;align-items:center;gap:14px;padding:10px 14px;border-radius:10px}
+  .cmd .k{font:650 13px var(--mono);color:var(--blue);width:86px}
+  .cmd .d{flex:1;font-size:12.5px;color:var(--dim)}
+  .cmd .tgt{font:600 9.5px var(--mono);letter-spacing:.1em;color:var(--faint);border:1px solid var(--line);border-radius:5px;padding:2px 7px}
+  .cmd.sel{background:rgba(90,162,255,.12);outline:1px solid rgba(90,162,255,.35)}
+  .cmd.sel .d{color:#c7cddc}
+  .pal-foot{display:flex;gap:18px;padding:10px 16px;border-top:1px solid var(--line);
+    font:520 11px var(--mono);color:var(--faint);background:rgba(255,255,255,.015)}
+  .pal-foot kbd{border:1px solid var(--line);border-radius:4px;padding:0 5px;color:var(--dim)}
+  .pal-foot .r{margin-left:auto}
+
+  /* second, note-state palette */
+  .palette.note-state{top:434px;width:560px;border-color:rgba(46,198,106,.3);
+    box-shadow:0 0 0 1px rgba(46,198,106,.1), 0 30px 80px rgba(0,0,0,.7), 0 0 50px rgba(46,198,106,.07)}
+  .palette.note-state .pal-in{font-size:15px}
+  .ghost{color:var(--faint)}
+
+  .pin{position:absolute;z-index:5;width:26px;height:26px;border-radius:50%;
+    background:linear-gradient(135deg,var(--orange),var(--rose));color:#14060a;
+    font:800 13px var(--mono);display:grid;place-items:center;box-shadow:0 4px 14px rgba(244,63,94,.45)}
+  .stage{position:relative;max-width:1100px;margin:0 auto}
+
+  .legend{max-width:1100px;margin:34px auto 0;display:grid;grid-template-columns:repeat(2,1fr);gap:12px 28px}
+  .leg{display:flex;gap:12px;align-items:flex-start}
+  .leg .n{flex:none;width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--orange),var(--rose));
+    color:#14060a;font:800 11.5px var(--mono);display:grid;place-items:center;margin-top:2px}
+  .leg p{font-size:13px;color:var(--dim)}
+  .leg p b{color:var(--text);font-weight:620}
+  .foot{max-width:1100px;margin:40px auto 0;text-align:center;font:500 11.5px var(--mono);color:var(--faint)}
+  .foot a{color:var(--blue);text-decoration:none}
+  @media (max-width:900px){.legend{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="kicker">Liminal Flow · Desktop Concept · Mock-up 2 of 4</div>
+<h1>Quick <span class="g">Capture</span></h1>
+<p class="sub">Summoned from anywhere with a global shortcut (<b style="color:var(--text)">⌥ Space</b>) — a transparent, frameless Tauri window that floats over whatever you’re doing. Type, hit ↵, it’s gone. Your editor never loses focus for more than a breath.</p>
+
+<div class="stage">
+  <div class="pin" style="top:74px;left:170px">1</div>
+  <div class="pin" style="top:196px;right:180px">2</div>
+  <div class="pin" style="top:300px;left:190px">3</div>
+  <div class="pin" style="top:508px;right:218px">4</div>
+
+  <div class="desk">
+    <!-- blurred fake windows to suggest "over your work" -->
+    <div class="fake" style="left:36px;top:40px;width:520px;height:420px"><div class="bar"></div><div class="l" style="width:60%"></div><div class="l" style="width:80%"></div><div class="l" style="width:45%"></div><div class="l" style="width:70%"></div><div class="l" style="width:55%"></div></div>
+    <div class="fake" style="right:48px;top:110px;width:440px;height:460px"><div class="bar"></div><div class="l" style="width:70%"></div><div class="l" style="width:50%"></div><div class="l" style="width:85%"></div></div>
+    <div class="dim-veil"></div>
+
+    <!-- state A: slash palette -->
+    <div class="palette">
+      <div class="pal-ctx"><span class="dot"></span> capturing to <b>answering support</b> <span style="color:var(--faint)">· improving AIDX</span><span class="scope">⌂ component-library · ⎇ feature/aidx</span></div>
+      <div class="pal-in"><span class="prompt">›</span><span class="typed">/par</span><span class="caret"></span></div>
+      <div class="cmds">
+        <div class="cmd sel"><span class="k">/park</span><span class="d">park the active branch — keep it warm, drop it from focus</span><span class="tgt">BRANCH</span></div>
+        <div class="cmd"><span class="k">/pause</span><span class="d">pause the current thread with an optional note</span><span class="tgt">THREAD</span></div>
+        <div class="cmd"><span class="k">/back</span><span class="d">return to the parent thread, parking active branches</span><span class="tgt">STACK</span></div>
+      </div>
+      <div class="pal-foot"><span><kbd>↑↓</kbd> choose</span><span><kbd>⇥</kbd> complete</span><span><kbd>↵</kbd> run</span><span><kbd>esc</kbd> vanish</span><span class="r"><kbd>⌘↵</kbd> run &amp; open workbench</span></div>
+    </div>
+
+    <!-- state B: plain note -->
+    <div class="palette note-state">
+      <div class="pal-in"><span class="prompt" style="color:var(--green)">›</span><span class="typed">rate limiter also needs the retry-after header</span><span class="caret" style="background:var(--green)"></span></div>
+      <div class="pal-foot"><span style="color:var(--green)">↵ note → <b style="color:#dffbe9">answering support</b></span><span class="r ghost">no window switch · you never left your editor</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="leg"><span class="n">1</span><p><b>Context header, zero questions.</b> The palette opens already knowing the active capture target and its scopes, read straight from the shared SQLite store. You see <i>where the thought will land</i> before you type it.</p></div>
+  <div class="leg"><span class="n">2</span><p><b>The exact TUI command palette.</b> Type <kbd>/</kbd> and the same fuzzy-filtered slash commands appear, name-matches ranked above description matches — <i>/par</i> prefers <i>/park</i> over <i>/back</i>. One grammar across CLI, TUI and desktop.</p></div>
+  <div class="leg"><span class="n">3</span><p><b>Escape hatches, not workflows.</b> <kbd>↵</kbd> runs and the window evaporates; <kbd>⌘↵</kbd> runs <i>and</i> raises the Workbench for when a quick thought turns into a context switch you actually want.</p></div>
+  <div class="leg"><span class="n">4</span><p><b>Plain text is a note. Always.</b> No mode to remember: anything without a slash is captured to the active branch, timestamped, done. Median time from shortcut to back-in-editor: about two seconds.</p></div>
+</div>
+
+<div class="foot">LIMINAL FLOW · TAURI DESKTOP CONCEPT — <a href="01-workbench.html">1 · Workbench</a> · next: <a href="03-companion.html">3 · Companion &amp; Tray</a> · <a href="04-flow-map.html">4 · Flow Map</a></div>
+
+</body>
+</html>

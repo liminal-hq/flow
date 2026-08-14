@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flow Desktop — 3 · Companion &amp; Tray</title>
+<style>
+  :root{
+    --bg0:#050507; --bg1:#0a1020; --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.14);
+    --text:#e8ecf6; --dim:#8b93a7; --faint:#5a627a;
+    --orange:#ffaa40; --rose:#f43f5e; --violet:#a78bfa; --blue:#5aa2ff; --green:#2ec66a;
+    --mono:ui-monospace,"JetBrains Mono","SF Mono","Cascadia Code",Menlo,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(1100px 500px at 15% -10%, rgba(167,139,250,.10), transparent 60%),
+      radial-gradient(900px 500px at 90% 0%, rgba(255,170,64,.07), transparent 55%),
+      linear-gradient(160deg,var(--bg0),var(--bg1));
+    color:var(--text);
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+    min-height:100vh;padding:48px 24px 80px;
+  }
+  .kicker{font:600 11px/1 var(--mono);letter-spacing:.22em;text-transform:uppercase;color:var(--faint);text-align:center}
+  h1{text-align:center;font-size:26px;font-weight:650;margin:10px 0 4px}
+  h1 .g{background:linear-gradient(90deg,var(--orange),var(--rose),var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .sub{text-align:center;color:var(--dim);max-width:720px;margin:0 auto 40px;font-size:14px}
+
+  .desk{position:relative;max-width:1100px;margin:0 auto;height:660px;border-radius:16px;overflow:hidden;
+    border:1px solid var(--line2);
+    background:linear-gradient(200deg,#131a2d,#0a0e1c 55%,#110f21);
+    box-shadow:0 40px 90px rgba(0,0,0,.55)}
+  .menubar{position:absolute;top:0;left:0;right:0;height:30px;background:rgba(10,14,26,.85);
+    border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 14px;gap:18px;
+    font:520 11.5px var(--mono);color:var(--faint)}
+  .menubar .right{margin-left:auto;display:flex;gap:16px;align-items:center}
+  .menubar .tray-ic{color:var(--green);font-weight:700;background:rgba(46,198,106,.12);border-radius:5px;padding:1px 7px}
+  .fake{position:absolute;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.05);filter:blur(1px)}
+  .fake .bar{height:24px;border-bottom:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.03);border-radius:10px 10px 0 0}
+  .fake .l{height:8px;border-radius:4px;background:rgba(255,255,255,.05);margin:12px 16px}
+
+  /* ---- collapsed pill ---- */
+  .pill{position:absolute;left:56px;top:64px;display:inline-flex;align-items:center;gap:10px;
+    background:rgba(10,15,28,.94);border:1px solid rgba(46,198,106,.35);border-radius:999px;padding:9px 16px 9px 12px;
+    box-shadow:0 8px 30px rgba(0,0,0,.55), 0 0 24px rgba(46,198,106,.10);font:560 12.5px var(--mono)}
+  .pill .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+  .pill .depth{display:flex;gap:3px}
+  .pill .depth i{width:4px;height:4px;border-radius:50%;background:var(--blue);opacity:.9}
+  .pill .depth i:first-child{background:var(--dim)}
+  .pill .t{color:var(--text)}
+  .pill time{color:var(--faint);font-weight:500}
+
+  /* ---- expanded pill (hover state) ---- */
+  .pill-x{position:absolute;left:56px;top:130px;width:300px;background:rgba(10,15,28,.96);
+    border:1px solid rgba(46,198,106,.3);border-radius:16px;padding:14px 16px;
+    box-shadow:0 16px 44px rgba(0,0,0,.6), 0 0 30px rgba(46,198,106,.08)}
+  .pill-x .row1{display:flex;align-items:center;gap:9px;font:560 12.5px var(--mono)}
+  .pill-x .row1 .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+  .pill-x .row1 time{margin-left:auto;color:var(--faint);font-weight:500}
+  .pill-x .stackline{font:500 11px var(--mono);color:var(--faint);margin:7px 0 12px;padding-left:17px}
+  .pill-x .stackline b{color:var(--dim);font-weight:560}
+  .pill-x .acts{display:flex;gap:7px}
+  .pill-x .a{flex:1;text-align:center;font:620 11px var(--mono);color:var(--dim);border:1px solid var(--line2);
+    border-radius:8px;padding:7px 0}
+  .pill-x .a.g{color:#dffbe9;background:rgba(46,198,106,.13);border-color:rgba(46,198,106,.35)}
+  .pill-x .a:hover{color:var(--text);border-color:var(--blue)}
+  .drag-hint{position:absolute;left:372px;top:150px;font:500 11px var(--mono);color:var(--faint);width:150px}
+  .drag-hint::before{content:"⟵";margin-right:6px;color:var(--dim)}
+
+  /* ---- tray flyout ---- */
+  .tray{position:absolute;right:40px;top:38px;width:308px;background:rgba(10,15,28,.97);
+    border:1px solid var(--line2);border-radius:14px;overflow:hidden;
+    box-shadow:0 20px 50px rgba(0,0,0,.65)}
+  .tray .sec{padding:12px 14px;border-bottom:1px solid var(--line)}
+  .tray .cap{font:650 9.5px var(--mono);letter-spacing:.18em;color:var(--faint);margin-bottom:8px}
+  .tray .now{display:flex;align-items:center;gap:9px;font-size:13.5px;font-weight:560}
+  .tray .now .dot{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green)}
+  .tray .now time{margin-left:auto;font:500 11px var(--mono);color:var(--faint)}
+  .tray .sub2{font:500 11px var(--mono);color:var(--faint);padding-left:17px;margin-top:2px}
+  .tray .item{display:flex;align-items:center;gap:9px;padding:7px 8px;border-radius:8px;font-size:13px;color:var(--dim)}
+  .tray .item:hover{background:rgba(90,162,255,.08);color:var(--text)}
+  .tray .item .st{width:7px;height:7px;border-radius:50%;flex:none}
+  .tray .item kbd{margin-left:auto;font:600 10px var(--mono);color:var(--faint);border:1px solid var(--line);border-radius:4px;padding:0 5px}
+  .tray .row-acts{display:flex;gap:7px;padding:10px 12px}
+  .tray .row-acts .a{flex:1;text-align:center;font:620 11px var(--mono);color:var(--dim);border:1px solid var(--line2);border-radius:8px;padding:7px 0}
+  .tray .row-acts .a:hover{color:var(--text);border-color:var(--blue)}
+
+  /* ---- welcome back card ---- */
+  .wb{position:absolute;left:50%;bottom:52px;transform:translateX(-50%);width:520px;
+    background:rgba(11,16,30,.97);border:1px solid rgba(255,170,64,.35);border-radius:16px;padding:18px 20px;
+    box-shadow:0 24px 60px rgba(0,0,0,.65), 0 0 40px rgba(255,170,64,.07)}
+  .wb .cap{font:650 9.5px var(--mono);letter-spacing:.18em;color:var(--orange);margin-bottom:8px}
+  .wb h3{font-size:16px;font-weight:640;margin-bottom:4px}
+  .wb p{font-size:12.5px;color:var(--dim)}
+  .wb .last{margin:12px 0;padding:10px 12px;border-left:2px solid var(--blue);background:rgba(90,162,255,.05);
+    border-radius:0 8px 8px 0;font:450 12.5px var(--mono);color:#c7cddc}
+  .wb .last time{color:var(--faint)}
+  .wb .acts{display:flex;gap:8px;margin-top:12px}
+  .wb .a{font:620 12px var(--mono);border-radius:9px;padding:8px 14px;border:1px solid var(--line2);color:var(--dim)}
+  .wb .a.g{color:#dffbe9;background:rgba(46,198,106,.13);border-color:rgba(46,198,106,.4)}
+  .wb .a.ghosty{border-style:dashed}
+
+  .pin{position:absolute;z-index:6;width:26px;height:26px;border-radius:50%;
+    background:linear-gradient(135deg,var(--orange),var(--rose));color:#14060a;
+    font:800 13px var(--mono);display:grid;place-items:center;box-shadow:0 4px 14px rgba(244,63,94,.45)}
+  .stage{position:relative;max-width:1100px;margin:0 auto}
+
+  .legend{max-width:1100px;margin:34px auto 0;display:grid;grid-template-columns:repeat(2,1fr);gap:12px 28px}
+  .leg{display:flex;gap:12px;align-items:flex-start}
+  .leg .n{flex:none;width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,var(--orange),var(--rose));
+    color:#14060a;font:800 11.5px var(--mono);display:grid;place-items:center;margin-top:2px}
+  .leg p{font-size:13px;color:var(--dim)}
+  .leg p b{color:var(--text);font-weight:620}
+  .foot{max-width:1100px;margin:40px auto 0;text-align:center;font:500 11.5px var(--mono);color:var(--faint)}
+  .foot a{color:var(--blue);text-decoration:none}
+  @media (max-width:900px){.legend{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="kicker">Liminal Flow · Desktop Concept · Mock-up 3 of 4</div>
+<h1>The <span class="g">Companion</span> &amp; Tray</h1>
+<p class="sub">Flow’s whole job is ambient awareness — so most days you never open the Workbench at all. A tiny always-on-top pill and a tray menu carry the current focus with you, and a gentle “welcome back” card catches you when you drift.</p>
+
+<div class="stage">
+  <div class="pin" style="top:52px;left:20px">1</div>
+  <div class="pin" style="top:168px;left:20px">2</div>
+  <div class="pin" style="top:26px;right:16px">3</div>
+  <div class="pin" style="bottom:150px;left:230px">4</div>
+
+  <div class="desk">
+    <div class="menubar">
+      <span>File</span><span>Edit</span><span>View</span>
+      <div class="right"><span class="tray-ic">≋ flo</span><span>14:26</span></div>
+    </div>
+    <div class="fake" style="left:120px;top:210px;width:480px;height:400px"><div class="bar"></div><div class="l" style="width:65%"></div><div class="l" style="width:80%"></div><div class="l" style="width:50%"></div></div>
+    <div class="fake" style="right:120px;top:330px;width:380px;height:290px"><div class="bar"></div><div class="l" style="width:70%"></div><div class="l" style="width:45%"></div></div>
+
+    <!-- 1: collapsed pill -->
+    <div class="pill">
+      <span class="dot"></span>
+      <span class="depth"><i></i><i></i></span>
+      <span class="t">answering support</span>
+      <time>23m</time>
+    </div>
+
+    <!-- 2: expanded on hover -->
+    <div class="pill-x">
+      <div class="row1"><span class="dot"></span><span>answering support</span><time>23m</time></div>
+      <div class="stackline">↳ in <b>improving AIDX</b> · ⌂ component-library</div>
+      <div class="acts">
+        <span class="a g">✓ done</span><span class="a">⧉ park</span><span class="a">⇤ back</span><span class="a">◨ open</span>
+      </div>
+    </div>
+    <div class="drag-hint">frameless, draggable, remembers its corner</div>
+
+    <!-- 3: tray flyout -->
+    <div class="tray">
+      <div class="sec">
+        <div class="cap">NOW</div>
+        <div class="now"><span class="dot"></span> answering support <time>23m</time></div>
+        <div class="sub2">↳ improving AIDX · ⎇ feature/aidx</div>
+      </div>
+      <div class="sec">
+        <div class="cap">RESUME — RECENT STREAMS</div>
+        <div class="item"><span class="st" style="background:var(--violet)"></span> reading article <kbd>parked</kbd></div>
+        <div class="item"><span class="st" style="background:var(--orange)"></span> wear os sync <kbd>2h</kbd></div>
+        <div class="item"><span class="st" style="background:var(--orange)"></span> component library docs <kbd>1d</kbd></div>
+      </div>
+      <div class="row-acts">
+        <span class="a">› quick capture ⌥␣</span><span class="a">⏸ pause all</span><span class="a">◨ workbench</span>
+      </div>
+    </div>
+
+    <!-- 4: welcome back -->
+    <div class="wb">
+      <div class="cap">WELCOME BACK · AWAY 25 MIN</div>
+      <h3>Where were you?</h3>
+      <p>You were 23 minutes into <b style="color:var(--text)">answering support</b>, branched off <i>improving AIDX</i>. Your last thought:</p>
+      <div class="last">“need to check auth flow” <time>— 14:02, on ⎇ feature/aidx</time></div>
+      <div class="acts">
+        <span class="a g">↻ resume where I left off</span>
+        <span class="a">⏸ actually, pause it</span>
+        <span class="a ghosty">✕ dismiss</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="legend">
+  <div class="leg"><span class="n">1</span><p><b>The pill.</b> A 30-pt always-on-top sliver: state dot, stack-depth dots (thread ▸ branch), title, time in focus. It answers “what am I supposed to be doing?” without a single click — the desktop equivalent of a shell prompt segment.</p></div>
+  <div class="leg"><span class="n">2</span><p><b>Hover to act.</b> The pill blooms into its four verbs — done, park, back, open. Every state change here is just a CLI command under the hood, written to the shared SQLite store; the TUI in your terminal sees it within 250 ms.</p></div>
+  <div class="leg"><span class="n">3</span><p><b>Tray as resume menu.</b> The tray icon carries the state colour. Its flyout shows the live stack plus the three most recently paused/parked streams — one click on <i>wear os sync</i> runs the same logic as <kbd>r</kbd> in the TUI: activate, auto-pause the rest.</p></div>
+  <div class="leg"><span class="n">4</span><p><b>The welcome-back card.</b> After system idle/unlock (Tauri can watch both), Flow doesn’t nag — it offers. Your last note is the memory jog; one key resumes, one key pauses honestly. Drift becomes data instead of guilt.</p></div>
+</div>
+
+<div class="foot">LIMINAL FLOW · TAURI DESKTOP CONCEPT — <a href="01-workbench.html">1 · Workbench</a> · <a href="02-quick-capture.html">2 · Quick Capture</a> · next: <a href="04-flow-map.html">4 · Flow Map</a></div>
+
+</body>
+</html>
